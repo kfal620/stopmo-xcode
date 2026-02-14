@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from typing import Any
+
+import numpy as np
+
+from stopmo_xcode.config import PipelineConfig
+
+from .arri_logc3 import encode_logc3_ei800
+from .lut_cube import CubeLUT, load_cube
+from .ocio_processor import OcioImageProcessor
+from .primaries import matrix_aces_to_awg_linear
+
+
+class ColorPipeline:
+    """Deterministic color pipeline from camera-linear to LogC3/AWG."""
+
+    def __init__(self, cfg: PipelineConfig) -> None:
+        self.cfg = cfg
+        self._camera_to_ref = np.asarray(cfg.camera_to_reference_matrix, dtype=np.float32)
+        self._aces_to_awg = matrix_aces_to_awg_linear().astype(np.float32)
+        self._lut: CubeLUT | None = None
+
+        if cfg.apply_match_lut and cfg.match_lut_path is not None:
+            self._lut = load_cube(cfg.match_lut_path)
+
+        self._ocio: OcioImageProcessor | None = None
+        if cfg.use_ocio:
+            if cfg.ocio_config_path is None:
+                raise ValueError("pipeline.use_ocio=true requires pipeline.ocio_config_path")
+            self._ocio = OcioImageProcessor(
+                config_path=cfg.ocio_config_path,
+                input_space=cfg.ocio_input_space,
+                output_space=cfg.ocio_output_space,
+            )
+
+    def transform(self, linear_camera_rgb: np.ndarray) -> np.ndarray:
+        x = np.asarray(linear_camera_rgb, dtype=np.float32)
+
+        if self._ocio is not None:
+            return self._ocio.apply(x)
+
+        ref = np.einsum("ij,...j->...i", self._camera_to_ref, x, optimize=True)
+        awg = np.einsum("ij,...j->...i", self._aces_to_awg, ref, optimize=True)
+
+        if self.cfg.exposure_offset_stops != 0.0:
+            awg = awg * (2.0 ** float(self.cfg.exposure_offset_stops))
+
+        if self._lut is not None:
+            awg = self._lut.apply(awg)
+
+        logc = encode_logc3_ei800(awg)
+        return logc
+
+    def version_hash(self) -> str:
+        payload: dict[str, Any] = {
+            "camera_to_reference_matrix": [[float(v) for v in row] for row in self.cfg.camera_to_reference_matrix],
+            "exposure_offset_stops": float(self.cfg.exposure_offset_stops),
+            "target_ei": int(self.cfg.target_ei),
+            "apply_match_lut": bool(self.cfg.apply_match_lut),
+            "match_lut_path": str(self.cfg.match_lut_path) if self.cfg.match_lut_path else None,
+            "use_ocio": bool(self.cfg.use_ocio),
+            "ocio_config_path": str(self.cfg.ocio_config_path) if self.cfg.ocio_config_path else None,
+            "ocio_input_space": self.cfg.ocio_input_space,
+            "ocio_output_space": self.cfg.ocio_output_space,
+        }
+        blob = json.dumps(payload, sort_keys=True).encode("utf-8")
+        return hashlib.sha256(blob).hexdigest()[:16]

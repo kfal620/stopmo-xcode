@@ -1,0 +1,2 @@
+[console_scripts]
+stopmo-xcode = stopmo_xcode.cli:main

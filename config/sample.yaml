@@ -1,0 +1,45 @@
+watch:
+  source_dir: "./sandbox/incoming"
+  working_dir: "./sandbox/work"
+  output_dir: "./sandbox/output"
+  db_path: "./sandbox/work/queue.sqlite3"
+  include_extensions: [".cr2", ".cr3", ".raw"]
+  stable_seconds: 3
+  poll_interval_seconds: 1
+  scan_interval_seconds: 5
+  max_workers: 2
+  shot_complete_seconds: 30
+  # Optional regex with one capture group to derive shot name from full path
+  # shot_regex: "/(SHOT_[0-9A-Za-z_-]+)/"
+
+pipeline:
+  # Camera linear -> reference (ACES2065-1 by default) matrix.
+  # Replace with camera-accurate IDT/profile when available.
+  camera_to_reference_matrix:
+    - [1.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0]
+    - [0.0, 0.0, 1.0]
+  exposure_offset_stops: 0.0
+  lock_wb_from_first_frame: true
+  target_ei: 800
+  apply_match_lut: false
+  match_lut_path: null
+
+  # OCIO path (preferred when config contains needed transforms)
+  use_ocio: false
+  ocio_config_path: null
+  ocio_input_space: "camera_linear"
+  ocio_reference_space: "ACES2065-1"
+  ocio_output_space: "ARRI_LogC3_EI800_AWG"
+
+output:
+  emit_per_frame_json: true
+  emit_truth_frame_pack: true
+  truth_frame_index: 1
+  write_debug_tiff: false
+  write_prores_on_shot_complete: false
+  framerate: 24
+  show_lut_rec709_path: null
+
+log_level: "INFO"
+log_file: "./sandbox/work/stopmo-xcode.log"

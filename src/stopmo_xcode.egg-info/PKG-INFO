@@ -1,0 +1,65 @@
+Metadata-Version: 2.4
+Name: stopmo-xcode
+Version: 0.1.0
+Summary: Deterministic stop-motion RAW to LogC3/AWG transcoder
+Author: stopmo-xcode
+License: MIT
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: numpy>=1.24
+Provides-Extra: watch
+Requires-Dist: watchdog>=4.0; extra == "watch"
+Provides-Extra: raw
+Requires-Dist: rawpy>=0.20; extra == "raw"
+Provides-Extra: ocio
+Requires-Dist: opencolorio>=2.3; extra == "ocio"
+Provides-Extra: io
+Requires-Dist: tifffile>=2024.2; extra == "io"
+Provides-Extra: video
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
+
+# stopmo-xcode
+
+`stopmo-xcode` is a cross-platform CLI for watching Dragonframe capture folders and deterministically transcoding incoming RAW still frames into ARRI-style LogC3/AWG deliverables.
+
+## Commands
+
+- `stopmo-xcode watch --config config/sample.yaml`
+- `stopmo-xcode transcode-one path/to/frame.CR3 --config config/sample.yaml`
+- `stopmo-xcode status --config config/sample.yaml`
+
+## Install (editable)
+
+```bash
+python -m pip install -e .[dev,raw,ocio,io]
+```
+
+Optional extras:
+
+- `.[watch]` for event-driven watcher support (`watchdog`)
+- `.[raw]` for LibRaw decode support (`rawpy`)
+- `.[ocio]` for OCIO-based transforms
+- `.[io]` for debug TIFF writer
+
+## Notes
+
+- Deterministic defaults: shot-level WB lock, no per-frame exposure normalization.
+- Persistent SQLite queue supports crash-safe resume.
+- DPX outputs are documented as `ARRI LogC3 EI800 + AWG` by interpretation contract.
+
+## Quick Start
+
+```bash
+stopmo-xcode watch --config config/sample.yaml
+```
+
+In another terminal, drop RAW frames into `sandbox/incoming`.
+
+Check queue state:
+
+```bash
+stopmo-xcode status --config config/sample.yaml
+```
