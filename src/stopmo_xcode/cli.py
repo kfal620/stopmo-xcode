@@ -31,6 +31,16 @@ def _build_parser() -> argparse.ArgumentParser:
     status.add_argument("--limit", type=int, default=20, help="Recent jobs limit")
     status.add_argument("--json", action="store_true", help="Emit machine-readable JSON")
 
+    suggest = sub.add_parser(
+        "suggest-matrix",
+        help="Suggest pipeline.camera_to_reference_matrix from RAW metadata",
+    )
+    suggest.add_argument("input", help="Input RAW frame path")
+    suggest.add_argument("--camera-make", default=None, help="Optional make override for known matrix fallback")
+    suggest.add_argument("--camera-model", default=None, help="Optional model override for known matrix fallback")
+    suggest.add_argument("--json", action="store_true", help="Emit machine-readable JSON report")
+    suggest.add_argument("--write-json", default=None, help="Optional path to write JSON report")
+
     return parser
 
 
@@ -107,6 +117,50 @@ def _cmd_status(args: argparse.Namespace) -> int:
         db.close()
 
 
+def _cmd_suggest_matrix(args: argparse.Namespace) -> int:
+    from stopmo_xcode.color.matrix_suggest import suggest_camera_to_reference_matrix
+
+    input_path = Path(args.input).expanduser().resolve()
+    report = suggest_camera_to_reference_matrix(
+        input_path,
+        reference_space="ACES2065-1",
+        camera_make_override=args.camera_make,
+        camera_model_override=args.camera_model,
+    )
+    payload = report.to_json_dict()
+
+    if args.write_json:
+        out = Path(args.write_json).expanduser().resolve()
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        payload["json_report_path"] = str(out)
+
+    if args.json:
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    camera_text = " ".join(v for v in [report.camera_make, report.camera_model] if v) or "unknown"
+    print(f"Input RAW: {report.input_path}")
+    print(f"Camera: {camera_text}")
+    print(f"Source: {report.source} (confidence: {report.confidence})")
+    print("Assumptions:")
+    for line in report.assumptions:
+        print(f"  - {line}")
+    if report.notes:
+        print("Notes:")
+        for line in report.notes:
+            print(f"  - {line}")
+    if report.warnings:
+        print("Warnings:")
+        for line in report.warnings:
+            print(f"  - {line}")
+    print("Suggested YAML snippet:")
+    print(report.to_yaml_block())
+    if args.write_json:
+        print(f"JSON report: {payload['json_report_path']}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -118,6 +172,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_transcode_one(args)
         if args.command == "status":
             return _cmd_status(args)
+        if args.command == "suggest-matrix":
+            return _cmd_suggest_matrix(args)
 
         parser.error(f"unknown command: {args.command}")
         return 2

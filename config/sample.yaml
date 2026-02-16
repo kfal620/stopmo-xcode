@@ -15,6 +15,9 @@ watch:
 pipeline:
   # Camera linear -> reference (ACES2065-1 by default) matrix.
   # Replace with camera-accurate IDT/profile when available.
+  # Helper:
+  #   stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model "EOS R" --write-json config/sample.matrix.json
+  # Then paste the printed YAML snippet here.
   camera_to_reference_matrix:
     - [1.0, 0.0, 0.0]
     - [0.0, 1.0, 0.0]

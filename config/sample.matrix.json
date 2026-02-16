@@ -1,0 +1,36 @@
+{
+  "input_path": "/Users/kyle/Documents/Coding/stopmo-xcode/config/sandbox/incoming/PAWPATROL_00104_AN0_X1_0002 copy 2.cr3",
+  "camera_make": "Canon",
+  "camera_model": "EOS R",
+  "source": "rawpy.rgb_xyz_matrix",
+  "confidence": "high",
+  "reference_space": "ACES2065-1",
+  "camera_to_reference_matrix": [
+    [
+      0.8822417916773548,
+      -0.19049448791392742,
+      -0.12525551224589587
+    ],
+    [
+      -0.7627945142430472,
+      0.9975376924562676,
+      0.2688144010548668
+    ],
+    [
+      -0.11338112948382426,
+      0.2572614578613056,
+      0.5605969610900857
+    ]
+  ],
+  "assumptions": [
+    "Input matrix is interpreted as camera-linear RGB -> CIE XYZ under D65.",
+    "Chromatic adaptation uses Bradford D65 -> D60.",
+    "Reference conversion is XYZ(D60) -> ACES2065-1 (AP0)."
+  ],
+  "warnings": [],
+  "notes": [
+    "Reduced 4x3 matrix to 3x3 by averaging green rows (G/G2).",
+    "Camera make was overridden from CLI input.",
+    "Camera model was overridden from CLI input."
+  ]
+}
