@@ -54,10 +54,10 @@ def _assembly_loop(config: AppConfig, stop_event: threading.Event) -> None:
             for shot_name in ready:
                 try:
                     shot_dir = config.watch.output_dir / shot_name
-                    dpx_pattern = str(shot_dir / "dpx" / f"{shot_name}_%04d.dpx")
+                    dpx_pattern = str(shot_dir / "dpx" / "*.dpx")
                     out_mov = shot_dir / f"{shot_name}_logc3_awg_prores4444.mov"
                     assemble_logc_prores_4444(
-                        dpx_pattern=dpx_pattern,
+                        dpx_glob=dpx_pattern,
                         out_mov=out_mov,
                         framerate=config.output.framerate,
                     )

@@ -46,8 +46,7 @@ def _wb_delta(a: tuple[float, float, float, float], b: tuple[float, float, float
 
 def _write_truth_pack(
     shot_dir: Path,
-    shot_name: str,
-    frame_number: int,
+    source_stem: str,
     logc: np.ndarray,
     dpx_path: Path,
 ) -> None:
@@ -55,7 +54,7 @@ def _write_truth_pack(
     truth_dir.mkdir(parents=True, exist_ok=True)
 
     # Keep a canonical DPX copy for QC.
-    truth_dpx = truth_dir / f"{shot_name}_{frame_number:04d}_truth_logc_awg.dpx"
+    truth_dpx = truth_dir / f"{source_stem}_truth_logc_awg.dpx"
     if not truth_dpx.exists():
         truth_dpx.write_bytes(dpx_path.read_bytes())
 
@@ -69,7 +68,7 @@ def _write_truth_pack(
     srgb = np.clip(linear, 0.0, 1.0) ** (1.0 / 2.2)
     out = np.rint(srgb * 255.0).astype(np.uint8)
 
-    preview = truth_dir / f"{shot_name}_{frame_number:04d}_preview_rec709ish.png"
+    preview = truth_dir / f"{source_stem}_preview_rec709ish.png"
     if not preview.exists():
         Image.fromarray(out, mode="RGB").save(preview)
 
@@ -140,12 +139,12 @@ class JobProcessor:
 
             shot_dir = self.config.watch.output_dir / job.shot_name
             dpx_dir = shot_dir / "dpx"
-            frame_name = f"{job.shot_name}_{job.frame_number:04d}"
-            dpx_path = dpx_dir / f"{frame_name}.dpx"
+            source_stem = source_path.stem
+            dpx_path = dpx_dir / f"{source_stem}.dpx"
             write_dpx10_logc_awg(dpx_path, logc)
 
             if self.config.output.write_debug_tiff:
-                debug_path = shot_dir / "debug_linear" / f"{frame_name}.tiff"
+                debug_path = shot_dir / "debug_linear" / f"{source_stem}.tiff"
                 write_linear_debug_tiff(debug_path, decoded.linear_camera_rgb)
 
             source_sha = sha256_file(source_path)
@@ -157,7 +156,7 @@ class JobProcessor:
             )
 
             if self.config.output.emit_truth_frame_pack and job.frame_number == self.config.output.truth_frame_index:
-                _write_truth_pack(shot_dir, job.shot_name, job.frame_number, logc, dpx_path)
+                _write_truth_pack(shot_dir, source_stem, logc, dpx_path)
 
             self.db.mark_done(job.id, output_path=dpx_path, source_sha256=source_sha)
             self.db.mark_shot_frame_done(job.shot_name)
@@ -205,6 +204,6 @@ class JobProcessor:
                 metadata=metadata,
             )
             write_frame_record(
-                shot_dir / "frame_json" / f"{job.shot_name}_{job.frame_number:04d}.json",
+                shot_dir / "frame_json" / f"{Path(job.source_path).stem}.json",
                 record,
             )

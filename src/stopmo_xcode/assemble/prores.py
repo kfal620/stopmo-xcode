@@ -21,7 +21,7 @@ def _require_ffmpeg() -> str:
 
 
 def assemble_logc_prores_4444(
-    dpx_pattern: str,
+    dpx_glob: str,
     out_mov: Path,
     framerate: int,
 ) -> None:
@@ -31,10 +31,12 @@ def assemble_logc_prores_4444(
     cmd = [
         ffmpeg,
         "-y",
+        "-pattern_type",
+        "glob",
         "-framerate",
         str(framerate),
         "-i",
-        dpx_pattern,
+        dpx_glob,
         "-c:v",
         "prores_ks",
         "-profile:v",

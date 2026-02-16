@@ -46,3 +46,4 @@ tests/test_completion_tracker.py
 tests/test_config.py
 tests/test_dpx_writer.py
 tests/test_queue_db.py
+tests/test_shot_naming.py
