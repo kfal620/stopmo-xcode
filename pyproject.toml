@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 watch = ["watchdog>=4.0"]
-raw = ["rawpy>=0.20"]
+raw = ["rawpy>=0.20", "exifread>=3.0"]
 ocio = ["opencolorio>=2.3"]
 io = ["tifffile>=2024.2"]
 video = []

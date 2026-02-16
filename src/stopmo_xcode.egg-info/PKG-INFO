@@ -12,6 +12,7 @@ Provides-Extra: watch
 Requires-Dist: watchdog>=4.0; extra == "watch"
 Provides-Extra: raw
 Requires-Dist: rawpy>=0.20; extra == "raw"
+Requires-Dist: exifread>=3.0; extra == "raw"
 Provides-Extra: ocio
 Requires-Dist: opencolorio>=2.3; extra == "ocio"
 Provides-Extra: io

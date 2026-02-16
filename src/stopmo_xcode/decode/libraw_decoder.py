@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 
 from .base import DecodeError, MissingDependencyError
+from .exif_metadata import extract_exif_metadata
 from .types import DecodedFrame, RawMetadata
 
 
@@ -15,7 +16,7 @@ except Exception:  # pragma: no cover - dependency is optional
     rawpy = None
 
 
-def _safe_meta(raw: Any, key: str) -> float | None:
+def _safe_meta_from_rawpy(raw: Any, key: str) -> float | None:
     meta = getattr(raw, "metadata", None)
     if meta is None:
         return None
@@ -88,6 +89,7 @@ class LibRawDecoder:
 
                 white_level = getattr(raw, "white_level", None)
                 white_i = int(white_level) if white_level is not None else None
+                exif = extract_exif_metadata(path)
 
                 metadata = RawMetadata(
                     source_path=path,
@@ -101,9 +103,13 @@ class LibRawDecoder:
                     black_level_per_channel=black_tuple,
                     white_level=white_i,
                     cfa_pattern=_cfa_pattern(raw),
-                    iso=_safe_meta(raw, "iso_speed"),
-                    shutter_s=_safe_meta(raw, "shutter"),
-                    aperture_f=_safe_meta(raw, "aperture"),
+                    iso=exif.iso if exif.iso is not None else _safe_meta_from_rawpy(raw, "iso_speed"),
+                    shutter_s=(
+                        exif.shutter_s if exif.shutter_s is not None else _safe_meta_from_rawpy(raw, "shutter")
+                    ),
+                    aperture_f=(
+                        exif.aperture_f if exif.aperture_f is not None else _safe_meta_from_rawpy(raw, "aperture")
+                    ),
                 )
 
                 return DecodedFrame(linear_camera_rgb=linear, metadata=metadata)

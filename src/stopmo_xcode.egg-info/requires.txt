@@ -13,6 +13,7 @@ opencolorio>=2.3
 
 [raw]
 rawpy>=0.20
+exifread>=3.0
 
 [video]
 

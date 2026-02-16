@@ -13,6 +13,7 @@ from stopmo_xcode.color import ColorPipeline, decode_logc3_ei800
 from stopmo_xcode.config import AppConfig
 from stopmo_xcode.decode import DecodeError, DecoderRegistry, MissingDependencyError
 from stopmo_xcode.queue import Job, JobState, QueueDB
+from stopmo_xcode.utils.formatting import shutter_seconds_to_fraction
 from stopmo_xcode.utils.hash import sha256_file
 from stopmo_xcode.write import (
     FrameRecord,
@@ -76,6 +77,7 @@ def _write_truth_pack(
 def _metadata_for_frame(meta: Any) -> dict[str, Any]:
     data = asdict(meta)
     data["source_path"] = str(meta.source_path)
+    data["shutter_s"] = shutter_seconds_to_fraction(meta.shutter_s)
     return data
 
 

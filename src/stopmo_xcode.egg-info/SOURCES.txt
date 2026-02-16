@@ -23,6 +23,7 @@ src/stopmo_xcode/color/primaries.py
 src/stopmo_xcode/decode/__init__.py
 src/stopmo_xcode/decode/base.py
 src/stopmo_xcode/decode/dragonframe_raw_decoder.py
+src/stopmo_xcode/decode/exif_metadata.py
 src/stopmo_xcode/decode/libraw_decoder.py
 src/stopmo_xcode/decode/registry.py
 src/stopmo_xcode/decode/types.py
@@ -45,5 +46,6 @@ tests/test_color_pipeline.py
 tests/test_completion_tracker.py
 tests/test_config.py
 tests/test_dpx_writer.py
+tests/test_exif_metadata.py
 tests/test_queue_db.py
 tests/test_shot_naming.py
