@@ -32,6 +32,7 @@ Requires-Dist: pytest-cov>=5.0; extra == "dev"
 - `stopmo-xcode transcode-one path/to/frame.CR3 --config config/sample.yaml`
 - `stopmo-xcode status --config config/sample.yaml`
 - `stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model "EOS R" --write-json config/sample.matrix.json`
+- `stopmo-xcode dpx-to-prores path/to/output_root --framerate 24`
 
 ## Install (editable)
 
@@ -51,6 +52,20 @@ Optional extras:
 - Deterministic defaults: shot-level WB lock, no per-frame exposure normalization.
 - Persistent SQLite queue supports crash-safe resume.
 - DPX outputs are documented as `ARRI LogC3 EI800 + AWG` by interpretation contract.
+
+## Exposure Metadata Compensation
+
+Exposure offset can combine multiple optional metadata terms:
+
+- ISO term: `log2(target_ei / frame_iso)`
+- Shutter term: `log2(target_shutter_s / frame_shutter_s)`
+- Aperture term: `2*log2(frame_aperture_f / target_aperture_f)`
+
+Enable/disable each term with:
+
+- `pipeline.auto_exposure_from_iso`
+- `pipeline.auto_exposure_from_shutter` with `pipeline.target_shutter_s`
+- `pipeline.auto_exposure_from_aperture` with `pipeline.target_aperture_f`
 
 ## Contrast Control
 
@@ -72,6 +87,23 @@ Check queue state:
 ```bash
 stopmo-xcode status --config config/sample.yaml
 ```
+
+## Batch DPX To ProRes
+
+Convert nested shot DPX sequences to ProRes 4444 (LogC3 values preserved, no LUT applied):
+
+```bash
+stopmo-xcode dpx-to-prores <path/to/output_root> --framerate 24
+```
+
+Example:
+stopmo-xcode dpx-to-prores <input_dir> [--out-dir ...] [--framerate 24] [--no-overwrite] [--json]
+
+- Scans only `*/dpx/*.dpx` sequences (ignores `truth_frame/`).
+- Output root defaults to `path/to/output_root/PRORES`.
+- Output clip name is the DPX sequence stem minus trailing frame number.
+  - Example: `PAW_0001.dpx` -> `PAW.mov`
+- Clips are written flat into `PRORES` (no shot subfolders).
 
 ## Suggest Camera Matrix
 

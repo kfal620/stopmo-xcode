@@ -7,7 +7,7 @@ watch:
   stable_seconds: 3
   poll_interval_seconds: 1
   scan_interval_seconds: 5
-  max_workers: 2
+  max_workers: 4
   shot_complete_seconds: 30
   # Optional regex with one capture group to derive shot name from full path
   # shot_regex: "/(SHOT_[0-9A-Za-z_-]+)/"
