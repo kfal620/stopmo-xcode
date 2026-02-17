@@ -29,6 +29,10 @@ class PipelineConfig:
     )
     exposure_offset_stops: float = 0.0
     auto_exposure_from_iso: bool = False
+    auto_exposure_from_shutter: bool = False
+    target_shutter_s: float | None = None
+    auto_exposure_from_aperture: bool = False
+    target_aperture_f: float | None = None
     contrast: float = 1.0
     contrast_pivot_linear: float = 0.18
     lock_wb_from_first_frame: bool = True
@@ -117,6 +121,18 @@ def load_config(path: str | Path) -> AppConfig:
         camera_to_reference_matrix=_as_tuple_matrix(matrix_raw),
         exposure_offset_stops=float(pipeline_raw.get("exposure_offset_stops", 0.0)),
         auto_exposure_from_iso=bool(pipeline_raw.get("auto_exposure_from_iso", False)),
+        auto_exposure_from_shutter=bool(pipeline_raw.get("auto_exposure_from_shutter", False)),
+        target_shutter_s=(
+            float(pipeline_raw.get("target_shutter_s"))
+            if pipeline_raw.get("target_shutter_s") not in (None, "")
+            else None
+        ),
+        auto_exposure_from_aperture=bool(pipeline_raw.get("auto_exposure_from_aperture", False)),
+        target_aperture_f=(
+            float(pipeline_raw.get("target_aperture_f"))
+            if pipeline_raw.get("target_aperture_f") not in (None, "")
+            else None
+        ),
         contrast=float(pipeline_raw.get("contrast", 1.0)),
         contrast_pivot_linear=float(pipeline_raw.get("contrast_pivot_linear", 0.18)),
         lock_wb_from_first_frame=bool(pipeline_raw.get("lock_wb_from_first_frame", True)),

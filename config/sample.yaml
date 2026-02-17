@@ -22,10 +22,16 @@ pipeline:
     - [1.0, 0.0, 0.0]
     - [0.0, 1.0, 0.0]
     - [0.0, 0.0, 1.0]
-  exposure_offset_stops: 0
+  exposure_offset_stops: 2
   # If true, adds log2(target_ei / frame_iso) to exposure_offset_stops.
   # Example: ISO 200 -> EI 800 adds +2.0 stops.
-  auto_exposure_from_iso: true
+  auto_exposure_from_iso: false
+  # If true, adds log2(target_shutter_s / frame_shutter_s). Shutter in seconds.
+  auto_exposure_from_shutter: false
+  target_shutter_s: null
+  # If true, adds 2*log2(frame_aperture_f / target_aperture_f).
+  auto_exposure_from_aperture: false
+  target_aperture_f: null
   # Log-domain contrast around a linear pivot (1.0 = no change).
   contrast: 1.25
   contrast_pivot_linear: 0.18

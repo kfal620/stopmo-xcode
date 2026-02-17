@@ -24,5 +24,9 @@ watch:
     assert cfg.watch.output_dir.exists()
     assert cfg.watch.db_path.parent.exists()
     assert cfg.pipeline.auto_exposure_from_iso is False
+    assert cfg.pipeline.auto_exposure_from_shutter is False
+    assert cfg.pipeline.target_shutter_s is None
+    assert cfg.pipeline.auto_exposure_from_aperture is False
+    assert cfg.pipeline.target_aperture_f is None
     assert cfg.pipeline.contrast == 1.0
     assert cfg.pipeline.contrast_pivot_linear == 0.18

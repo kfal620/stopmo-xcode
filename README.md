@@ -29,6 +29,20 @@ Optional extras:
 - Persistent SQLite queue supports crash-safe resume.
 - DPX outputs are documented as `ARRI LogC3 EI800 + AWG` by interpretation contract.
 
+## Exposure Metadata Compensation
+
+Exposure offset can combine multiple optional metadata terms:
+
+- ISO term: `log2(target_ei / frame_iso)`
+- Shutter term: `log2(target_shutter_s / frame_shutter_s)`
+- Aperture term: `2*log2(frame_aperture_f / target_aperture_f)`
+
+Enable/disable each term with:
+
+- `pipeline.auto_exposure_from_iso`
+- `pipeline.auto_exposure_from_shutter` with `pipeline.target_shutter_s`
+- `pipeline.auto_exposure_from_aperture` with `pipeline.target_aperture_f`
+
 ## Contrast Control
 
 Pipeline contrast is applied in LogC3 domain with a pivot:

@@ -52,23 +52,67 @@ def _iso_compensation_stops(iso: float | None, target_ei: int) -> float | None:
     return float(math.log2(float(target_ei) / float(iso)))
 
 
+def _shutter_compensation_stops(frame_shutter_s: float | None, target_shutter_s: float | None) -> float | None:
+    if frame_shutter_s is None or frame_shutter_s <= 0.0:
+        return None
+    if target_shutter_s is None or target_shutter_s <= 0.0:
+        return None
+    return float(math.log2(float(target_shutter_s) / float(frame_shutter_s)))
+
+
+def _aperture_compensation_stops(frame_aperture_f: float | None, target_aperture_f: float | None) -> float | None:
+    if frame_aperture_f is None or frame_aperture_f <= 0.0:
+        return None
+    if target_aperture_f is None or target_aperture_f <= 0.0:
+        return None
+    return float(2.0 * math.log2(float(frame_aperture_f) / float(target_aperture_f)))
+
+
 def _effective_exposure_offset_stops(
     base_offset_stops: float,
     auto_exposure_from_iso: bool,
     target_ei: int,
     frame_iso: float | None,
+    auto_exposure_from_shutter: bool,
+    target_shutter_s: float | None,
+    frame_shutter_s: float | None,
+    auto_exposure_from_aperture: bool,
+    target_aperture_f: float | None,
+    frame_aperture_f: float | None,
     locked_shot_offset_stops: float | None,
-) -> tuple[float, bool]:
-    if auto_exposure_from_iso:
-        iso_stops = _iso_compensation_stops(frame_iso, target_ei)
-        if iso_stops is None:
-            return float(base_offset_stops), False
-        return float(base_offset_stops) + float(iso_stops), True
+) -> tuple[float, tuple[str, ...]]:
+    auto_enabled = bool(auto_exposure_from_iso or auto_exposure_from_shutter or auto_exposure_from_aperture)
+    if auto_enabled:
+        out = float(base_offset_stops)
+        missing: list[str] = []
+
+        if auto_exposure_from_iso:
+            iso_stops = _iso_compensation_stops(frame_iso, target_ei)
+            if iso_stops is None:
+                missing.append("iso")
+            else:
+                out += float(iso_stops)
+
+        if auto_exposure_from_shutter:
+            shutter_stops = _shutter_compensation_stops(frame_shutter_s, target_shutter_s)
+            if shutter_stops is None:
+                missing.append("shutter_s")
+            else:
+                out += float(shutter_stops)
+
+        if auto_exposure_from_aperture:
+            aperture_stops = _aperture_compensation_stops(frame_aperture_f, target_aperture_f)
+            if aperture_stops is None:
+                missing.append("aperture_f")
+            else:
+                out += float(aperture_stops)
+
+        return out, tuple(missing)
 
     if locked_shot_offset_stops is not None:
-        return float(locked_shot_offset_stops), True
+        return float(locked_shot_offset_stops), ()
 
-    return float(base_offset_stops), True
+    return float(base_offset_stops), ()
 
 
 def _write_truth_pack(
@@ -137,19 +181,26 @@ class JobProcessor:
 
             decoded = self.decoder.decode(source_path, wb_override=wb_override)
 
-            effective_offset, has_effective = _effective_exposure_offset_stops(
+            effective_offset, missing_inputs = _effective_exposure_offset_stops(
                 base_offset_stops=float(self.config.pipeline.exposure_offset_stops),
                 auto_exposure_from_iso=bool(self.config.pipeline.auto_exposure_from_iso),
                 target_ei=int(self.config.pipeline.target_ei),
                 frame_iso=decoded.metadata.iso,
+                auto_exposure_from_shutter=bool(self.config.pipeline.auto_exposure_from_shutter),
+                target_shutter_s=self.config.pipeline.target_shutter_s,
+                frame_shutter_s=decoded.metadata.shutter_s,
+                auto_exposure_from_aperture=bool(self.config.pipeline.auto_exposure_from_aperture),
+                target_aperture_f=self.config.pipeline.target_aperture_f,
+                frame_aperture_f=decoded.metadata.aperture_f,
                 locked_shot_offset_stops=(
                     float(shot_settings.exposure_offset_stops) if shot_settings is not None else None
                 ),
             )
-            if self.config.pipeline.auto_exposure_from_iso and not has_effective:
+            if missing_inputs:
                 logger.warning(
-                    "auto_exposure_from_iso enabled but ISO metadata is missing/invalid for %s; using base offset",
+                    "auto exposure metadata compensation missing/invalid for %s fields=%s; using available terms only",
                     source_path.name,
+                    ",".join(missing_inputs),
                 )
 
             if self.config.pipeline.lock_wb_from_first_frame and shot_settings is None:
