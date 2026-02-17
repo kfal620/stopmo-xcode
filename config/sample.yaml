@@ -26,6 +26,9 @@ pipeline:
   # If true, adds log2(target_ei / frame_iso) to exposure_offset_stops.
   # Example: ISO 200 -> EI 800 adds +2.0 stops.
   auto_exposure_from_iso: true
+  # Log-domain contrast around a linear pivot (1.0 = no change).
+  contrast: 1.0
+  contrast_pivot_linear: 0.18
   lock_wb_from_first_frame: true
   target_ei: 800
   apply_match_lut: false

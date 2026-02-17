@@ -21,6 +21,16 @@ class ColorPipeline:
         self.cfg = cfg
         self._camera_to_ref = np.asarray(cfg.camera_to_reference_matrix, dtype=np.float32)
         self._aces_to_awg = matrix_aces_to_awg_linear().astype(np.float32)
+        self._contrast = float(cfg.contrast)
+        self._contrast_pivot_linear = float(cfg.contrast_pivot_linear)
+        self._contrast_pivot_logc = float(
+            encode_logc3_ei800(
+                np.array(
+                    [[[self._contrast_pivot_linear, self._contrast_pivot_linear, self._contrast_pivot_linear]]],
+                    dtype=np.float32,
+                )
+            )[0, 0, 1]
+        )
         self._lut: CubeLUT | None = None
 
         if cfg.apply_match_lut and cfg.match_lut_path is not None:
@@ -57,6 +67,9 @@ class ColorPipeline:
             awg = self._lut.apply(awg)
 
         logc = encode_logc3_ei800(awg)
+        if self._contrast != 1.0:
+            logc = self._contrast_pivot_logc + (logc - self._contrast_pivot_logc) * self._contrast
+            logc = np.clip(logc, 0.0, 1.0)
         return logc
 
     def version_hash(self) -> str:
@@ -64,6 +77,8 @@ class ColorPipeline:
             "camera_to_reference_matrix": [[float(v) for v in row] for row in self.cfg.camera_to_reference_matrix],
             "exposure_offset_stops": float(self.cfg.exposure_offset_stops),
             "auto_exposure_from_iso": bool(self.cfg.auto_exposure_from_iso),
+            "contrast": float(self.cfg.contrast),
+            "contrast_pivot_linear": float(self.cfg.contrast_pivot_linear),
             "target_ei": int(self.cfg.target_ei),
             "apply_match_lut": bool(self.cfg.apply_match_lut),
             "match_lut_path": str(self.cfg.match_lut_path) if self.cfg.match_lut_path else None,

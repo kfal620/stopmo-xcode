@@ -29,6 +29,8 @@ class PipelineConfig:
     )
     exposure_offset_stops: float = 0.0
     auto_exposure_from_iso: bool = False
+    contrast: float = 1.0
+    contrast_pivot_linear: float = 0.18
     lock_wb_from_first_frame: bool = True
     target_ei: int = 800
     apply_match_lut: bool = False
@@ -115,6 +117,8 @@ def load_config(path: str | Path) -> AppConfig:
         camera_to_reference_matrix=_as_tuple_matrix(matrix_raw),
         exposure_offset_stops=float(pipeline_raw.get("exposure_offset_stops", 0.0)),
         auto_exposure_from_iso=bool(pipeline_raw.get("auto_exposure_from_iso", False)),
+        contrast=float(pipeline_raw.get("contrast", 1.0)),
+        contrast_pivot_linear=float(pipeline_raw.get("contrast_pivot_linear", 0.18)),
         lock_wb_from_first_frame=bool(pipeline_raw.get("lock_wb_from_first_frame", True)),
         target_ei=int(pipeline_raw.get("target_ei", 800)),
         apply_match_lut=bool(pipeline_raw.get("apply_match_lut", False)),
