@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 import logging
+import math
 from pathlib import Path
 from typing import Any
 from datetime import datetime, timezone
@@ -43,6 +44,12 @@ def _wb_delta(a: tuple[float, float, float, float], b: tuple[float, float, float
     av = np.array(a, dtype=np.float32)
     bv = np.array(b, dtype=np.float32)
     return float(np.max(np.abs(av - bv)))
+
+
+def _iso_compensation_stops(iso: float | None, target_ei: int) -> float | None:
+    if iso is None or iso <= 0.0 or target_ei <= 0:
+        return None
+    return float(math.log2(float(target_ei) / float(iso)))
 
 
 def _write_truth_pack(
@@ -111,14 +118,30 @@ class JobProcessor:
 
             decoded = self.decoder.decode(source_path, wb_override=wb_override)
 
+            auto_stops = 0.0
+            if self.config.pipeline.auto_exposure_from_iso:
+                iso_stops = _iso_compensation_stops(decoded.metadata.iso, self.config.pipeline.target_ei)
+                if iso_stops is not None:
+                    auto_stops = iso_stops
+                else:
+                    logger.warning(
+                        "auto_exposure_from_iso enabled but ISO metadata is missing/invalid for %s; using base offset",
+                        source_path.name,
+                    )
+
+            effective_offset = float(self.config.pipeline.exposure_offset_stops) + auto_stops
+
             if self.config.pipeline.lock_wb_from_first_frame and shot_settings is None:
                 self.db.set_shot_settings(
                     shot_name=job.shot_name,
                     wb_multipliers=decoded.metadata.wb_multipliers,
-                    exposure_offset_stops=self.config.pipeline.exposure_offset_stops,
+                    exposure_offset_stops=effective_offset,
                     reference_source_path=source_path,
                 )
                 shot_settings = self.db.get_shot_settings(job.shot_name)
+
+            if shot_settings is not None:
+                effective_offset = shot_settings.exposure_offset_stops
 
             if shot_settings is not None and decoded.metadata.as_shot_wb_multipliers is not None:
                 drift = _wb_delta(shot_settings.wb_multipliers, decoded.metadata.as_shot_wb_multipliers)
@@ -135,7 +158,7 @@ class JobProcessor:
 
             self.db.transition(job.id, from_state=JobState.DECODING, to_state=JobState.XFORM)
 
-            logc = self.color.transform(decoded.linear_camera_rgb)
+            logc = self.color.transform(decoded.linear_camera_rgb, exposure_offset_stops=effective_offset)
 
             self.db.transition(job.id, from_state=JobState.XFORM, to_state=JobState.DPX_WRITE)
 
@@ -155,6 +178,7 @@ class JobProcessor:
                 source_sha256=source_sha,
                 dpx_path=dpx_path,
                 metadata=_metadata_for_frame(decoded.metadata),
+                effective_offset_stops=effective_offset,
             )
 
             if self.config.output.emit_truth_frame_pack and job.frame_number == self.config.output.truth_frame_index:
@@ -177,7 +201,14 @@ class JobProcessor:
             logger.exception("pipeline failed for job=%s", job.id)
             self.db.mark_failed(job.id, msg)
 
-    def _write_sidecars(self, job: Job, source_sha256: str, dpx_path: Path, metadata: dict[str, Any]) -> None:
+    def _write_sidecars(
+        self,
+        job: Job,
+        source_sha256: str,
+        dpx_path: Path,
+        metadata: dict[str, Any],
+        effective_offset_stops: float,
+    ) -> None:
         shot_dir = self.config.watch.output_dir / job.shot_name
         shot_dir.mkdir(parents=True, exist_ok=True)
 
@@ -189,7 +220,7 @@ class JobProcessor:
             output_encoding="ARRI LogC3",
             output_gamut="ARRI Wide Gamut",
             locked_wb_multipliers=wb_locked,
-            exposure_offset_stops=self.config.pipeline.exposure_offset_stops,
+            exposure_offset_stops=float(effective_offset_stops),
             pipeline_hash=self.color.version_hash(),
             tool_version=__version__,
             created_at_utc=datetime.now(timezone.utc).isoformat(),

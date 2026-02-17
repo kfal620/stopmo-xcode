@@ -22,7 +22,10 @@ pipeline:
     - [1.0, 0.0, 0.0]
     - [0.0, 1.0, 0.0]
     - [0.0, 0.0, 1.0]
-  exposure_offset_stops: 0.0
+  exposure_offset_stops: 0
+  # If true, adds log2(target_ei / frame_iso) to exposure_offset_stops.
+  # Example: ISO 200 -> EI 800 adds +2.0 stops.
+  auto_exposure_from_iso: true
   lock_wb_from_first_frame: true
   target_ei: 800
   apply_match_lut: false

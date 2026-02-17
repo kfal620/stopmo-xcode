@@ -23,3 +23,4 @@ watch:
     assert cfg.watch.working_dir.exists()
     assert cfg.watch.output_dir.exists()
     assert cfg.watch.db_path.parent.exists()
+    assert cfg.pipeline.auto_exposure_from_iso is False

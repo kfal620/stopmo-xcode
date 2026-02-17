@@ -36,7 +36,7 @@ class ColorPipeline:
                 output_space=cfg.ocio_output_space,
             )
 
-    def transform(self, linear_camera_rgb: np.ndarray) -> np.ndarray:
+    def transform(self, linear_camera_rgb: np.ndarray, exposure_offset_stops: float | None = None) -> np.ndarray:
         x = np.asarray(linear_camera_rgb, dtype=np.float32)
 
         if self._ocio is not None:
@@ -45,8 +45,13 @@ class ColorPipeline:
         ref = np.einsum("ij,...j->...i", self._camera_to_ref, x, optimize=True)
         awg = np.einsum("ij,...j->...i", self._aces_to_awg, ref, optimize=True)
 
-        if self.cfg.exposure_offset_stops != 0.0:
-            awg = awg * (2.0 ** float(self.cfg.exposure_offset_stops))
+        effective_exposure = (
+            float(self.cfg.exposure_offset_stops)
+            if exposure_offset_stops is None
+            else float(exposure_offset_stops)
+        )
+        if effective_exposure != 0.0:
+            awg = awg * (2.0 ** effective_exposure)
 
         if self._lut is not None:
             awg = self._lut.apply(awg)
@@ -58,6 +63,7 @@ class ColorPipeline:
         payload: dict[str, Any] = {
             "camera_to_reference_matrix": [[float(v) for v in row] for row in self.cfg.camera_to_reference_matrix],
             "exposure_offset_stops": float(self.cfg.exposure_offset_stops),
+            "auto_exposure_from_iso": bool(self.cfg.auto_exposure_from_iso),
             "target_ei": int(self.cfg.target_ei),
             "apply_match_lut": bool(self.cfg.apply_match_lut),
             "match_lut_path": str(self.cfg.match_lut_path) if self.cfg.match_lut_path else None,
