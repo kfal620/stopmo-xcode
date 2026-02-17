@@ -19,9 +19,9 @@ pipeline:
   #   stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model "EOS R" --write-json config/sample.matrix.json
   # Then paste the printed YAML snippet here.
   camera_to_reference_matrix:
-    - [0.88224179, -0.19049449, -0.12525551]
-    - [-0.76279451, 0.99753769, 0.26881440]
-    - [-0.11338113, 0.25726146, 0.56059696]
+    - [1.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0]
+    - [0.0, 0.0, 1.0]
   exposure_offset_stops: 0.0
   lock_wb_from_first_frame: true
   target_ei: 800

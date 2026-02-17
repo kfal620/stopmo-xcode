@@ -31,6 +31,7 @@ Requires-Dist: pytest-cov>=5.0; extra == "dev"
 - `stopmo-xcode watch --config config/sample.yaml`
 - `stopmo-xcode transcode-one path/to/frame.CR3 --config config/sample.yaml`
 - `stopmo-xcode status --config config/sample.yaml`
+- `stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model "EOS R" --write-json config/sample.matrix.json`
 
 ## Install (editable)
 
@@ -64,3 +65,16 @@ Check queue state:
 ```bash
 stopmo-xcode status --config config/sample.yaml
 ```
+
+## Suggest Camera Matrix
+
+Use one representative RAW still from your camera to generate a starting
+`pipeline.camera_to_reference_matrix` for ACES2065-1:
+
+```bash
+stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model "EOS R" --write-json config/sample.matrix.json
+```
+
+The command prints a YAML snippet you can paste into `config/sample.yaml` and
+writes a JSON report with source/provenance, assumptions, notes, and warnings.
+An example report schema is provided at `config/sample.matrix.json`.

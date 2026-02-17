@@ -17,6 +17,7 @@ src/stopmo_xcode/assemble/prores.py
 src/stopmo_xcode/color/__init__.py
 src/stopmo_xcode/color/arri_logc3.py
 src/stopmo_xcode/color/lut_cube.py
+src/stopmo_xcode/color/matrix_suggest.py
 src/stopmo_xcode/color/ocio_processor.py
 src/stopmo_xcode/color/pipeline.py
 src/stopmo_xcode/color/primaries.py
@@ -31,6 +32,7 @@ src/stopmo_xcode/pipeline/__init__.py
 src/stopmo_xcode/pipeline/versioning.py
 src/stopmo_xcode/queue/__init__.py
 src/stopmo_xcode/queue/db.py
+src/stopmo_xcode/utils/formatting.py
 src/stopmo_xcode/utils/hash.py
 src/stopmo_xcode/utils/logging_utils.py
 src/stopmo_xcode/utils/shot.py
@@ -47,5 +49,7 @@ tests/test_completion_tracker.py
 tests/test_config.py
 tests/test_dpx_writer.py
 tests/test_exif_metadata.py
+tests/test_formatting.py
+tests/test_matrix_suggest.py
 tests/test_queue_db.py
 tests/test_shot_naming.py
