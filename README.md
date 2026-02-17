@@ -55,8 +55,11 @@ stopmo-xcode status --config config/sample.yaml
 Convert nested shot DPX sequences to ProRes 4444 (LogC3 values preserved, no LUT applied):
 
 ```bash
-stopmo-xcode dpx-to-prores path/to/output_root --framerate 24
+stopmo-xcode dpx-to-prores <path/to/output_root> --framerate 24
 ```
+
+Example:
+stopmo-xcode dpx-to-prores <input_dir> [--out-dir ...] [--framerate 24] [--no-overwrite] [--json]
 
 - Scans only `*/dpx/*.dpx` sequences (ignores `truth_frame/`).
 - Output root defaults to `path/to/output_root/PRORES`.
