@@ -41,6 +41,24 @@ def _build_parser() -> argparse.ArgumentParser:
     suggest.add_argument("--json", action="store_true", help="Emit machine-readable JSON report")
     suggest.add_argument("--write-json", default=None, help="Optional path to write JSON report")
 
+    dpx_to_prores = sub.add_parser(
+        "dpx-to-prores",
+        help="Batch convert nested dpx sequences into LogC3 ProRes 4444 clips",
+    )
+    dpx_to_prores.add_argument("input_dir", help="Root directory containing shot subfolders with dpx folders")
+    dpx_to_prores.add_argument(
+        "--out-dir",
+        default=None,
+        help="Output root directory (default: <input_dir>/PRORES)",
+    )
+    dpx_to_prores.add_argument("--framerate", type=int, default=24, help="Output movie framerate")
+    dpx_to_prores.add_argument(
+        "--no-overwrite",
+        action="store_true",
+        help="Do not overwrite existing .mov files",
+    )
+    dpx_to_prores.add_argument("--json", action="store_true", help="Emit machine-readable JSON report")
+
     return parser
 
 
@@ -161,6 +179,36 @@ def _cmd_suggest_matrix(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_dpx_to_prores(args: argparse.Namespace) -> int:
+    from stopmo_xcode.assemble import convert_dpx_sequences_to_prores
+
+    input_dir = Path(args.input_dir).expanduser().resolve()
+    out_dir = Path(args.out_dir).expanduser().resolve() if args.out_dir else None
+    outputs = convert_dpx_sequences_to_prores(
+        input_root=input_dir,
+        output_root=out_dir,
+        framerate=int(args.framerate),
+        overwrite=not bool(args.no_overwrite),
+    )
+
+    if args.json:
+        payload = {
+            "input_dir": str(input_dir),
+            "output_dir": str((out_dir or (input_dir / "PRORES")).resolve()),
+            "count": len(outputs),
+            "outputs": [str(p) for p in outputs],
+        }
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    resolved_output = (out_dir or (input_dir / "PRORES")).resolve()
+    print(f"Output root: {resolved_output}")
+    print(f"Created clips: {len(outputs)}")
+    for p in outputs:
+        print(f"  {p}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -174,6 +222,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_status(args)
         if args.command == "suggest-matrix":
             return _cmd_suggest_matrix(args)
+        if args.command == "dpx-to-prores":
+            return _cmd_dpx_to_prores(args)
 
         parser.error(f"unknown command: {args.command}")
         return 2

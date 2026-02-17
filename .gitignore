@@ -8,3 +8,4 @@ __pycache__/
 venv/
 sandbox/
 *.sqlite3
+config/pawpatrol/

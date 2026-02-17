@@ -1,8 +1,8 @@
 watch:
-  source_dir: "./sandbox/incoming"
-  working_dir: "./sandbox/work"
-  output_dir: "./sandbox/output"
-  db_path: "./sandbox/work/queue.sqlite3"
+  source_dir: "./pawpatrol/incoming"
+  working_dir: "./pawpatrol/work"
+  output_dir: "./pawpatrol/output"
+  db_path: "./pawpatrol/work/queue.sqlite3"
   include_extensions: [".cr2", ".cr3", ".raw"]
   stable_seconds: 3
   poll_interval_seconds: 1

@@ -8,6 +8,7 @@
 - `stopmo-xcode transcode-one path/to/frame.CR3 --config config/sample.yaml`
 - `stopmo-xcode status --config config/sample.yaml`
 - `stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model "EOS R" --write-json config/sample.matrix.json`
+- `stopmo-xcode dpx-to-prores path/to/output_root --framerate 24`
 
 ## Install (editable)
 
@@ -48,6 +49,20 @@ Check queue state:
 ```bash
 stopmo-xcode status --config config/sample.yaml
 ```
+
+## Batch DPX To ProRes
+
+Convert nested shot DPX sequences to ProRes 4444 (LogC3 values preserved, no LUT applied):
+
+```bash
+stopmo-xcode dpx-to-prores path/to/output_root --framerate 24
+```
+
+- Scans only `*/dpx/*.dpx` sequences (ignores `truth_frame/`).
+- Output root defaults to `path/to/output_root/PRORES`.
+- Output clip name is the DPX sequence stem minus trailing frame number.
+  - Example: `PAW_0001.dpx` -> `PAW.mov`
+- Clips are written flat into `PRORES` (no shot subfolders).
 
 ## Suggest Camera Matrix
 
