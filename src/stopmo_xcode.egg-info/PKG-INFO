@@ -52,6 +52,13 @@ Optional extras:
 - Persistent SQLite queue supports crash-safe resume.
 - DPX outputs are documented as `ARRI LogC3 EI800 + AWG` by interpretation contract.
 
+## Contrast Control
+
+Pipeline contrast is applied in LogC3 domain with a pivot:
+
+- `pipeline.contrast` (default `1.0`, where `1.0` is no change)
+- `pipeline.contrast_pivot_linear` (default `0.18`)
+
 ## Quick Start
 
 ```bash
