@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import re
+from typing import Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -34,6 +35,17 @@ def _require_ffmpeg() -> str:
     return ffmpeg
 
 
+def _run_ffmpeg(cmd: list[str], context: str) -> None:
+    proc = subprocess.run(
+        cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise AssemblyError(f"{context} failed: {proc.stderr.strip()}")
+
+
 def assemble_logc_prores_4444(
     dpx_glob: str,
     out_mov: Path,
@@ -45,6 +57,10 @@ def assemble_logc_prores_4444(
     cmd = [
         ffmpeg,
         "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-nostats",
         "-pattern_type",
         "glob",
         "-framerate",
@@ -59,10 +75,7 @@ def assemble_logc_prores_4444(
         "yuva444p10le",
         str(out_mov),
     ]
-
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise AssemblyError(f"ffmpeg prores assembly failed: {proc.stderr.strip()}")
+    _run_ffmpeg(cmd, context="ffmpeg prores assembly")
 
 
 def assemble_rec709_review(
@@ -75,6 +88,10 @@ def assemble_rec709_review(
     cmd = [
         ffmpeg,
         "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-nostats",
         "-i",
         str(in_mov),
         "-vf",
@@ -85,9 +102,7 @@ def assemble_rec709_review(
         "3",
         str(out_mov),
     ]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise AssemblyError(f"ffmpeg review assembly failed: {proc.stderr.strip()}")
+    _run_ffmpeg(cmd, context="ffmpeg review assembly")
 
 
 def _sequence_parts_from_stem(stem: str) -> tuple[str, str] | None:
@@ -109,19 +124,16 @@ def discover_dpx_sequences(root_dir: Path) -> list[DpxSequence]:
     sequences: list[DpxSequence] = []
 
     for dpx_dir in sorted(p for p in root_dir.rglob("dpx") if p.is_dir()):
-        groups: dict[str, list[Path]] = {}
-        for dpx_file in sorted(dpx_dir.glob("*.dpx")):
+        groups: dict[str, Tuple[int, str]] = {}
+        for dpx_file in dpx_dir.glob("*.dpx"):
             parts = _sequence_parts_from_stem(dpx_file.stem)
             if parts is None:
                 continue
-            raw_prefix, _ = parts
-            groups.setdefault(raw_prefix, []).append(dpx_file)
+            raw_prefix, sequence_name = parts
+            count, _ = groups.get(raw_prefix, (0, sequence_name))
+            groups[raw_prefix] = (count + 1, sequence_name)
 
-        for raw_prefix, files in sorted(groups.items()):
-            parts = _sequence_parts_from_stem(files[0].stem)
-            if parts is None:
-                continue
-            _, sequence_name = parts
+        for raw_prefix, (frame_count, sequence_name) in sorted(groups.items()):
             shot_name = dpx_dir.parent.name or "default_shot"
             sequences.append(
                 DpxSequence(
@@ -129,7 +141,7 @@ def discover_dpx_sequences(root_dir: Path) -> list[DpxSequence]:
                     dpx_dir=dpx_dir,
                     raw_prefix=raw_prefix,
                     sequence_name=sequence_name,
-                    frame_count=len(files),
+                    frame_count=frame_count,
                 )
             )
 
