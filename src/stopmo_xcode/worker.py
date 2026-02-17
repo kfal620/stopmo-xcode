@@ -52,6 +52,25 @@ def _iso_compensation_stops(iso: float | None, target_ei: int) -> float | None:
     return float(math.log2(float(target_ei) / float(iso)))
 
 
+def _effective_exposure_offset_stops(
+    base_offset_stops: float,
+    auto_exposure_from_iso: bool,
+    target_ei: int,
+    frame_iso: float | None,
+    locked_shot_offset_stops: float | None,
+) -> tuple[float, bool]:
+    if auto_exposure_from_iso:
+        iso_stops = _iso_compensation_stops(frame_iso, target_ei)
+        if iso_stops is None:
+            return float(base_offset_stops), False
+        return float(base_offset_stops) + float(iso_stops), True
+
+    if locked_shot_offset_stops is not None:
+        return float(locked_shot_offset_stops), True
+
+    return float(base_offset_stops), True
+
+
 def _write_truth_pack(
     shot_dir: Path,
     source_stem: str,
@@ -118,18 +137,20 @@ class JobProcessor:
 
             decoded = self.decoder.decode(source_path, wb_override=wb_override)
 
-            auto_stops = 0.0
-            if self.config.pipeline.auto_exposure_from_iso:
-                iso_stops = _iso_compensation_stops(decoded.metadata.iso, self.config.pipeline.target_ei)
-                if iso_stops is not None:
-                    auto_stops = iso_stops
-                else:
-                    logger.warning(
-                        "auto_exposure_from_iso enabled but ISO metadata is missing/invalid for %s; using base offset",
-                        source_path.name,
-                    )
-
-            effective_offset = float(self.config.pipeline.exposure_offset_stops) + auto_stops
+            effective_offset, has_effective = _effective_exposure_offset_stops(
+                base_offset_stops=float(self.config.pipeline.exposure_offset_stops),
+                auto_exposure_from_iso=bool(self.config.pipeline.auto_exposure_from_iso),
+                target_ei=int(self.config.pipeline.target_ei),
+                frame_iso=decoded.metadata.iso,
+                locked_shot_offset_stops=(
+                    float(shot_settings.exposure_offset_stops) if shot_settings is not None else None
+                ),
+            )
+            if self.config.pipeline.auto_exposure_from_iso and not has_effective:
+                logger.warning(
+                    "auto_exposure_from_iso enabled but ISO metadata is missing/invalid for %s; using base offset",
+                    source_path.name,
+                )
 
             if self.config.pipeline.lock_wb_from_first_frame and shot_settings is None:
                 self.db.set_shot_settings(
@@ -139,9 +160,6 @@ class JobProcessor:
                     reference_source_path=source_path,
                 )
                 shot_settings = self.db.get_shot_settings(job.shot_name)
-
-            if shot_settings is not None:
-                effective_offset = shot_settings.exposure_offset_stops
 
             if shot_settings is not None and decoded.metadata.as_shot_wb_multipliers is not None:
                 drift = _wb_delta(shot_settings.wb_multipliers, decoded.metadata.as_shot_wb_multipliers)

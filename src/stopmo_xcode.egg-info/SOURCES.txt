@@ -53,3 +53,4 @@ tests/test_formatting.py
 tests/test_matrix_suggest.py
 tests/test_queue_db.py
 tests/test_shot_naming.py
+tests/test_worker_exposure.py
