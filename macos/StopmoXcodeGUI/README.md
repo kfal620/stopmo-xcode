@@ -9,6 +9,17 @@ cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
 swift build
 ```
 
+## Test
+
+```bash
+cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
+swift test
+```
+
+Phase-0 UI parity/baseline reference:
+
+- `/Users/kyle/Documents/Coding/stopmo-xcode/docs/gui-phase0-baseline.md`
+
 ## Xcode Project Wrapper
 
 A proper macOS app target wrapper now exists:

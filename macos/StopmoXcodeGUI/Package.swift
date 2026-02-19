@@ -13,6 +13,11 @@ let package = Package(
         .executableTarget(
             name: "StopmoXcodeGUI",
             path: "Sources/StopmoXcodeGUI"
+        ),
+        .testTarget(
+            name: "StopmoXcodeGUITests",
+            dependencies: ["StopmoXcodeGUI"],
+            path: "Tests/StopmoXcodeGUITests"
         )
     ]
 )
