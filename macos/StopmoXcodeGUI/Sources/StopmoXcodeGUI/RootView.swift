@@ -5,13 +5,16 @@ struct RootView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(AppSection.allCases, selection: $state.selectedSection) { section in
-                Text(section.rawValue)
-                    .tag(Optional(section))
+            List(selection: $state.selectedSection) {
+                ForEach(AppSection.allCases) { section in
+                    NavigationLink(value: section) {
+                        Text(section.rawValue)
+                    }
+                }
             }
             .navigationTitle("stopmo-xcode")
         } detail: {
-            switch state.selectedSection ?? .setup {
+            switch state.selectedSection {
             case .setup:
                 SetupView()
             case .project:

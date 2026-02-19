@@ -3,8 +3,12 @@ import SwiftUI
 
 @MainActor
 final class AppState: ObservableObject {
-    @Published var selectedSection: AppSection? = .setup
-    @Published var repoRoot: String
+    @Published var selectedSection: AppSection = .setup
+    @Published var repoRoot: String {
+        didSet {
+            UserDefaults.standard.set(repoRoot, forKey: Self.repoRootDefaultsKey)
+        }
+    }
     @Published var configPath: String
     @Published var config: StopmoConfigDocument = .empty
     @Published var health: BridgeHealth?
@@ -24,15 +28,10 @@ final class AppState: ObservableObject {
     private var monitorTask: Task<Void, Never>?
     private var lastQueueCounts: [String: Int] = [:]
     private var lastWatchRunning: Bool?
+    private static let repoRootDefaultsKey = "stopmo_repo_root"
 
     init() {
-        let envRoot = ProcessInfo.processInfo.environment["STOPMO_XCODE_ROOT"]
-        let root: String
-        if let envRoot, !envRoot.isEmpty {
-            root = envRoot
-        } else {
-            root = FileManager.default.currentDirectoryPath
-        }
+        let root = Self.resolveInitialRepoRoot()
         repoRoot = root
         configPath = "\(root)/config/sample.yaml"
     }
@@ -150,9 +149,9 @@ final class AppState: ObservableObject {
         }
     }
 
-    func setMonitoringEnabled(for section: AppSection?) {
+    func setMonitoringEnabled(for section: AppSection) {
         let liveSections: Set<AppSection> = [.liveMonitor, .queue, .shots]
-        if let section, liveSections.contains(section) {
+        if liveSections.contains(section) {
             startMonitoringLoop()
         } else {
             stopMonitoringLoop()
@@ -296,5 +295,48 @@ final class AppState: ObservableObject {
             statusMessage = "Error"
         }
         isBusy = false
+    }
+
+    private static func resolveInitialRepoRoot() -> String {
+        let envRoot = ProcessInfo.processInfo.environment["STOPMO_XCODE_ROOT"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let envRoot, !envRoot.isEmpty, isLikelyRepoRoot(Path: envRoot) {
+            return envRoot
+        }
+        if let remembered = UserDefaults.standard.string(forKey: repoRootDefaultsKey), isLikelyRepoRoot(Path: remembered) {
+            return remembered
+        }
+        if let fromBundle = discoverRepoRootNear(path: Bundle.main.bundleURL.path) {
+            return fromBundle
+        }
+        if let fromCwd = discoverRepoRootNear(path: FileManager.default.currentDirectoryPath) {
+            return fromCwd
+        }
+        return FileManager.default.currentDirectoryPath
+    }
+
+    private static func discoverRepoRootNear(path: String) -> String? {
+        var url = URL(fileURLWithPath: path).standardizedFileURL
+        if !url.hasDirectoryPath {
+            url.deleteLastPathComponent()
+        }
+        for _ in 0..<10 {
+            let candidate = url.path
+            if isLikelyRepoRoot(Path: candidate) {
+                return candidate
+            }
+            let parent = url.deletingLastPathComponent()
+            if parent.path == url.path {
+                break
+            }
+            url = parent
+        }
+        return nil
+    }
+
+    private static func isLikelyRepoRoot(Path root: String) -> Bool {
+        let fm = FileManager.default
+        let pyproject = (root as NSString).appendingPathComponent("pyproject.toml")
+        let moduleDir = (root as NSString).appendingPathComponent("src/stopmo_xcode")
+        return fm.fileExists(atPath: pyproject) && fm.fileExists(atPath: moduleDir)
     }
 }
