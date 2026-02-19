@@ -69,7 +69,7 @@ stopmo-xcode status --config config/sample.yaml
 Convert nested shot DPX sequences to ProRes 4444 (LogC3 values preserved, no LUT applied):
 
 ```bash
-stopmo-xcode dpx-to-prores <path/to/output_root> --framerate 24
+stopmo-xcode dpx-to-prores <path/to/input_folder> --framerate 24
 ```
 
 Example:
