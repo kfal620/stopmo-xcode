@@ -110,9 +110,9 @@ struct BridgeClient: Sendable {
         process.environment = env
 
         let outPipe = Pipe()
-        let errPipe = Pipe()
+        // Use a single pipe for stdout/stderr to avoid deadlock on large outputs.
         process.standardOutput = outPipe
-        process.standardError = errPipe
+        process.standardError = outPipe
 
         if let stdin {
             let inPipe = Pipe()
@@ -124,12 +124,11 @@ struct BridgeClient: Sendable {
             try process.run()
         }
 
-        process.waitUntilExit()
         let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
-        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
 
         guard process.terminationStatus == 0 else {
-            let stderrText = String(data: errData, encoding: .utf8) ?? ""
+            let stderrText = String(data: outData, encoding: .utf8) ?? ""
             throw BridgeError.processFailed(stderrText.isEmpty ? "Bridge process failed" : stderrText)
         }
         return outData

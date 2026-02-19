@@ -14,3 +14,4 @@ qa/reports/
 macos/StopmoXcodeGUI/.build/
 macos/StopmoXcodeGUI/.swiftpm/xcode/xcuserdata
 macos/StopmoXcodeGUI/.swiftpm/xcode/*.xcworkspace
+*.xcuserstate
