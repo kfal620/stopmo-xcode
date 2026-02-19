@@ -12,11 +12,44 @@ struct SetupView: View {
 
                 GroupBox("Workspace") {
                     VStack(alignment: .leading, spacing: 12) {
-                        TextField("Repo root", text: $state.repoRoot)
-                            .textFieldStyle(.roundedBorder)
-                        TextField("Config path", text: $state.configPath)
-                            .textFieldStyle(.roundedBorder)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Repo Root")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            HStack(spacing: 8) {
+                                TextField("Repo root", text: $state.repoRoot)
+                                    .textFieldStyle(.roundedBorder)
+                                Button {
+                                    state.chooseRepoRootDirectory()
+                                } label: {
+                                    Image(systemName: "folder")
+                                }
+                                .help("Browse for repo root")
+                                .disabled(state.isBusy)
+                            }
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Config Path")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            HStack(spacing: 8) {
+                                TextField("Config path", text: $state.configPath)
+                                    .textFieldStyle(.roundedBorder)
+                                Button {
+                                    state.chooseConfigFile()
+                                } label: {
+                                    Image(systemName: "doc")
+                                }
+                                .help("Browse for config file")
+                                .disabled(state.isBusy)
+                            }
+                        }
                         HStack(spacing: 10) {
+                            Button("Choose Workspace…") {
+                                state.chooseWorkspaceDirectory()
+                            }
+                            .disabled(state.isBusy)
+
                             Button("Check Runtime Health") {
                                 Task { await state.refreshHealth() }
                             }
@@ -41,6 +74,14 @@ struct SetupView: View {
                                 Task { await state.refreshWatchPreflight() }
                             }
                             .disabled(state.isBusy)
+                        }
+                        HStack {
+                            Text("Workspace Access")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(state.workspaceAccessActive ? "granted" : "not granted")
+                                .foregroundStyle(state.workspaceAccessActive ? .green : .orange)
+                                .font(.caption)
                         }
                     }
                     .padding(.top, 6)

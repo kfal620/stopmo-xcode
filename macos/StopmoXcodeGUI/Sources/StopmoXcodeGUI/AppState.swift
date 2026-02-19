@@ -1,5 +1,7 @@
 import Foundation
 import SwiftUI
+import AppKit
+import UniformTypeIdentifiers
 
 @MainActor
 final class AppState: ObservableObject {
@@ -24,20 +26,27 @@ final class AppState: ObservableObject {
     @Published var statusMessage: String = "Ready"
     @Published var errorMessage: String?
     @Published var isBusy: Bool = false
+    @Published var workspaceAccessActive: Bool = false
 
     private var monitorTask: Task<Void, Never>?
     private var lastQueueCounts: [String: Int] = [:]
     private var lastWatchRunning: Bool?
     private static let repoRootDefaultsKey = "stopmo_repo_root"
+    private static let workspaceBookmarkDefaultsKey = "stopmo_workspace_bookmark"
+    private var securityScopedWorkspaceURL: URL?
 
     init() {
         let root = Self.resolveInitialRepoRoot()
         repoRoot = root
         configPath = "\(root)/config/sample.yaml"
+        restoreWorkspaceAccess()
     }
 
     deinit {
         monitorTask?.cancel()
+        if let url = securityScopedWorkspaceURL {
+            url.stopAccessingSecurityScopedResource()
+        }
     }
 
     func refreshHealth() async {
@@ -295,6 +304,114 @@ final class AppState: ObservableObject {
             statusMessage = "Error"
         }
         isBusy = false
+    }
+
+    func chooseWorkspaceDirectory() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = false
+        panel.prompt = "Use Workspace"
+        panel.directoryURL = URL(fileURLWithPath: repoRoot, isDirectory: true)
+        let response = panel.runModal()
+        guard response == .OK, let selectedURL = panel.url else {
+            return
+        }
+        do {
+            if let current = securityScopedWorkspaceURL {
+                current.stopAccessingSecurityScopedResource()
+                securityScopedWorkspaceURL = nil
+            }
+            let bookmark = try selectedURL.bookmarkData(
+                options: [.withSecurityScope],
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
+            UserDefaults.standard.set(bookmark, forKey: Self.workspaceBookmarkDefaultsKey)
+            let started = selectedURL.startAccessingSecurityScopedResource()
+            securityScopedWorkspaceURL = selectedURL
+            workspaceAccessActive = started
+            repoRoot = selectedURL.path
+            configPath = "\(selectedURL.path)/config/sample.yaml"
+            statusMessage = started ? "Workspace access granted" : "Workspace selected"
+        } catch {
+            errorMessage = error.localizedDescription
+            statusMessage = "Error"
+        }
+    }
+
+    func chooseRepoRootDirectory() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = false
+        panel.prompt = "Select Repo Root"
+        panel.directoryURL = URL(fileURLWithPath: repoRoot, isDirectory: true)
+        let response = panel.runModal()
+        guard response == .OK, let selectedURL = panel.url else {
+            return
+        }
+        repoRoot = selectedURL.path
+        let defaultConfig = selectedURL.appendingPathComponent("config/sample.yaml").path
+        if FileManager.default.fileExists(atPath: defaultConfig) {
+            configPath = defaultConfig
+        }
+        statusMessage = "Repo root updated"
+    }
+
+    func chooseConfigFile() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = false
+        panel.allowedContentTypes = [
+            UTType(filenameExtension: "yaml") ?? .text,
+            UTType(filenameExtension: "yml") ?? .text,
+        ]
+        panel.prompt = "Select Config"
+        panel.directoryURL = URL(fileURLWithPath: repoRoot, isDirectory: true)
+        let response = panel.runModal()
+        guard response == .OK, let selectedURL = panel.url else {
+            return
+        }
+        configPath = selectedURL.path
+        statusMessage = "Config path updated"
+    }
+
+    private func restoreWorkspaceAccess() {
+        guard let data = UserDefaults.standard.data(forKey: Self.workspaceBookmarkDefaultsKey) else {
+            workspaceAccessActive = false
+            return
+        }
+        var stale = false
+        do {
+            let url = try URL(
+                resolvingBookmarkData: data,
+                options: [.withSecurityScope],
+                relativeTo: nil,
+                bookmarkDataIsStale: &stale
+            )
+            if stale {
+                let refreshed = try url.bookmarkData(
+                    options: [.withSecurityScope],
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                )
+                UserDefaults.standard.set(refreshed, forKey: Self.workspaceBookmarkDefaultsKey)
+            }
+            let started = url.startAccessingSecurityScopedResource()
+            securityScopedWorkspaceURL = url
+            workspaceAccessActive = started
+            if started, Self.isLikelyRepoRoot(Path: url.path) {
+                repoRoot = url.path
+                configPath = "\(url.path)/config/sample.yaml"
+            }
+        } catch {
+            workspaceAccessActive = false
+        }
     }
 
     private static func resolveInitialRepoRoot() -> String {

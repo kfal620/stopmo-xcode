@@ -47,6 +47,7 @@ def main() -> int:
 
     info_plist_ref_id = make_id("InfoPlistRef")
     entitlements_ref_id = make_id("EntitlementsRef")
+    entitlements_debug_ref_id = make_id("EntitlementsDebugRef")
 
     file_ref_ids: dict[Path, str] = {}
     build_file_ids: dict[Path, str] = {}
@@ -66,6 +67,7 @@ def main() -> int:
         f"\t\t{product_ref_id} /* StopmoXcodeGUI.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StopmoXcodeGUI.app; sourceTree = BUILT_PRODUCTS_DIR; }};",
         f"\t\t{info_plist_ref_id} /* Info.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = packaging/Info.plist; sourceTree = \"<group>\"; }};",
         f"\t\t{entitlements_ref_id} /* entitlements.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.plist; sourceTree = \"<group>\"; }};",
+        f"\t\t{entitlements_debug_ref_id} /* entitlements.debug.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.debug.plist; sourceTree = \"<group>\"; }};",
     ]
     for path in source_files:
         file_ref_entries.append(
@@ -143,6 +145,7 @@ def main() -> int:
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
 \t\t\t\t{info_plist_ref_id} /* Info.plist */,
+\t\t\t\t{entitlements_debug_ref_id} /* entitlements.debug.plist */,
 \t\t\t\t{entitlements_ref_id} /* entitlements.plist */,
 \t\t\t);
 \t\t\tpath = packaging;
@@ -251,11 +254,11 @@ def main() -> int:
 \t\t{tgt_debug_cfg_id} /* Debug */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
-\t\t\t\tCODE_SIGN_ENTITLEMENTS = packaging/entitlements.plist;
+\t\t\t\tCODE_SIGN_ENTITLEMENTS = packaging/entitlements.debug.plist;
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
 \t\t\t\tDEVELOPMENT_TEAM = "";
-\t\t\t\tENABLE_HARDENED_RUNTIME = YES;
+\t\t\t\tENABLE_HARDENED_RUNTIME = NO;
 \t\t\t\tGENERATE_INFOPLIST_FILE = NO;
 \t\t\t\tINFOPLIST_FILE = packaging/Info.plist;
 \t\t\t\tLD_RUNPATH_SEARCH_PATHS = (
