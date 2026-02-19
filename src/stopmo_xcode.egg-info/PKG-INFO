@@ -18,6 +18,7 @@ Requires-Dist: opencolorio>=2.3; extra == "ocio"
 Provides-Extra: io
 Requires-Dist: tifffile>=2024.2; extra == "io"
 Provides-Extra: video
+Requires-Dist: imageio-ffmpeg>=0.5.1; extra == "video"
 Provides-Extra: dev
 Requires-Dist: pytest>=8.0; extra == "dev"
 Requires-Dist: pytest-cov>=5.0; extra == "dev"
@@ -46,6 +47,27 @@ Optional extras:
 - `.[raw]` for LibRaw decode support (`rawpy`)
 - `.[ocio]` for OCIO-based transforms
 - `.[io]` for debug TIFF writer
+
+## One-Command Launcher (Phase 1)
+
+Use the repo launcher to bootstrap everything and run the CLI in one step:
+
+```bash
+./stopmo watch --config config/sample.yaml
+```
+
+What `./stopmo` does automatically:
+
+- creates `.venv` if missing
+- installs runtime extras: `.[watch,raw,ocio,io,video]`
+- re-installs when `pyproject.toml` changes
+- runs `.venv/bin/stopmo-xcode ...`
+
+For ProRes assembly, `ffmpeg` is resolved in this order:
+
+1. `STOPMO_XCODE_FFMPEG` (if set)
+2. `ffmpeg` on `PATH`
+3. bundled `imageio-ffmpeg` binary from `.[video]`
 
 ## Notes
 
@@ -93,7 +115,7 @@ stopmo-xcode status --config config/sample.yaml
 Convert nested shot DPX sequences to ProRes 4444 (LogC3 values preserved, no LUT applied):
 
 ```bash
-stopmo-xcode dpx-to-prores <path/to/output_root> --framerate 24
+stopmo-xcode dpx-to-prores <path/to/input_folder> --framerate 24
 ```
 
 Example:
