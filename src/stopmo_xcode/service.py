@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
 import multiprocessing as mp
 from pathlib import Path
 import shutil
 import threading
 import time
+from datetime import datetime, timezone
 
 from stopmo_xcode.assemble import (
     AssemblyError,
@@ -21,6 +23,31 @@ from stopmo_xcode.worker import JobProcessor
 
 
 logger = logging.getLogger(__name__)
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _runtime_state_path(config: AppConfig) -> Path:
+    return config.watch.working_dir / ".stopmo_runtime_state.json"
+
+
+def _read_runtime_state(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {}
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    return raw
+
+
+def _write_runtime_state(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _worker_main(config: AppConfig, worker_id: str, stop_event: mp.Event) -> None:
@@ -91,6 +118,13 @@ def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None 
     reset_count = db.reset_inflight_to_detected()
     if reset_count:
         logger.warning("reset %s inflight jobs to detected after startup", reset_count)
+    runtime_state_path = _runtime_state_path(config)
+    runtime_state = _read_runtime_state(runtime_state_path)
+    runtime_state["last_startup_utc"] = _utc_now_iso()
+    runtime_state["last_inflight_reset_count"] = int(reset_count)
+    runtime_state["last_db_path"] = str(config.watch.db_path)
+    runtime_state["running"] = True
+    _write_runtime_state(runtime_state_path, runtime_state)
 
     def on_ready(path: Path) -> None:
         shot_name = infer_shot_name(path, shot_regex=config.watch.shot_regex)
@@ -137,6 +171,10 @@ def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None 
             if proc.is_alive():
                 proc.terminate()
         assembly_thread.join(timeout=2)
+        runtime_state = _read_runtime_state(runtime_state_path)
+        runtime_state["running"] = False
+        runtime_state["last_shutdown_utc"] = _utc_now_iso()
+        _write_runtime_state(runtime_state_path, runtime_state)
         db.close()
 
 

@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:stopmo-xcode}/macos/StopmoXcodeGUI",
+            "name": "Debug StopmoXcodeGUI (macos/StopmoXcodeGUI)",
+            "target": "StopmoXcodeGUI",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug StopmoXcodeGUI (macos/StopmoXcodeGUI)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:stopmo-xcode}/macos/StopmoXcodeGUI",
+            "name": "Release StopmoXcodeGUI (macos/StopmoXcodeGUI)",
+            "target": "StopmoXcodeGUI",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release StopmoXcodeGUI (macos/StopmoXcodeGUI)"
+        }
+    ]
+}

@@ -11,6 +11,11 @@ final class AppState: ObservableObject {
     @Published var watchServiceState: WatchServiceState?
     @Published var queueSnapshot: QueueSnapshot?
     @Published var shotsSnapshot: ShotsSummarySnapshot?
+    @Published var configValidation: ConfigValidationSnapshot?
+    @Published var watchPreflight: WatchPreflight?
+    @Published var logsDiagnostics: LogsDiagnosticsSnapshot?
+    @Published var historySummary: HistorySummarySnapshot?
+    @Published var lastDiagnosticsBundlePath: String?
     @Published var liveEvents: [String] = []
     @Published var statusMessage: String = "Ready"
     @Published var errorMessage: String?
@@ -84,8 +89,17 @@ final class AppState: ObservableObject {
                 try BridgeClient().watchStart(repoRoot: repoRoot, configPath: configPath)
             }.value
             self.applyLiveSnapshots(watchState: watchState, shots: self.shotsSnapshot)
-            self.recordLiveEvent("Watch service started")
-            self.statusMessage = "Watch service running"
+            if watchState.startBlocked == true {
+                self.recordLiveEvent("Watch start blocked by preflight")
+                self.statusMessage = "Watch start blocked"
+            } else if let launchError = watchState.launchError, !launchError.isEmpty {
+                self.recordLiveEvent("Watch start failed: \(launchError)")
+                self.statusMessage = "Watch start failed"
+            } else {
+                self.recordLiveEvent("Watch service started")
+                self.statusMessage = "Watch service running"
+            }
+            self.watchPreflight = watchState.preflight
         }
     }
 
@@ -119,6 +133,7 @@ final class AppState: ObservableObject {
                 return (watchState, shots)
             }.value
             applyLiveSnapshots(watchState: snapshot.0, shots: snapshot.1)
+            watchPreflight = snapshot.0.preflight ?? watchPreflight
             if !silent {
                 statusMessage = "Live status updated"
             }
@@ -141,6 +156,80 @@ final class AppState: ObservableObject {
             startMonitoringLoop()
         } else {
             stopMonitoringLoop()
+        }
+    }
+
+    func refreshLogsDiagnostics(severity: String? = nil) async {
+        await runBlockingTask(label: "Refreshing logs and diagnostics") {
+            let repoRoot = self.repoRoot
+            let configPath = self.configPath
+            let snapshot = try await Task.detached(priority: .utility) {
+                try BridgeClient().logsDiagnostics(
+                    repoRoot: repoRoot,
+                    configPath: configPath,
+                    severity: severity,
+                    limit: 500
+                )
+            }.value
+            self.logsDiagnostics = snapshot
+            self.statusMessage = "Logs/diagnostics updated"
+        }
+    }
+
+    func validateConfig() async {
+        await runBlockingTask(label: "Validating config") {
+            let repoRoot = self.repoRoot
+            let configPath = self.configPath
+            let snapshot = try await Task.detached(priority: .utility) {
+                try BridgeClient().configValidate(repoRoot: repoRoot, configPath: configPath)
+            }.value
+            self.configValidation = snapshot
+            self.statusMessage = snapshot.ok ? "Config validation passed" : "Config validation failed"
+        }
+    }
+
+    func refreshWatchPreflight() async {
+        await runBlockingTask(label: "Running watch preflight") {
+            let repoRoot = self.repoRoot
+            let configPath = self.configPath
+            let snapshot = try await Task.detached(priority: .utility) {
+                try BridgeClient().watchPreflight(repoRoot: repoRoot, configPath: configPath)
+            }.value
+            self.watchPreflight = snapshot
+            self.statusMessage = snapshot.ok ? "Watch preflight passed" : "Watch preflight blocked"
+        }
+    }
+
+    func refreshHistory() async {
+        await runBlockingTask(label: "Refreshing history") {
+            let repoRoot = self.repoRoot
+            let configPath = self.configPath
+            let snapshot = try await Task.detached(priority: .utility) {
+                try BridgeClient().historySummary(
+                    repoRoot: repoRoot,
+                    configPath: configPath,
+                    limit: 50,
+                    gapMinutes: 30
+                )
+            }.value
+            self.historySummary = snapshot
+            self.statusMessage = "History updated"
+        }
+    }
+
+    func copyDiagnosticsBundle(outDir: String? = nil) async {
+        await runBlockingTask(label: "Creating diagnostics bundle") {
+            let repoRoot = self.repoRoot
+            let configPath = self.configPath
+            let result = try await Task.detached(priority: .userInitiated) {
+                try BridgeClient().copyDiagnosticsBundle(
+                    repoRoot: repoRoot,
+                    configPath: configPath,
+                    outDir: outDir
+                )
+            }.value
+            self.lastDiagnosticsBundlePath = result.bundlePath
+            self.statusMessage = "Diagnostics bundle created"
         }
     }
 

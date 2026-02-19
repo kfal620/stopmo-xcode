@@ -28,3 +28,17 @@ STOPMO_XCODE_ROOT=/Users/kyle/Documents/Coding/stopmo-xcode swift run StopmoXcod
   - Live Monitor view (watch start/stop, queue progress, activity/log tail)
   - Queue view (recent job table)
   - Shots view (per-shot progress and assembly state summary)
+  - Tools view:
+    - Transcode One workflow
+    - Suggest Matrix workflow (with apply-to-project helper)
+    - DPX to ProRes batch workflow (with completion summary)
+  - Logs & Diagnostics view:
+    - Structured log viewer with severity filtering
+    - Warning surfacing (clipping, non-finite, WB drift, dependency/decode failures)
+    - Diagnostics bundle export
+  - History view:
+    - Past run summary (start/end, counts, failures, output/repro metadata)
+  - Resilience hardening:
+    - Config validation panel in Setup
+    - Watch preflight/blocker checks before start
+    - Crash-recovery status surfaced in Live Monitor

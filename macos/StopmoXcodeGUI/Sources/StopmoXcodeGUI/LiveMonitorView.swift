@@ -34,8 +34,26 @@ struct LiveMonitorView: View {
                             statusLine("PID", watch.pid.map(String.init) ?? "-", ok: watch.running)
                             statusLine("Started", watch.startedAtUtc ?? "-", ok: watch.running)
                             statusLine("Config", watch.configPath, ok: true)
+                            if let launchError = watch.launchError, !launchError.isEmpty {
+                                statusLine("Launch Error", launchError, ok: false)
+                            }
+                            if watch.startBlocked == true {
+                                statusLine("Start Blocked", "yes", ok: false)
+                            }
                             if let logPath = watch.logPath {
                                 statusLine("Log", logPath, ok: true)
+                            }
+                            if let crash = watch.crashRecovery {
+                                statusLine("Last Startup", crash.lastStartupUtc ?? "-", ok: true)
+                                statusLine("Last Shutdown", crash.lastShutdownUtc ?? "-", ok: true)
+                                statusLine(
+                                    "Crash Recovery",
+                                    "reset \(crash.lastInflightResetCount) inflight jobs",
+                                    ok: crash.lastInflightResetCount == 0
+                                )
+                            }
+                            if let preflight = watch.preflight, !preflight.ok {
+                                statusLine("Preflight", "blocked: \(preflight.blockers.joined(separator: ","))", ok: false)
                             }
                             ProgressView(value: watch.progressRatio)
                                 .padding(.top, 4)

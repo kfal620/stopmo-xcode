@@ -31,6 +31,16 @@ struct SetupView: View {
                                 Task { await state.saveConfig() }
                             }
                             .disabled(state.isBusy)
+
+                            Button("Validate Config") {
+                                Task { await state.validateConfig() }
+                            }
+                            .disabled(state.isBusy)
+
+                            Button("Watch Preflight") {
+                                Task { await state.refreshWatchPreflight() }
+                            }
+                            .disabled(state.isBusy)
                         }
                     }
                     .padding(.top, 6)
@@ -69,6 +79,59 @@ struct SetupView: View {
                                     let ok = health.checks[key] ?? false
                                     Text(ok ? "available" : "missing")
                                         .foregroundStyle(ok ? .green : .red)
+                                }
+                            }
+                        }
+                        .padding(.top, 6)
+                    }
+                }
+
+                if let validation = state.configValidation {
+                    GroupBox("Config Validation") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            kv("Status", validation.ok ? "ok" : "failed")
+                            if !validation.errors.isEmpty {
+                                Text("Errors")
+                                    .font(.subheadline)
+                                ForEach(validation.errors) { item in
+                                    Text("[\(item.field)] \(item.message)")
+                                        .font(.caption)
+                                        .foregroundStyle(.red)
+                                }
+                            }
+                            if !validation.warnings.isEmpty {
+                                Text("Warnings")
+                                    .font(.subheadline)
+                                ForEach(validation.warnings) { item in
+                                    Text("[\(item.field)] \(item.message)")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+                        }
+                        .padding(.top, 6)
+                    }
+                }
+
+                if let preflight = state.watchPreflight {
+                    GroupBox("Watch Start Safety") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            kv("Ready", preflight.ok ? "yes" : "no")
+                            if !preflight.blockers.isEmpty {
+                                kv("Blockers", preflight.blockers.joined(separator: ", "))
+                            }
+                            let checks = preflight.healthChecks.keys.sorted()
+                            if !checks.isEmpty {
+                                Text("Health Checks")
+                                    .font(.subheadline)
+                                ForEach(checks, id: \.self) { key in
+                                    HStack {
+                                        Text(key)
+                                        Spacer()
+                                        Text((preflight.healthChecks[key] ?? false) ? "ok" : "missing")
+                                            .foregroundStyle((preflight.healthChecks[key] ?? false) ? .green : .red)
+                                    }
+                                    .font(.caption)
                                 }
                             }
                         }

@@ -52,4 +52,4 @@
 - Dragonframe `.RAW` dedicated decoder is a placeholder and currently falls back to LibRaw compatibility only.
 - OCIO correctness depends on user-provided config with valid input/output spaces.
 - Golden-master regression harness and tight numeric validation data are not bundled yet.
-- macOS GUI shell is now scaffolded as a SwiftUI package under `macos/StopmoXcodeGUI` with Setup + Project + Live Monitor + Queue + Shots views wired to `gui_bridge` watch/queue/shot polling; tools/logs/history integration is pending.
+- macOS GUI shell now includes Setup + Project + Live Monitor + Queue + Shots + Tools + Logs/Diagnostics + History views wired to `gui_bridge`, plus phase-8 resilience checks (config validation, watch preflight, crash-recovery surfacing, safer watch start semantics).

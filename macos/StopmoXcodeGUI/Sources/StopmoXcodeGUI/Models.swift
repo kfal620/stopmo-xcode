@@ -179,6 +179,13 @@ struct ShotsSummarySnapshot: Codable, Sendable {
 }
 
 struct WatchServiceState: Codable, Sendable {
+    struct CrashRecovery: Codable, Sendable {
+        var lastStartupUtc: String?
+        var lastShutdownUtc: String?
+        var lastInflightResetCount: Int
+        var runtimeRunning: Bool
+    }
+
     var running: Bool
     var pid: Int?
     var startedAtUtc: String?
@@ -190,4 +197,218 @@ struct WatchServiceState: Codable, Sendable {
     var completedFrames: Int
     var inflightFrames: Int
     var totalFrames: Int
+    var startBlocked: Bool?
+    var launchError: String?
+    var preflight: WatchPreflight?
+    var crashRecovery: CrashRecovery?
+}
+
+struct OperationEventRecord: Codable, Sendable, Identifiable {
+    var seq: Int
+    var operationId: String
+    var timestampUtc: String
+    var eventType: String
+    var message: String?
+    var payload: [String: JSONValue]?
+
+    var id: Int { seq }
+}
+
+struct OperationSnapshotRecord: Codable, Sendable {
+    var id: String
+    var kind: String
+    var status: String
+    var progress: Double
+    var createdAtUtc: String
+    var startedAtUtc: String?
+    var finishedAtUtc: String?
+    var cancelRequested: Bool
+    var cancellable: Bool
+    var error: String?
+    var metadata: [String: JSONValue]
+    var result: [String: JSONValue]?
+}
+
+struct ToolOperationEnvelope: Codable, Sendable {
+    var operationId: String
+    var operation: OperationSnapshotRecord
+    var events: [OperationEventRecord]
+}
+
+struct LogEntryRecord: Codable, Sendable, Identifiable {
+    var timestamp: String?
+    var severity: String
+    var logger: String
+    var message: String
+    var raw: String
+
+    var id: String { "\(timestamp ?? "none")|\(logger)|\(raw)" }
+}
+
+struct DiagnosticWarningRecord: Codable, Sendable, Identifiable {
+    var code: String
+    var severity: String
+    var timestamp: String?
+    var message: String
+    var logger: String?
+
+    var id: String { "\(code)|\(timestamp ?? "none")|\(message)" }
+}
+
+struct LogsDiagnosticsSnapshot: Codable, Sendable {
+    var configPath: String
+    var logSources: [String]
+    var entries: [LogEntryRecord]
+    var warnings: [DiagnosticWarningRecord]
+    var queueCounts: [String: Int]
+    var watchRunning: Bool
+    var watchPid: Int?
+}
+
+struct HistoryRunRecord: Codable, Sendable, Identifiable {
+    var runId: String
+    var startUtc: String
+    var endUtc: String
+    var totalJobs: Int
+    var failedJobs: Int
+    var counts: [String: Int]
+    var shots: [String]
+    var outputs: [String]
+    var manifestPaths: [String]
+    var pipelineHashes: [String]
+    var toolVersions: [String]
+
+    var id: String { runId }
+}
+
+struct HistorySummarySnapshot: Codable, Sendable {
+    var configPath: String
+    var dbPath: String
+    var count: Int
+    var runs: [HistoryRunRecord]
+}
+
+struct DiagnosticsBundleResult: Codable, Sendable {
+    var bundlePath: String
+    var createdAtUtc: String
+    var sizeBytes: Int
+}
+
+struct ValidationItem: Codable, Sendable, Identifiable {
+    var code: String
+    var message: String
+    var field: String
+
+    var id: String { "\(code)|\(field)|\(message)" }
+}
+
+struct ConfigValidationSnapshot: Codable, Sendable {
+    var configPath: String
+    var ok: Bool
+    var errors: [ValidationItem]
+    var warnings: [ValidationItem]
+}
+
+struct WatchPreflight: Codable, Sendable {
+    var configPath: String
+    var ok: Bool
+    var blockers: [String]
+    var validation: ConfigValidationSnapshot
+    var healthChecks: [String: Bool]
+}
+
+enum JSONValue: Codable, Sendable {
+    case string(String)
+    case number(Double)
+    case bool(Bool)
+    case array([JSONValue])
+    case object([String: JSONValue])
+    case null
+
+    var stringValue: String? {
+        if case let .string(v) = self {
+            return v
+        }
+        return nil
+    }
+
+    var doubleValue: Double? {
+        if case let .number(v) = self {
+            return v
+        }
+        return nil
+    }
+
+    var intValue: Int? {
+        guard let value = doubleValue else { return nil }
+        return Int(value)
+    }
+
+    var boolValue: Bool? {
+        if case let .bool(v) = self {
+            return v
+        }
+        return nil
+    }
+
+    var objectValue: [String: JSONValue]? {
+        if case let .object(v) = self {
+            return v
+        }
+        return nil
+    }
+
+    var arrayValue: [JSONValue]? {
+        if case let .array(v) = self {
+            return v
+        }
+        return nil
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+            return
+        }
+        if let value = try? container.decode(Bool.self) {
+            self = .bool(value)
+            return
+        }
+        if let value = try? container.decode(Double.self) {
+            self = .number(value)
+            return
+        }
+        if let value = try? container.decode(String.self) {
+            self = .string(value)
+            return
+        }
+        if let value = try? container.decode([String: JSONValue].self) {
+            self = .object(value)
+            return
+        }
+        if let value = try? container.decode([JSONValue].self) {
+            self = .array(value)
+            return
+        }
+        throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unsupported JSON value")
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let value):
+            try container.encode(value)
+        case .number(let value):
+            try container.encode(value)
+        case .bool(let value):
+            try container.encode(value)
+        case .array(let value):
+            try container.encode(value)
+        case .object(let value):
+            try container.encode(value)
+        case .null:
+            try container.encodeNil()
+        }
+    }
 }

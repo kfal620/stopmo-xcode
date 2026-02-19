@@ -1,0 +1,375 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.StopmoXcodeGUI-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/sources",
+      "importPath" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/AppState.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/BridgeClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/HistoryView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LiveMonitorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LogsDiagnosticsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/QueueView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/SetupView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ShotsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/StopmoXcodeGUIApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ToolsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "StopmoXcodeGUI",
+      "moduleOutputPath" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/Modules/StopmoXcodeGUI.swiftmodule",
+      "objects" : [
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/AppState.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/BridgeClient.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/HistoryView.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/LiveMonitorView.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/LogsDiagnosticsView.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/Models.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/ProjectView.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/QueueView.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/RootView.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/SetupView.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/ShotsView.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/StopmoXcodeGUIApp.swift.o",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/ToolsView.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-Onone",
+        "-enable-testing",
+        "-j14",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "StopmoXcodeGUI_main",
+        "-swift-version",
+        "6",
+        "-Xfrontend",
+        "-experimental-lazy-typecheck",
+        "-Xfrontend",
+        "-experimental-skip-all-function-bodies",
+        "-Xfrontend",
+        "-experimental-allow-module-with-compiler-errors",
+        "-Xfrontend",
+        "-empty-abi-descriptor",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "stopmoxcodegui"
+      ],
+      "outputFileMapPath" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/Modules/StopmoXcodeGUI.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : true,
+      "sources" : [
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/AppState.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/BridgeClient.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/HistoryView.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LiveMonitorView.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LogsDiagnosticsView.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/Models.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectView.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/QueueView.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootView.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/SetupView.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ShotsView.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/StopmoXcodeGUIApp.swift",
+        "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ToolsView.swift"
+      ],
+      "tempsPath" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "StopmoXcodeGUI" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "StopmoXcodeGUI",
+      "-package-name",
+      "stopmoxcodegui",
+      "-c",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/AppState.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/BridgeClient.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/HistoryView.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LiveMonitorView.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LogsDiagnosticsView.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/Models.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectView.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/QueueView.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootView.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/SetupView.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ShotsView.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/StopmoXcodeGUIApp.swift",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ToolsView.swift",
+      "-I",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-Onone",
+      "-enable-testing",
+      "-j14",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "StopmoXcodeGUI_main",
+      "-swift-version",
+      "6",
+      "-Xfrontend",
+      "-experimental-lazy-typecheck",
+      "-Xfrontend",
+      "-experimental-skip-all-function-bodies",
+      "-Xfrontend",
+      "-experimental-allow-module-with-compiler-errors",
+      "-Xfrontend",
+      "-empty-abi-descriptor",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "stopmoxcodegui",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "StopmoXcodeGUI" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/AppState.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/BridgeClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/HistoryView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LiveMonitorView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LogsDiagnosticsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/QueueView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/SetupView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ShotsView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/StopmoXcodeGUIApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ToolsView.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/StopmoXcodeGUI.build/sources"
+    },
+    "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}

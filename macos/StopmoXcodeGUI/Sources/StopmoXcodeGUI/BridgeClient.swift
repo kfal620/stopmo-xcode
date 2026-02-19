@@ -151,4 +151,119 @@ struct BridgeClient: Sendable {
         )
         return try decodeJSON(WatchServiceState.self, from: data)
     }
+
+    func configValidate(repoRoot: String, configPath: String) throws -> ConfigValidationSnapshot {
+        let data = try runBridge(
+            repoRoot: repoRoot,
+            arguments: ["config-validate", "--config", configPath]
+        )
+        return try decodeJSON(ConfigValidationSnapshot.self, from: data)
+    }
+
+    func watchPreflight(repoRoot: String, configPath: String) throws -> WatchPreflight {
+        let data = try runBridge(
+            repoRoot: repoRoot,
+            arguments: ["watch-preflight", "--config", configPath]
+        )
+        return try decodeJSON(WatchPreflight.self, from: data)
+    }
+
+    func transcodeOne(
+        repoRoot: String,
+        configPath: String,
+        inputPath: String,
+        outputDir: String?
+    ) throws -> ToolOperationEnvelope {
+        var args = ["transcode-one", "--config", configPath, "--input", inputPath]
+        if let outputDir, !outputDir.isEmpty {
+            args += ["--output-dir", outputDir]
+        }
+        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        return try decodeJSON(ToolOperationEnvelope.self, from: data)
+    }
+
+    func suggestMatrix(
+        repoRoot: String,
+        inputPath: String,
+        cameraMake: String?,
+        cameraModel: String?,
+        writeJson: String?
+    ) throws -> ToolOperationEnvelope {
+        var args = ["suggest-matrix", "--input", inputPath]
+        if let cameraMake, !cameraMake.isEmpty {
+            args += ["--camera-make", cameraMake]
+        }
+        if let cameraModel, !cameraModel.isEmpty {
+            args += ["--camera-model", cameraModel]
+        }
+        if let writeJson, !writeJson.isEmpty {
+            args += ["--write-json", writeJson]
+        }
+        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        return try decodeJSON(ToolOperationEnvelope.self, from: data)
+    }
+
+    func dpxToProres(
+        repoRoot: String,
+        inputDir: String,
+        outputDir: String?,
+        framerate: Int,
+        overwrite: Bool
+    ) throws -> ToolOperationEnvelope {
+        var args = ["dpx-to-prores", "--input-dir", inputDir, "--framerate", "\(max(1, framerate))"]
+        if let outputDir, !outputDir.isEmpty {
+            args += ["--out-dir", outputDir]
+        }
+        args += [overwrite ? "--overwrite" : "--no-overwrite"]
+        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        return try decodeJSON(ToolOperationEnvelope.self, from: data)
+    }
+
+    func logsDiagnostics(
+        repoRoot: String,
+        configPath: String,
+        severity: String?,
+        limit: Int = 400
+    ) throws -> LogsDiagnosticsSnapshot {
+        var args = ["logs-diagnostics", "--config", configPath, "--limit", "\(max(1, limit))"]
+        if let severity, !severity.isEmpty {
+            args += ["--severity", severity]
+        }
+        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        return try decodeJSON(LogsDiagnosticsSnapshot.self, from: data)
+    }
+
+    func historySummary(
+        repoRoot: String,
+        configPath: String,
+        limit: Int = 30,
+        gapMinutes: Int = 30
+    ) throws -> HistorySummarySnapshot {
+        let data = try runBridge(
+            repoRoot: repoRoot,
+            arguments: [
+                "history-summary",
+                "--config",
+                configPath,
+                "--limit",
+                "\(max(1, limit))",
+                "--gap-minutes",
+                "\(max(1, gapMinutes))",
+            ]
+        )
+        return try decodeJSON(HistorySummarySnapshot.self, from: data)
+    }
+
+    func copyDiagnosticsBundle(
+        repoRoot: String,
+        configPath: String,
+        outDir: String?
+    ) throws -> DiagnosticsBundleResult {
+        var args = ["copy-diagnostics-bundle", "--config", configPath]
+        if let outDir, !outDir.isEmpty {
+            args += ["--out-dir", outDir]
+        }
+        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        return try decodeJSON(DiagnosticsBundleResult.self, from: data)
+    }
 }

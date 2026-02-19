@@ -49,5 +49,17 @@ SwiftUI shell integration uses:
 - `python -m stopmo_xcode.gui_bridge watch-start --config <path>`
 - `python -m stopmo_xcode.gui_bridge watch-stop --config <path> [--timeout S]`
 - `python -m stopmo_xcode.gui_bridge watch-state --config <path> [--limit N] [--tail N]`
+- `python -m stopmo_xcode.gui_bridge config-validate --config <path>`
+- `python -m stopmo_xcode.gui_bridge watch-preflight --config <path>`
+- `python -m stopmo_xcode.gui_bridge logs-diagnostics --config <path> [--severity ERROR,WARNING] [--limit N]`
+- `python -m stopmo_xcode.gui_bridge history-summary --config <path> [--limit N] [--gap-minutes N]`
+- `python -m stopmo_xcode.gui_bridge copy-diagnostics-bundle --config <path> [--out-dir <dir>]`
+- `python -m stopmo_xcode.gui_bridge transcode-one --config <path> --input <raw> [--output-dir <dir>]`
+- `python -m stopmo_xcode.gui_bridge suggest-matrix --input <raw> [--camera-make <make>] [--camera-model <model>] [--write-json <path>]`
+- `python -m stopmo_xcode.gui_bridge dpx-to-prores --input-dir <dir> [--out-dir <dir>] [--framerate N] [--overwrite|--no-overwrite]`
 
-All commands emit JSON payloads for direct GUI decoding.
+All commands emit JSON payloads for direct GUI decoding. Tool commands return:
+
+- `operation_id`
+- `operation` snapshot
+- `events` list captured from `app_api` operation events

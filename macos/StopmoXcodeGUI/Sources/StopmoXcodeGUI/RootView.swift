@@ -23,11 +23,11 @@ struct RootView: View {
             case .queue:
                 QueueView()
             case .tools:
-                PlaceholderView(title: "Tools", description: "Phase 6: transcode-one, matrix suggestion, dpx-to-prores.")
+                ToolsView()
             case .logs:
-                PlaceholderView(title: "Logs & Diagnostics", description: "Phase 7: structured logs and diagnostics.")
+                LogsDiagnosticsView()
             case .history:
-                PlaceholderView(title: "History", description: "Phase 7: operation history and reproducibility index.")
+                HistoryView()
             }
         }
         .onAppear {
