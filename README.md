@@ -136,3 +136,14 @@ Run from repo root:
 cd macos/StopmoXcodeGUI
 STOPMO_XCODE_ROOT=/Users/kyle/Documents/Coding/stopmo-xcode swift run StopmoXcodeGUI
 ```
+
+Distribution tooling (Phase 9) is available under:
+
+- `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/scripts/package_release.sh`
+- `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/scripts/notarize_release.sh`
+- `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/RELEASE.md`
+
+Phase 10 parity/signoff QA workflow:
+
+- `/Users/kyle/Documents/Coding/stopmo-xcode/qa/phase10_parity_signoff.py`
+- `/Users/kyle/Documents/Coding/stopmo-xcode/qa/README.md`

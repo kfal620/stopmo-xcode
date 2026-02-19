@@ -1,6 +1,6 @@
 # StopmoXcodeGUI
 
-Phase 5 SwiftUI shell for `stopmo-xcode`.
+SwiftUI shell for `stopmo-xcode`.
 
 ## Build
 
@@ -42,3 +42,11 @@ STOPMO_XCODE_ROOT=/Users/kyle/Documents/Coding/stopmo-xcode swift run StopmoXcod
     - Config validation panel in Setup
     - Watch preflight/blocker checks before start
     - Crash-recovery status surfaced in Live Monitor
+
+## Packaging / Signing / Notarization
+
+- Release workflow scripts and requirements are documented in:
+  - `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/RELEASE.md`
+- Packaging assets:
+  - `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/packaging/Info.plist`
+  - `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/packaging/entitlements.plist`

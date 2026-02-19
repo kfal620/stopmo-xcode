@@ -1,0 +1,85 @@
+{
+  "": {
+    "dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/StopmoXcodeGUI.d",
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/StopmoXcodeGUI.o",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/master.swiftdeps"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/AppState.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/AppState.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/AppState~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/AppState.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/AppState.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/BridgeClient.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/BridgeClient.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/BridgeClient~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/BridgeClient.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/BridgeClient.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/HistoryView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/HistoryView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/HistoryView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/HistoryView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/HistoryView.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LiveMonitorView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/LiveMonitorView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/LiveMonitorView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/LiveMonitorView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/LiveMonitorView.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LogsDiagnosticsView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/LogsDiagnosticsView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/LogsDiagnosticsView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/LogsDiagnosticsView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/LogsDiagnosticsView.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/Models.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/Models.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/Models~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/Models.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/Models.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ProjectView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ProjectView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ProjectView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ProjectView.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/QueueView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/QueueView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/QueueView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/QueueView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/QueueView.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/RootView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/RootView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/RootView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/RootView.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/SetupView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/SetupView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/SetupView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/SetupView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/SetupView.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ShotsView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ShotsView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ShotsView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ShotsView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ShotsView.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/StopmoXcodeGUIApp.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/StopmoXcodeGUIApp.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/StopmoXcodeGUIApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/StopmoXcodeGUIApp.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/StopmoXcodeGUIApp.dia"
+  },
+  "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ToolsView.swift": {
+    "object": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ToolsView.swift.o",
+    "swiftmodule": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ToolsView~partial.swiftmodule",
+    "swift-dependencies": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ToolsView.swiftdeps",
+    "diagnostics": "/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/.build/arm64-apple-macosx/release/StopmoXcodeGUI.build/ToolsView.dia"
+  }
+}

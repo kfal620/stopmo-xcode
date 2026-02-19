@@ -9,3 +9,5 @@ venv/
 sandbox/
 *.sqlite3
 config/pawpatrol/
+macos/StopmoXcodeGUI/dist/
+qa/reports/
