@@ -8,6 +8,7 @@
 - `color/`: deterministic transform graph, optional OCIO path, LogC3 encode
 - `write/`: 10-bit DPX writer + JSON sidecars + debug TIFF writer
 - `assemble/`: optional ProRes 4444 and review exports (`ffmpeg`)
+- `app_api.py`: reusable backend API facade (CLI parity surface for GUI integration)
 
 ## Queue State Machine
 
