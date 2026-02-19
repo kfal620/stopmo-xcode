@@ -39,20 +39,75 @@ struct BridgeClient: Sendable {
         return "/usr/bin/python3"
     }
 
+    private func isRepoRoot(_ path: String) -> Bool {
+        let fm = FileManager.default
+        let pyproject = (path as NSString).appendingPathComponent("pyproject.toml")
+        let bridgeScript = (path as NSString).appendingPathComponent("src/stopmo_xcode/gui_bridge.py")
+        return fm.fileExists(atPath: pyproject) && fm.fileExists(atPath: bridgeScript)
+    }
+
+    private func discoverRepoRoot(startingAt path: String) -> String? {
+        var url = URL(fileURLWithPath: path).standardizedFileURL
+        if !url.hasDirectoryPath {
+            url.deleteLastPathComponent()
+        }
+        for _ in 0..<12 {
+            let candidate = url.path
+            if isRepoRoot(candidate) {
+                return candidate
+            }
+            let parent = url.deletingLastPathComponent()
+            if parent.path == url.path {
+                break
+            }
+            url = parent
+        }
+        return nil
+    }
+
+    private func resolveRepoRoot(_ repoRoot: String) -> String {
+        if isRepoRoot(repoRoot) {
+            return repoRoot
+        }
+        if let found = discoverRepoRoot(startingAt: repoRoot) {
+            return found
+        }
+        if let found = discoverRepoRoot(startingAt: FileManager.default.currentDirectoryPath) {
+            return found
+        }
+        if let found = discoverRepoRoot(startingAt: Bundle.main.bundleURL.path) {
+            return found
+        }
+        return repoRoot
+    }
+
     private func runBridge(
         repoRoot: String,
         arguments: [String],
         stdin: Data? = nil
     ) throws -> Data {
-        let rootURL = URL(fileURLWithPath: repoRoot)
+        let resolvedRoot = resolveRepoRoot(repoRoot)
+        let rootURL = URL(fileURLWithPath: resolvedRoot)
         guard FileManager.default.fileExists(atPath: rootURL.path) else {
-            throw BridgeError.missingRepoRoot(repoRoot)
+            throw BridgeError.missingRepoRoot(resolvedRoot)
+        }
+        let bridgeScript = "\(resolvedRoot)/src/stopmo_xcode/gui_bridge.py"
+        guard FileManager.default.fileExists(atPath: bridgeScript) else {
+            throw BridgeError.missingRepoRoot("Bridge script not found under repo root: \(resolvedRoot)")
         }
 
         let process = Process()
         process.currentDirectoryURL = rootURL
-        process.executableURL = URL(fileURLWithPath: pythonExecutable(repoRoot: repoRoot))
-        process.arguments = ["-m", "stopmo_xcode.gui_bridge"] + arguments
+        process.executableURL = URL(fileURLWithPath: pythonExecutable(repoRoot: resolvedRoot))
+        process.arguments = [bridgeScript] + arguments
+        var env = ProcessInfo.processInfo.environment
+        let srcPath = "\(resolvedRoot)/src"
+        if let existing = env["PYTHONPATH"], !existing.isEmpty {
+            env["PYTHONPATH"] = "\(srcPath):\(existing)"
+        } else {
+            env["PYTHONPATH"] = srcPath
+        }
+        process.environment = env
 
         let outPipe = Pipe()
         let errPipe = Pipe()

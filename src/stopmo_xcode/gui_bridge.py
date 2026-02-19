@@ -542,13 +542,32 @@ def _is_pid_running(pid: int | None) -> bool:
 def _tail_lines(path: Path | None, max_lines: int = 40) -> list[str]:
     if path is None or not path.exists():
         return []
-    try:
-        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except Exception:
-        return []
     if max_lines <= 0:
         return []
-    return lines[-max_lines:]
+    # Read from end of file in chunks to avoid loading large logs into memory.
+    chunk_size = 8192
+    remaining = max(1, int(max_lines))
+    blocks: list[bytes] = []
+    newline_count = 0
+    try:
+        with path.open("rb") as f:
+            f.seek(0, os.SEEK_END)
+            file_size = f.tell()
+            offset = file_size
+            while offset > 0 and newline_count <= remaining + 1:
+                read_size = min(chunk_size, offset)
+                offset -= read_size
+                f.seek(offset)
+                block = f.read(read_size)
+                blocks.append(block)
+                newline_count += block.count(b"\n")
+    except Exception:
+        return []
+
+    data = b"".join(reversed(blocks))
+    text = data.decode("utf-8", errors="replace")
+    lines = text.splitlines()
+    return lines[-remaining:]
 
 
 _LOG_LINE_RE = re.compile(
@@ -617,11 +636,7 @@ def _collect_diagnostic_warnings(log_entries: list[dict[str, object]]) -> list[d
 def _read_log_lines(log_path: Path, limit: int = 400) -> list[str]:
     if not log_path.exists():
         return []
-    try:
-        lines = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
-    except Exception:
-        return []
-    return lines[-max(1, int(limit)) :]
+    return _tail_lines(log_path, max_lines=max(1, int(limit)))
 
 
 def _load_cfg_for_path(config_path: str | Path) -> tuple[Path, AppConfig]:

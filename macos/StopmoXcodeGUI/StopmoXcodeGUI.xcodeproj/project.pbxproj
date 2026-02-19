@@ -1,0 +1,289 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		138B33E71F475178D989AC78 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 675733F70C6A47729E2C036B /* AppState.swift */; };
+		D05F1F2D05E366399124CECE /* BridgeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */; };
+		A5DC539A64BD86625DC80324 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB5C1CB812516A120B00D2C /* HistoryView.swift */; };
+		157A5419C022C0B3ABD5CDD2 /* LiveMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */; };
+		64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */; };
+		B62DF06FD6D5FE6F04C691A3 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D1977BF837AF172307DE8C /* Models.swift */; };
+		DD857152FD02873DE88FA2BA /* ProjectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864187AEA855DC6AF33FE84B /* ProjectView.swift */; };
+		2A84592FB76BA5AE87EEC740 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D896E1717E9670E976B51F /* QueueView.swift */; };
+		0B3437F204E7645CD798B84F /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A35ED0BB565BA4A28684804 /* RootView.swift */; };
+		EE0131F56E1D1455264B0FA4 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CD56ABF65C1E7B861D4F2F9 /* SetupView.swift */; };
+		F73AC6A906A75D4BDCCB40DF /* ShotsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7542F43972FC8A8F86041336 /* ShotsView.swift */; };
+		5A25EFDD290F8CF773FC8B6E /* StopmoXcodeGUIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */; };
+		EE9EF4FDC880E05C1E9FC12E /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		34F686D89FE98D7807DD38CB /* StopmoXcodeGUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StopmoXcodeGUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EF431FED19380A0D7D5E65CE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = packaging/Info.plist; sourceTree = "<group>"; };
+		6851888A471B45F362B9E693 /* entitlements.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.plist; sourceTree = "<group>"; };
+		675733F70C6A47729E2C036B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
+		9AB5C1CB812516A120B00D2C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitorView.swift; sourceTree = "<group>"; };
+		502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsDiagnosticsView.swift; sourceTree = "<group>"; };
+		A9D1977BF837AF172307DE8C /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		864187AEA855DC6AF33FE84B /* ProjectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectView.swift; sourceTree = "<group>"; };
+		23D896E1717E9670E976B51F /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
+		1A35ED0BB565BA4A28684804 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		8CD56ABF65C1E7B861D4F2F9 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
+		7542F43972FC8A8F86041336 /* ShotsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotsView.swift; sourceTree = "<group>"; };
+		F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopmoXcodeGUIApp.swift; sourceTree = "<group>"; };
+		CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6DDAA9C0EA5B0E693F0D1C16 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2EB2D8158FC6EF9EB19CB439 = {
+			isa = PBXGroup;
+			children = (
+				2568F4DEBB06535449829F17 /* Sources */,
+				EFFB3ED641C12006A34F98DF /* Packaging */,
+				1E78B559816E575FC0BDB29C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1E78B559816E575FC0BDB29C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				34F686D89FE98D7807DD38CB /* StopmoXcodeGUI.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2568F4DEBB06535449829F17 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A7D8CE70846932FEE851CAD6 /* StopmoXcodeGUI */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A7D8CE70846932FEE851CAD6 /* StopmoXcodeGUI */ = {
+			isa = PBXGroup;
+			children = (
+				675733F70C6A47729E2C036B /* AppState.swift */,
+				D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */,
+				9AB5C1CB812516A120B00D2C /* HistoryView.swift */,
+				2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */,
+				502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */,
+				A9D1977BF837AF172307DE8C /* Models.swift */,
+				864187AEA855DC6AF33FE84B /* ProjectView.swift */,
+				23D896E1717E9670E976B51F /* QueueView.swift */,
+				1A35ED0BB565BA4A28684804 /* RootView.swift */,
+				8CD56ABF65C1E7B861D4F2F9 /* SetupView.swift */,
+				7542F43972FC8A8F86041336 /* ShotsView.swift */,
+				F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */,
+				CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */,
+			);
+			path = StopmoXcodeGUI;
+			sourceTree = "<group>";
+		};
+		EFFB3ED641C12006A34F98DF /* Packaging */ = {
+			isa = PBXGroup;
+			children = (
+				EF431FED19380A0D7D5E65CE /* Info.plist */,
+				6851888A471B45F362B9E693 /* entitlements.plist */,
+			);
+			path = packaging;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1822280F6B0881F495C33105 /* StopmoXcodeGUI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E31BA15CC04B0F0B923553D1 /* Build configuration list for PBXNativeTarget "StopmoXcodeGUI" */;
+			buildPhases = (
+				618F1122C97F2A4F1196BFB7 /* Sources */,
+				6DDAA9C0EA5B0E693F0D1C16 /* Frameworks */,
+				7228B63E0150643C7AB55AED /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = StopmoXcodeGUI;
+			productName = StopmoXcodeGUI;
+			productReference = 34F686D89FE98D7807DD38CB /* StopmoXcodeGUI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		9E88446A3F44B57E975BE17B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					1822280F6B0881F495C33105 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+				};
+			};
+			buildConfigurationList = 314425BAD361EE8153704C56 /* Build configuration list for PBXProject "StopmoXcodeGUI" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 2EB2D8158FC6EF9EB19CB439;
+			productRefGroup = 1E78B559816E575FC0BDB29C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1822280F6B0881F495C33105 /* StopmoXcodeGUI */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7228B63E0150643C7AB55AED /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		618F1122C97F2A4F1196BFB7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				138B33E71F475178D989AC78 /* AppState.swift in Sources */,
+				D05F1F2D05E366399124CECE /* BridgeClient.swift in Sources */,
+				A5DC539A64BD86625DC80324 /* HistoryView.swift in Sources */,
+				157A5419C022C0B3ABD5CDD2 /* LiveMonitorView.swift in Sources */,
+				64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */,
+				B62DF06FD6D5FE6F04C691A3 /* Models.swift in Sources */,
+				DD857152FD02873DE88FA2BA /* ProjectView.swift in Sources */,
+				2A84592FB76BA5AE87EEC740 /* QueueView.swift in Sources */,
+				0B3437F204E7645CD798B84F /* RootView.swift in Sources */,
+				EE0131F56E1D1455264B0FA4 /* SetupView.swift in Sources */,
+				F73AC6A906A75D4BDCCB40DF /* ShotsView.swift in Sources */,
+				5A25EFDD290F8CF773FC8B6E /* StopmoXcodeGUIApp.swift in Sources */,
+				EE9EF4FDC880E05C1E9FC12E /* ToolsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		06638E962A6E8E2ACAE332C2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		BF26485C9BD55CCDFED10BBB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		C6F7D77CFEE3F3714426E427 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = packaging/entitlements.plist;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = packaging/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stopmo.xcode.gui;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		9F8E5B827E07885EFAD454FC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = packaging/entitlements.plist;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = packaging/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.stopmo.xcode.gui;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		314425BAD361EE8153704C56 /* Build configuration list for PBXProject "StopmoXcodeGUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				06638E962A6E8E2ACAE332C2 /* Debug */,
+				BF26485C9BD55CCDFED10BBB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E31BA15CC04B0F0B923553D1 /* Build configuration list for PBXNativeTarget "StopmoXcodeGUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C6F7D77CFEE3F3714426E427 /* Debug */,
+				9F8E5B827E07885EFAD454FC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 9E88446A3F44B57E975BE17B /* Project object */;
+}

@@ -11,3 +11,4 @@ sandbox/
 config/pawpatrol/
 macos/StopmoXcodeGUI/dist/
 qa/reports/
+.build/

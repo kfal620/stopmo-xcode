@@ -298,9 +298,14 @@ final class AppState: ObservableObject {
     }
 
     private static func resolveInitialRepoRoot() -> String {
-        let envRoot = ProcessInfo.processInfo.environment["STOPMO_XCODE_ROOT"]?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let envRoot, !envRoot.isEmpty, isLikelyRepoRoot(Path: envRoot) {
-            return envRoot
+        let env = ProcessInfo.processInfo.environment
+        for key in ["STOPMO_XCODE_ROOT", "SRCROOT", "PROJECT_DIR"] {
+            let value = env[key]?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let value, !value.isEmpty {
+                if let resolved = resolveCandidateRoot(value) {
+                    return resolved
+                }
+            }
         }
         if let remembered = UserDefaults.standard.string(forKey: repoRootDefaultsKey), isLikelyRepoRoot(Path: remembered) {
             return remembered
@@ -312,6 +317,20 @@ final class AppState: ObservableObject {
             return fromCwd
         }
         return FileManager.default.currentDirectoryPath
+    }
+
+    private static func resolveCandidateRoot(_ value: String) -> String? {
+        if isLikelyRepoRoot(Path: value) {
+            return value
+        }
+        let url = URL(fileURLWithPath: value).standardizedFileURL
+        if url.lastPathComponent == "StopmoXcodeGUI" {
+            let parent = url.deletingLastPathComponent().deletingLastPathComponent()
+            if isLikelyRepoRoot(Path: parent.path) {
+                return parent.path
+            }
+        }
+        return discoverRepoRootNear(path: value)
     }
 
     private static func discoverRepoRootNear(path: String) -> String? {

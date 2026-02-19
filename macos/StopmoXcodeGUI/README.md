@@ -9,6 +9,27 @@ cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
 swift build
 ```
 
+## Xcode Project Wrapper
+
+A proper macOS app target wrapper now exists:
+
+- `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/StopmoXcodeGUI.xcodeproj`
+
+Regenerate it (e.g. after adding/removing Swift files):
+
+```bash
+cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
+./scripts/generate_xcodeproj.py
+```
+
+Open in Xcode:
+
+```bash
+open /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/StopmoXcodeGUI.xcodeproj
+```
+
+Shared scheme `StopmoXcodeGUI` includes `STOPMO_XCODE_ROOT=$(SRCROOT)/../..`.
+
 ## Run
 
 ```bash
