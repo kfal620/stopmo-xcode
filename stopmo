@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$ROOT_DIR/.venv"
+VENV_PY="$VENV_DIR/bin/python"
+VENV_PIP="$VENV_DIR/bin/pip"
+VENV_CLI="$VENV_DIR/bin/stopmo-xcode"
+STAMP_FILE="$VENV_DIR/.stopmo-bootstrap-stamp"
+FAIL_STAMP_FILE="$VENV_DIR/.stopmo-bootstrap-fail"
+INSTALL_SPEC="${ROOT_DIR}[watch,raw,ocio,io,video]"
+LAUNCHER_VERSION="1"
+RETRY_SECONDS=1800
+
+log() {
+  printf '[stopmo] %s\n' "$*" >&2
+}
+
+ensure_python() {
+  if command -v python3 >/dev/null 2>&1; then
+    echo "python3"
+    return
+  fi
+  if command -v python >/dev/null 2>&1; then
+    echo "python"
+    return
+  fi
+
+  log "Python is required but not found on PATH."
+  exit 1
+}
+
+file_hash() {
+  if command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+    return
+  fi
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+    return
+  fi
+
+  local py_bin
+  py_bin="$(ensure_python)"
+  "$py_bin" - "$1" <<'PY'
+import hashlib
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+print(hashlib.sha256(path.read_bytes()).hexdigest())
+PY
+}
+
+ensure_venv() {
+  if [[ ! -x "$VENV_PY" ]]; then
+    local py_bin
+    py_bin="$(ensure_python)"
+    log "Creating virtual environment at $VENV_DIR"
+    "$py_bin" -m venv "$VENV_DIR"
+  fi
+}
+
+ensure_install() {
+  local pyproject_hash
+  pyproject_hash="$(file_hash "$ROOT_DIR/pyproject.toml")"
+  local wanted_stamp="${LAUNCHER_VERSION}:${pyproject_hash}:${INSTALL_SPEC}"
+  local current_stamp=""
+  local now
+  now="$(date +%s)"
+
+  if [[ -f "$STAMP_FILE" ]]; then
+    current_stamp="$(cat "$STAMP_FILE")"
+  fi
+
+  if [[ "$current_stamp" != "$wanted_stamp" || ! -x "$VENV_CLI" ]]; then
+    if [[ -x "$VENV_CLI" && -f "$FAIL_STAMP_FILE" ]]; then
+      local last_fail
+      last_fail="$(cat "$FAIL_STAMP_FILE" 2>/dev/null || true)"
+      if [[ "$last_fail" =~ ^[0-9]+$ ]] && (( now - last_fail < RETRY_SECONDS )); then
+        log "Skipping bootstrap retry after recent failure; using existing environment."
+        return
+      fi
+    fi
+
+    log "Bootstrapping dependencies ($INSTALL_SPEC)"
+    if PIP_DISABLE_PIP_VERSION_CHECK=1 "$VENV_PIP" install -e "$INSTALL_SPEC"; then
+      printf '%s\n' "$wanted_stamp" > "$STAMP_FILE"
+      rm -f "$FAIL_STAMP_FILE"
+    else
+      log "Editable install failed; retrying standard install."
+      if PIP_DISABLE_PIP_VERSION_CHECK=1 "$VENV_PIP" install --no-build-isolation "$INSTALL_SPEC"; then
+        printf '%s\n' "$wanted_stamp" > "$STAMP_FILE"
+        rm -f "$FAIL_STAMP_FILE"
+      else
+        printf '%s\n' "$now" > "$FAIL_STAMP_FILE"
+        if [[ -x "$VENV_CLI" ]]; then
+          log "Dependency bootstrap failed; running with existing environment."
+        else
+          log "Dependency bootstrap failed and no stopmo-xcode CLI is available."
+          exit 1
+        fi
+      fi
+    fi
+  fi
+}
+
+main() {
+  ensure_venv
+  ensure_install
+  exec "$VENV_CLI" "$@"
+}
+
+main "$@"

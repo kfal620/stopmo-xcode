@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -29,9 +30,30 @@ _TRAILING_FRAME_RE = re.compile(r"^(?P<prefix>.*?)(?P<frame>\d+)$")
 
 
 def _require_ffmpeg() -> str:
+    env_ffmpeg = os.environ.get("STOPMO_XCODE_FFMPEG")
+    if env_ffmpeg:
+        candidate = Path(env_ffmpeg).expanduser()
+        if candidate.exists() and os.access(candidate, os.X_OK):
+            return str(candidate)
+        raise AssemblyError(
+            f"STOPMO_XCODE_FFMPEG is set but not executable: {candidate}"
+        )
+
     ffmpeg = shutil.which("ffmpeg")
     if ffmpeg is None:
-        raise AssemblyError("ffmpeg not found in PATH; cannot assemble ProRes")
+        try:
+            import imageio_ffmpeg  # type: ignore
+
+            ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            ffmpeg = None
+
+    if ffmpeg is None:
+        raise AssemblyError(
+            "ffmpeg not found in PATH; cannot assemble ProRes. "
+            "Install system ffmpeg or install Python extra '.[video]' "
+            "to use bundled imageio-ffmpeg."
+        )
     return ffmpeg
 
 

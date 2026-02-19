@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sys
+from types import SimpleNamespace
 
 from stopmo_xcode.assemble import prores
 
@@ -75,3 +77,33 @@ def test_convert_dpx_sequences_to_prores_raises_on_flat_name_collision(tmp_path:
         assert False, "expected name collision error"
     except prores.AssemblyError as exc:
         assert "sequence name collision" in str(exc)
+
+
+def test_require_ffmpeg_uses_env_override(tmp_path: Path, monkeypatch) -> None:
+    fake_ffmpeg = tmp_path / "ffmpeg"
+    fake_ffmpeg.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    fake_ffmpeg.chmod(0o755)
+
+    monkeypatch.setenv("STOPMO_XCODE_FFMPEG", str(fake_ffmpeg))
+    monkeypatch.setattr(prores.shutil, "which", lambda _: None)
+    assert prores._require_ffmpeg() == str(fake_ffmpeg)
+
+
+def test_require_ffmpeg_uses_imageio_fallback(monkeypatch) -> None:
+    monkeypatch.delenv("STOPMO_XCODE_FFMPEG", raising=False)
+    monkeypatch.setattr(prores.shutil, "which", lambda _: None)
+    monkeypatch.setitem(sys.modules, "imageio_ffmpeg", SimpleNamespace(get_ffmpeg_exe=lambda: "/tmp/ffmpeg"))
+    assert prores._require_ffmpeg() == "/tmp/ffmpeg"
+
+
+def test_require_ffmpeg_raises_when_missing(monkeypatch) -> None:
+    monkeypatch.delenv("STOPMO_XCODE_FFMPEG", raising=False)
+    monkeypatch.setattr(prores.shutil, "which", lambda _: None)
+    monkeypatch.setitem(sys.modules, "imageio_ffmpeg", SimpleNamespace(get_ffmpeg_exe=lambda: None))
+
+    try:
+        prores._require_ffmpeg()
+        assert False, "expected ffmpeg error"
+    except prores.AssemblyError as exc:
+        assert "ffmpeg not found" in str(exc)
+        assert ".[video]" in str(exc)

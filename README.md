@@ -23,6 +23,27 @@ Optional extras:
 - `.[ocio]` for OCIO-based transforms
 - `.[io]` for debug TIFF writer
 
+## One-Command Launcher (Phase 1)
+
+Use the repo launcher to bootstrap everything and run the CLI in one step:
+
+```bash
+./stopmo watch --config config/sample.yaml
+```
+
+What `./stopmo` does automatically:
+
+- creates `.venv` if missing
+- installs runtime extras: `.[watch,raw,ocio,io,video]`
+- re-installs when `pyproject.toml` changes
+- runs `.venv/bin/stopmo-xcode ...`
+
+For ProRes assembly, `ffmpeg` is resolved in this order:
+
+1. `STOPMO_XCODE_FFMPEG` (if set)
+2. `ffmpeg` on `PATH`
+3. bundled `imageio-ffmpeg` binary from `.[video]`
+
 ## Notes
 
 - Deterministic defaults: shot-level WB lock, no per-frame exposure normalization.
