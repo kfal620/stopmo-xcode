@@ -235,14 +235,13 @@ struct ToolsView: View {
 
     private func runTool(_ action: @escaping () async throws -> Void) async {
         isRunningTool = true
-        state.errorMessage = nil
+        state.clearError()
         state.statusMessage = "Running tool operation"
         do {
             try await action()
             state.statusMessage = "Tool operation completed"
         } catch {
-            state.errorMessage = error.localizedDescription
-            state.statusMessage = "Error"
+            state.presentError(title: "Tool Operation Failed", message: error.localizedDescription)
         }
         isRunningTool = false
     }

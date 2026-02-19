@@ -3,6 +3,12 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+struct PresentedError: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+}
+
 @MainActor
 final class AppState: ObservableObject {
     @Published var selectedSection: AppSection = .setup
@@ -25,6 +31,7 @@ final class AppState: ObservableObject {
     @Published var liveEvents: [String] = []
     @Published var statusMessage: String = "Ready"
     @Published var errorMessage: String?
+    @Published var presentedError: PresentedError?
     @Published var isBusy: Bool = false
     @Published var workspaceAccessActive: Bool = false
 
@@ -130,7 +137,7 @@ final class AppState: ObservableObject {
 
         if !silent {
             isBusy = true
-            errorMessage = nil
+            clearError()
             statusMessage = "Refreshing live status"
         }
         do {
@@ -147,8 +154,7 @@ final class AppState: ObservableObject {
             }
         } catch {
             if !silent {
-                errorMessage = error.localizedDescription
-                statusMessage = "Error"
+                presentError(title: "Live Refresh Failed", message: error.localizedDescription)
             } else {
                 recordLiveEvent("Live poll error: \(error.localizedDescription)")
             }
@@ -295,13 +301,12 @@ final class AppState: ObservableObject {
 
     private func runBlockingTask(label: String, work: @escaping () async throws -> Void) async {
         isBusy = true
-        errorMessage = nil
+        clearError()
         statusMessage = label
         do {
             try await work()
         } catch {
-            errorMessage = error.localizedDescription
-            statusMessage = "Error"
+            presentError(title: "\(label) Failed", message: error.localizedDescription)
         }
         isBusy = false
     }
@@ -336,8 +341,7 @@ final class AppState: ObservableObject {
             configPath = "\(selectedURL.path)/config/sample.yaml"
             statusMessage = started ? "Workspace access granted" : "Workspace selected"
         } catch {
-            errorMessage = error.localizedDescription
-            statusMessage = "Error"
+            presentError(title: "Workspace Selection Failed", message: error.localizedDescription)
         }
     }
 
@@ -474,5 +478,20 @@ final class AppState: ObservableObject {
         let pyproject = (root as NSString).appendingPathComponent("pyproject.toml")
         let moduleDir = (root as NSString).appendingPathComponent("src/stopmo_xcode")
         return fm.fileExists(atPath: pyproject) && fm.fileExists(atPath: moduleDir)
+    }
+
+    func clearError() {
+        errorMessage = nil
+        presentedError = nil
+    }
+
+    func presentError(title: String = "Error", message: String) {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return
+        }
+        errorMessage = trimmed
+        presentedError = PresentedError(title: title, message: trimmed)
+        statusMessage = "Error"
     }
 }

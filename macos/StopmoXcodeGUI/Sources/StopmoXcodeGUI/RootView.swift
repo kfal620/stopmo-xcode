@@ -39,6 +39,13 @@ struct RootView: View {
         .onChange(of: state.selectedSection) { _, next in
             state.setMonitoringEnabled(for: next)
         }
+        .alert(item: $state.presentedError) { presented in
+            Alert(
+                title: Text(presented.title),
+                message: Text(presented.message),
+                dismissButton: .default(Text("OK"))
+            )
+        }
         .overlay(alignment: .bottomLeading) {
             statusBar
         }
@@ -55,10 +62,14 @@ struct RootView: View {
                 .foregroundStyle(.secondary)
             if let error = state.errorMessage, !error.isEmpty {
                 Divider()
-                Text(error)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .lineLimit(2)
+                Button {
+                    state.presentError(title: "Last Error", message: error)
+                } label: {
+                    Label("Error", systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(10)
