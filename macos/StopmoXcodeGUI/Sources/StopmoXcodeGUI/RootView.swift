@@ -48,6 +48,8 @@ struct RootView: View {
         }
         .overlay(alignment: .bottomLeading) {
             statusBar
+                .padding(.leading, 12)
+                .padding(.bottom, 12)
         }
     }
 
@@ -61,7 +63,9 @@ struct RootView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             if let error = state.errorMessage, !error.isEmpty {
-                Divider()
+                Text("•")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                 Button {
                     state.presentError(title: "Last Error", message: error)
                 } label: {
@@ -74,6 +78,8 @@ struct RootView: View {
         }
         .padding(10)
         .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .fixedSize(horizontal: true, vertical: true)
     }
 }
 
