@@ -86,7 +86,7 @@ def _assembly_loop(config: AppConfig, stop_event: threading.Event) -> None:
         db.close()
 
 
-def run_watch_service(config: AppConfig) -> None:
+def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None = None) -> None:
     db = QueueDB(config.watch.db_path)
     reset_count = db.reset_inflight_to_detected()
     if reset_count:
@@ -125,7 +125,7 @@ def run_watch_service(config: AppConfig) -> None:
     logger.info("watcher started with %s workers", len(workers))
 
     try:
-        watcher.run_forever()
+        watcher.run_forever(external_stop_event=shutdown_event)
     except KeyboardInterrupt:
         logger.info("interrupt received, shutting down")
     finally:

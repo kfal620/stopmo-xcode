@@ -52,10 +52,13 @@ class SourceWatcher:
             if self._is_candidate(path):
                 self._tracker.mark_candidate(path)
 
-    def run_forever(self) -> None:
+    def run_forever(self, external_stop_event: threading.Event | None = None) -> None:
         logger.info("watching source directory: %s", self.source_dir)
         last_scan = 0.0
         while not self._stop_event.is_set():
+            if external_stop_event is not None and external_stop_event.is_set():
+                break
+
             now = time.monotonic()
             if now - last_scan >= self.scan_interval_seconds:
                 self._scan_tree()

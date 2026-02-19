@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import re
-from typing import Tuple
+from typing import Callable, Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -175,6 +175,8 @@ def convert_dpx_sequences_to_prores(
     output_root: Path | None = None,
     framerate: int = 24,
     overwrite: bool = True,
+    on_sequence_complete: Callable[[DpxSequence, Path], None] | None = None,
+    should_stop: Callable[[], bool] | None = None,
 ) -> list[Path]:
     if output_root is None:
         output_root = input_root / "PRORES"
@@ -185,6 +187,9 @@ def convert_dpx_sequences_to_prores(
     reserved_names: dict[str, DpxSequence] = {}
 
     for seq in sequences:
+        if should_stop is not None and should_stop():
+            raise AssemblyError("operation cancelled")
+
         out_name = f"{seq.sequence_name}.mov"
         existing = reserved_names.get(out_name)
         if existing is not None and existing.dpx_dir != seq.dpx_dir:
@@ -199,6 +204,8 @@ def convert_dpx_sequences_to_prores(
 
         if out_mov.exists() and not overwrite:
             logger.info("skip existing %s", out_mov)
+            if on_sequence_complete is not None:
+                on_sequence_complete(seq, out_mov)
             continue
 
         dpx_glob = str(seq.dpx_dir / f"{seq.raw_prefix}[0-9]*.dpx")
@@ -215,6 +222,8 @@ def convert_dpx_sequences_to_prores(
             seq.frame_count,
             out_mov,
         )
+        if on_sequence_complete is not None:
+            on_sequence_complete(seq, out_mov)
 
     return outputs
 

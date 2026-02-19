@@ -114,3 +114,25 @@ stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model
 The command prints a YAML snippet you can paste into `config/sample.yaml` and
 writes a JSON report with source/provenance, assumptions, notes, and warnings.
 An example report schema is provided at `config/sample.matrix.json`.
+
+## macOS GUI Shell (Phase 4)
+
+A SwiftUI shell has been added under:
+
+- `macos/StopmoXcodeGUI`
+
+It currently includes:
+
+- App sidebar/navigation shell
+- Setup view with runtime dependency checks
+- Project view with full config editing and save/load via Python bridge
+- Live Monitor with watch service start/stop and queue progress
+- Queue browser for recent jobs
+- Shots summary view with per-shot progress/state
+
+Run from repo root:
+
+```bash
+cd macos/StopmoXcodeGUI
+STOPMO_XCODE_ROOT=/Users/kyle/Documents/Coding/stopmo-xcode swift run StopmoXcodeGUI
+```

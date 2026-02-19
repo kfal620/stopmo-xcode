@@ -8,6 +8,8 @@
 - `color/`: deterministic transform graph, optional OCIO path, LogC3 encode
 - `write/`: 10-bit DPX writer + JSON sidecars + debug TIFF writer
 - `assemble/`: optional ProRes 4444 and review exports (`ffmpeg`)
+- `app_api.py`: GUI-facing backend facade with operation IDs, progress, and event polling
+- `gui_bridge.py`: JSON bridge CLI used by SwiftUI shell for config, health, watch control, queue, and shot polling
 
 ## Queue State Machine
 
