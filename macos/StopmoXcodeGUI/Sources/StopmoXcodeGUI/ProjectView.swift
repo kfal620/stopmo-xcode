@@ -44,9 +44,8 @@ private enum ProjectEditorSection: String, CaseIterable, Identifiable {
 struct ProjectView: View {
     @EnvironmentObject private var state: AppState
 
+    @StateObject private var editor = ProjectEditorViewModel()
     @State private var selectedEditorSection: ProjectEditorSection = .watch
-    @State private var baselineConfig: StopmoConfigDocument = .empty
-    @State private var baselineInitialized: Bool = false
     @State private var initialLoadRequested: Bool = false
 
     @State private var presets: [String: StopmoConfigDocument] = [:]
@@ -113,13 +112,13 @@ struct ProjectView: View {
             if !initialLoadRequested {
                 initialLoadRequested = true
                 Task { await reloadFromDisk() }
-            } else if !baselineInitialized {
-                captureBaselineFromCurrentConfig()
+            } else {
+                editor.bootstrapIfNeeded(from: state.config)
             }
         }
         .onChange(of: state.statusMessage) { _, status in
             if status == "Loaded config" || status == "Saved config" {
-                captureBaselineFromCurrentConfig()
+                editor.acceptLoadedConfig(state.config)
             }
         }
     }
@@ -189,226 +188,38 @@ struct ProjectView: View {
     }
 
     private var watchSection: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            fieldRow("Source Directory") {
-                textField("Source directory", text: $state.config.watch.sourceDir)
-            }
-            fieldRow("Working Directory") {
-                textField("Working directory", text: $state.config.watch.workingDir)
-            }
-            fieldRow("Output Directory") {
-                textField("Output directory", text: $state.config.watch.outputDir)
-            }
-            fieldRow("Database Path") {
-                textField("DB path", text: $state.config.watch.dbPath)
-            }
-            fieldRow("Include Extensions") {
-                textField("Comma separated extensions", text: includeExtensionsBinding)
-            }
-            fieldRow("Stable Seconds") {
-                numberField("Stable seconds", value: $state.config.watch.stableSeconds)
-            }
-            fieldRow("Poll Interval Seconds") {
-                numberField("Poll interval seconds", value: $state.config.watch.pollIntervalSeconds)
-            }
-            fieldRow("Scan Interval Seconds") {
-                numberField("Scan interval seconds", value: $state.config.watch.scanIntervalSeconds)
-            }
-            fieldRow("Max Workers") {
-                integerField("Max workers", value: $state.config.watch.maxWorkers)
-            }
-            fieldRow("Shot Complete Seconds") {
-                numberField("Shot complete seconds", value: $state.config.watch.shotCompleteSeconds)
-            }
-            fieldRow("Shot Regex") {
-                textField(
-                    "Optional shot regex",
-                    text: optionalStringBinding(
-                        get: { state.config.watch.shotRegex },
-                        set: { state.config.watch.shotRegex = $0 }
-                    )
-                )
-            }
-        }
+        ProjectWatchSectionView(watch: $editor.draftConfig.watch)
     }
 
     private var pipelineSection: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                HStack {
-                    Text("Camera To Reference Matrix")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Reset Identity") {
-                        resetMatrixIdentity()
-                    }
-                    .disabled(state.isBusy)
-                    Button("Paste 3x3") {
-                        pasteMatrixFromClipboard()
-                    }
-                    .disabled(state.isBusy)
-                    Button("Copy 3x3") {
-                        copyMatrixToClipboard()
-                    }
-                    .disabled(state.isBusy)
-                }
-                ForEach(0..<3, id: \.self) { row in
-                    HStack(spacing: StopmoUI.Spacing.xs) {
-                        ForEach(0..<3, id: \.self) { col in
-                            TextField(
-                                "m\(row)\(col)",
-                                value: matrixBinding(row: row, col: col),
-                                format: .number.precision(.fractionLength(8))
-                            )
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 120)
-                        }
-                    }
-                }
-            }
-
-            fieldRow("Exposure Offset Stops") {
-                numberField("Exposure offset", value: $state.config.pipeline.exposureOffsetStops)
-            }
-            toggleRow("Auto Exposure From ISO", isOn: $state.config.pipeline.autoExposureFromIso)
-            toggleRow("Auto Exposure From Shutter", isOn: $state.config.pipeline.autoExposureFromShutter)
-            fieldRow("Target Shutter Seconds") {
-                textField(
-                    "Optional shutter seconds",
-                    text: optionalDoubleBinding(
-                        get: { state.config.pipeline.targetShutterS },
-                        set: { state.config.pipeline.targetShutterS = $0 }
-                    )
-                )
-            }
-            toggleRow("Auto Exposure From Aperture", isOn: $state.config.pipeline.autoExposureFromAperture)
-            fieldRow("Target Aperture F") {
-                textField(
-                    "Optional aperture",
-                    text: optionalDoubleBinding(
-                        get: { state.config.pipeline.targetApertureF },
-                        set: { state.config.pipeline.targetApertureF = $0 }
-                    )
-                )
-            }
-            fieldRow("Contrast") {
-                numberField("Contrast", value: $state.config.pipeline.contrast)
-            }
-            fieldRow("Contrast Pivot Linear") {
-                numberField("Contrast pivot linear", value: $state.config.pipeline.contrastPivotLinear)
-            }
-            toggleRow("Lock WB From First Frame", isOn: $state.config.pipeline.lockWbFromFirstFrame)
-            fieldRow("Target EI") {
-                integerField("Target EI", value: $state.config.pipeline.targetEi)
-            }
-            toggleRow("Apply Match LUT", isOn: $state.config.pipeline.applyMatchLut)
-            fieldRow("Match LUT Path") {
-                textField(
-                    "Optional match LUT path",
-                    text: optionalStringBinding(
-                        get: { state.config.pipeline.matchLutPath },
-                        set: { state.config.pipeline.matchLutPath = $0 }
-                    )
-                )
-            }
-            toggleRow("Use OCIO", isOn: $state.config.pipeline.useOcio)
-            fieldRow("OCIO Config Path") {
-                textField(
-                    "Optional OCIO config path",
-                    text: optionalStringBinding(
-                        get: { state.config.pipeline.ocioConfigPath },
-                        set: { state.config.pipeline.ocioConfigPath = $0 }
-                    )
-                )
-            }
-            fieldRow("OCIO Input Space") {
-                textField("OCIO input space", text: $state.config.pipeline.ocioInputSpace)
-            }
-            fieldRow("OCIO Reference Space") {
-                textField("OCIO reference space", text: $state.config.pipeline.ocioReferenceSpace)
-            }
-            fieldRow("OCIO Output Space") {
-                textField("OCIO output space", text: $state.config.pipeline.ocioOutputSpace)
-            }
-        }
+        ProjectPipelineSectionView(
+            pipeline: $editor.draftConfig.pipeline,
+            isBusy: state.isBusy,
+            onResetIdentity: resetMatrixIdentity,
+            onPasteMatrix: pasteMatrixFromClipboard,
+            onCopyMatrix: copyMatrixToClipboard
+        )
     }
 
     private var outputSection: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            toggleRow("Emit Per Frame JSON", isOn: $state.config.output.emitPerFrameJson)
-            toggleRow("Emit Truth Frame Pack", isOn: $state.config.output.emitTruthFramePack)
-            fieldRow("Truth Frame Index") {
-                integerField("Truth frame index", value: $state.config.output.truthFrameIndex)
-            }
-            toggleRow("Write Debug TIFF", isOn: $state.config.output.writeDebugTiff)
-            toggleRow("Write ProRes On Shot Complete", isOn: $state.config.output.writeProresOnShotComplete)
-            fieldRow("Framerate") {
-                integerField("Framerate", value: $state.config.output.framerate)
-            }
-            fieldRow("Show LUT Rec709 Path") {
-                textField(
-                    "Optional show LUT path",
-                    text: optionalStringBinding(
-                        get: { state.config.output.showLutRec709Path },
-                        set: { state.config.output.showLutRec709Path = $0 }
-                    )
-                )
-            }
-        }
+        ProjectOutputSectionView(output: $editor.draftConfig.output)
     }
 
     private var loggingSection: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            fieldRow("Log Level") {
-                textField("Log level", text: $state.config.logLevel)
-            }
-            fieldRow("Log File") {
-                textField(
-                    "Optional log file",
-                    text: optionalStringBinding(
-                        get: { state.config.logFile },
-                        set: { state.config.logFile = $0 }
-                    )
-                )
-            }
-        }
+        ProjectLoggingSectionView(logLevel: $editor.draftConfig.logLevel, logFile: $editor.draftConfig.logFile)
     }
 
     private var presetsSection: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            fieldRow("Preset Name") {
-                textField("Preset name", text: $presetNameInput)
-            }
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    presetsActionButtons
-                }
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                    presetsActionButtons
-                }
-            }
-
-            if presetNames.isEmpty {
-                EmptyStateCard(message: "No presets saved yet.")
-            } else {
-                fieldRow("Saved Presets") {
-                    Picker("Saved Presets", selection: $selectedPresetName) {
-                        ForEach(presetNames, id: \.self) { name in
-                            Text(name).tag(name)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(width: 320, alignment: .leading)
-                }
-                if let selected = presets[selectedPresetName] {
-                    KeyValueRow(key: "Preset Config Path", value: selected.configPath ?? "-")
-                    KeyValueRow(key: "Preset Target EI", value: "\(selected.pipeline.targetEi)")
-                    KeyValueRow(key: "Preset Framerate", value: "\(selected.output.framerate)")
-                }
-            }
-        }
+        ProjectPresetsSectionView(
+            presetNameInput: $presetNameInput,
+            selectedPresetName: $selectedPresetName,
+            presetNames: presetNames,
+            selectedPresetConfig: presets[selectedPresetName],
+            isBusy: state.isBusy,
+            onSaveCurrentAsPreset: saveCurrentAsPreset,
+            onLoadSelectedPreset: loadSelectedPreset,
+            onDeleteSelectedPreset: deleteSelectedPreset
+        )
     }
 
     private var selectedSectionTitle: String {
@@ -426,60 +237,32 @@ struct ProjectView: View {
         }
     }
 
-    private var presetsActionButtons: some View {
-        Group {
-            Button("Save Current As Preset") {
-                saveCurrentAsPreset()
-            }
-            .disabled(state.isBusy)
-
-            Button("Load Selected Preset") {
-                loadSelectedPreset()
-            }
-            .disabled(state.isBusy || selectedPresetName.isEmpty)
-
-            Button("Delete Selected Preset") {
-                deleteSelectedPreset()
-            }
-            .disabled(state.isBusy || selectedPresetName.isEmpty)
-        }
-    }
-
     private var hasUnsavedChanges: Bool {
-        guard baselineInitialized else {
-            return false
-        }
-        return !configsEqual(state.config, baselineConfig)
+        editor.hasUnsavedChanges
     }
 
     private var presetNames: [String] {
         presets.keys.sorted()
     }
 
-    private func captureBaselineFromCurrentConfig() {
-        baselineConfig = state.config
-        baselineInitialized = true
-    }
-
     private func reloadFromDisk() async {
         await state.loadConfig()
         if state.errorMessage == nil {
-            captureBaselineFromCurrentConfig()
+            editor.acceptLoadedConfig(state.config)
         }
     }
 
     private func saveToDisk() async {
-        await state.saveConfig()
+        await state.saveConfig(config: editor.draftConfig)
         if state.errorMessage == nil {
-            captureBaselineFromCurrentConfig()
+            editor.acceptLoadedConfig(state.config)
         }
     }
 
     private func discardLocalChanges() {
-        guard baselineInitialized else {
+        guard editor.discardChanges() else {
             return
         }
-        state.config = baselineConfig
         state.statusMessage = "Discarded unsaved project changes"
     }
 
@@ -494,7 +277,7 @@ struct ProjectView: View {
             )
             return
         }
-        presets[trimmed] = state.config
+        presets[trimmed] = editor.draftConfig
         persistPresets()
         selectedPresetName = trimmed
         presetNameInput = trimmed
@@ -516,7 +299,7 @@ struct ProjectView: View {
             )
             return
         }
-        state.config = preset
+        editor.applyPreset(preset)
         state.statusMessage = "Loaded preset \(selectedPresetName)"
         state.presentInfo(
             title: "Preset Loaded",
@@ -573,13 +356,12 @@ struct ProjectView: View {
     }
 
     private func resetMatrixIdentity() {
-        state.config.pipeline.cameraToReferenceMatrix = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+        editor.resetMatrixIdentity()
         state.statusMessage = "Reset matrix to identity"
     }
 
     private func copyMatrixToClipboard() {
-        let matrix = state.config.pipeline.cameraToReferenceMatrix
-        guard matrix.count == 3, matrix.allSatisfy({ $0.count == 3 }) else {
+        guard let payload = editor.matrixPayloadForCopy() else {
             state.presentWarning(
                 title: "Matrix Copy Skipped",
                 message: "Current matrix is not a valid 3x3 value grid.",
@@ -588,8 +370,6 @@ struct ProjectView: View {
             )
             return
         }
-        let lines = matrix.map { row in row.map { "\($0)" }.joined(separator: " ") }
-        let payload = lines.joined(separator: "\n")
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(payload, forType: .string)
         state.statusMessage = "Copied 3x3 matrix"
@@ -614,7 +394,7 @@ struct ProjectView: View {
             )
             return
         }
-        state.config.pipeline.cameraToReferenceMatrix = matrix
+        editor.applyMatrix(matrix)
         state.statusMessage = "Pasted 3x3 matrix"
     }
 
@@ -654,122 +434,4 @@ struct ProjectView: View {
         return out
     }
 
-    private func configsEqual(_ lhs: StopmoConfigDocument, _ rhs: StopmoConfigDocument) -> Bool {
-        guard let left = configData(lhs), let right = configData(rhs) else {
-            return false
-        }
-        return left == right
-    }
-
-    private func configData(_ config: StopmoConfigDocument) -> Data? {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.sortedKeys]
-        return try? encoder.encode(config)
-    }
-
-    private func textField(_ placeholder: String, text: Binding<String>) -> some View {
-        TextField(placeholder, text: text)
-            .textFieldStyle(.roundedBorder)
-            .frame(maxWidth: 680, alignment: .leading)
-    }
-
-    private func numberField(_ placeholder: String, value: Binding<Double>) -> some View {
-        TextField(placeholder, value: value, format: .number)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 180, alignment: .leading)
-    }
-
-    private func integerField(_ placeholder: String, value: Binding<Int>) -> some View {
-        TextField(placeholder, value: value, format: .number)
-            .textFieldStyle(.roundedBorder)
-            .frame(width: 180, alignment: .leading)
-    }
-
-    private func fieldRow<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.sm) {
-            Text(label)
-                .frame(width: StopmoUI.Width.formLabel, alignment: .leading)
-                .foregroundStyle(.secondary)
-            content()
-        }
-    }
-
-    private func toggleRow(_ label: String, isOn: Binding<Bool>) -> some View {
-        HStack(spacing: StopmoUI.Spacing.sm) {
-            Text(label)
-                .frame(width: StopmoUI.Width.formLabel, alignment: .leading)
-                .foregroundStyle(.secondary)
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .accessibilityLabel(label)
-        }
-    }
-
-    private var includeExtensionsBinding: Binding<String> {
-        Binding<String>(
-            get: { state.config.watch.includeExtensions.joined(separator: ", ") },
-            set: { newValue in
-                state.config.watch.includeExtensions = newValue
-                    .split(separator: ",")
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-            }
-        )
-    }
-
-    private func matrixBinding(row: Int, col: Int) -> Binding<Double> {
-        Binding<Double>(
-            get: {
-                guard row < state.config.pipeline.cameraToReferenceMatrix.count,
-                      col < state.config.pipeline.cameraToReferenceMatrix[row].count else {
-                    return 0.0
-                }
-                return state.config.pipeline.cameraToReferenceMatrix[row][col]
-            },
-            set: { newValue in
-                guard row < state.config.pipeline.cameraToReferenceMatrix.count,
-                      col < state.config.pipeline.cameraToReferenceMatrix[row].count else {
-                    return
-                }
-                state.config.pipeline.cameraToReferenceMatrix[row][col] = newValue
-            }
-        )
-    }
-
-    private func optionalStringBinding(
-        get: @escaping () -> String?,
-        set: @escaping (String?) -> Void
-    ) -> Binding<String> {
-        Binding<String>(
-            get: { get() ?? "" },
-            set: { newValue in
-                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                set(trimmed.isEmpty ? nil : trimmed)
-            }
-        )
-    }
-
-    private func optionalDoubleBinding(
-        get: @escaping () -> Double?,
-        set: @escaping (Double?) -> Void
-    ) -> Binding<String> {
-        Binding<String>(
-            get: {
-                if let value = get() {
-                    return String(value)
-                }
-                return ""
-            },
-            set: { newValue in
-                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.isEmpty {
-                    set(nil)
-                    return
-                }
-                if let parsed = Double(trimmed) {
-                    set(parsed)
-                }
-            }
-        )
-    }
 }

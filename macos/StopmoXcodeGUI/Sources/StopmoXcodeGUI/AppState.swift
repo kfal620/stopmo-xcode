@@ -63,6 +63,7 @@ final class AppState: ObservableObject {
     @Published var presentedError: PresentedError?
     @Published var notifications: [NotificationRecord] = []
     @Published var activeToast: NotificationRecord?
+    @Published var isNotificationsCenterPresented: Bool = false
     @Published var isBusy: Bool = false
     @Published var workspaceAccessActive: Bool = false
     @Published var reduceMotionEnabled: Bool = false
@@ -150,11 +151,11 @@ final class AppState: ObservableObject {
         }
     }
 
-    func saveConfig() async {
+    func saveConfig(config overrideConfig: StopmoConfigDocument? = nil) async {
         await runBlockingTask(label: "Saving config") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let payload = self.config
+            let payload = overrideConfig ?? self.config
             let saved = try await Task.detached(priority: .userInitiated) {
                 try BridgeClient().writeConfig(repoRoot: repoRoot, configPath: configPath, config: payload)
             }.value
@@ -1049,6 +1050,28 @@ final class AppState: ObservableObject {
     func clearNotifications() {
         notifications = []
         statusMessage = "Notifications cleared"
+    }
+
+    func toggleNotificationsCenter() {
+        isNotificationsCenterPresented.toggle()
+    }
+
+    func dismissNotificationsCenter() {
+        isNotificationsCenterPresented = false
+    }
+
+    var notificationsBadgeText: String? {
+        guard !notifications.isEmpty else {
+            return nil
+        }
+        if notifications.count > 99 {
+            return "99+"
+        }
+        return "\(notifications.count)"
+    }
+
+    var notificationsBadgeTone: StatusTone {
+        notifications.contains { $0.kind == .error } ? .danger : .warning
     }
 
     func dismissToast() {
