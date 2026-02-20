@@ -55,7 +55,7 @@ final class Phase0SmokeTests: XCTestCase {
 
         let _: () async -> Void = state.refreshHealth
         let _: () async -> Void = state.loadConfig
-        let _: () async -> Void = state.saveConfig
+        let _: (StopmoConfigDocument?) async -> Void = state.saveConfig
         let _: () async -> Void = state.startWatchService
         let _: () async -> Void = state.stopWatchService
         let _: () async -> Void = state.restartWatchService

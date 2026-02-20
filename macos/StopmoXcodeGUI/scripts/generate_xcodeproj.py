@@ -231,9 +231,14 @@ def main() -> int:
 \t\t\tbuildSettings = {{
 \t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
 \t\t\t\tCLANG_ENABLE_MODULES = YES;
+\t\t\t\tCLANG_ENABLE_OBJC_WEAK = YES;
 \t\t\t\tCOPY_PHASE_STRIP = NO;
+\t\t\t\tDEAD_CODE_STRIPPING = YES;
+\t\t\t\tENABLE_TESTABILITY = YES;
+\t\t\t\tENABLE_USER_SCRIPT_SANDBOXING = YES;
 \t\t\t\tGCC_OPTIMIZATION_LEVEL = 0;
 \t\t\t\tMACOSX_DEPLOYMENT_TARGET = 14.0;
+\t\t\t\tONLY_ACTIVE_ARCH = YES;
 \t\t\t\tSDKROOT = macosx;
 \t\t\t\tSWIFT_VERSION = 6.0;
 \t\t\t}};
@@ -244,9 +249,13 @@ def main() -> int:
 \t\t\tbuildSettings = {{
 \t\t\t\tALWAYS_SEARCH_USER_PATHS = NO;
 \t\t\t\tCLANG_ENABLE_MODULES = YES;
+\t\t\t\tCLANG_ENABLE_OBJC_WEAK = YES;
 \t\t\t\tCOPY_PHASE_STRIP = NO;
+\t\t\t\tDEAD_CODE_STRIPPING = YES;
+\t\t\t\tENABLE_USER_SCRIPT_SANDBOXING = YES;
 \t\t\t\tMACOSX_DEPLOYMENT_TARGET = 14.0;
 \t\t\t\tSDKROOT = macosx;
+\t\t\t\tSWIFT_COMPILATION_MODE = wholemodule;
 \t\t\t\tSWIFT_VERSION = 6.0;
 \t\t\t}};
 \t\t\tname = Release;
@@ -254,6 +263,7 @@ def main() -> int:
 \t\t{tgt_debug_cfg_id} /* Debug */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
+\t\t\t\tASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 \t\t\t\tCODE_SIGN_ENTITLEMENTS = packaging/entitlements.debug.plist;
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
@@ -276,6 +286,7 @@ def main() -> int:
 \t\t{tgt_release_cfg_id} /* Release */ = {{
 \t\t\tisa = XCBuildConfiguration;
 \t\t\tbuildSettings = {{
+\t\t\t\tASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 \t\t\t\tCODE_SIGN_ENTITLEMENTS = packaging/entitlements.plist;
 \t\t\t\tCODE_SIGN_STYLE = Automatic;
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
