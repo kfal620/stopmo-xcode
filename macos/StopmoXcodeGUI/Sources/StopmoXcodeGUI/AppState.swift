@@ -9,6 +9,32 @@ struct PresentedError: Identifiable {
     let message: String
 }
 
+enum NotificationKind: String, Sendable {
+    case info
+    case warning
+    case error
+}
+
+struct NotificationRecord: Identifiable, Sendable {
+    let id = UUID()
+    let kind: NotificationKind
+    let title: String
+    let message: String
+    let likelyCause: String?
+    let suggestedAction: String?
+    let createdAt: Date
+
+    var createdAtLabel: String {
+        NotificationRecord.timestampFormatter.string(from: createdAt)
+    }
+
+    private static let timestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }()
+}
+
 @MainActor
 final class AppState: ObservableObject {
     @Published var selectedSection: AppSection = .setup
@@ -32,12 +58,16 @@ final class AppState: ObservableObject {
     @Published var statusMessage: String = "Ready"
     @Published var errorMessage: String?
     @Published var presentedError: PresentedError?
+    @Published var notifications: [NotificationRecord] = []
+    @Published var activeToast: NotificationRecord?
     @Published var isBusy: Bool = false
     @Published var workspaceAccessActive: Bool = false
 
     private var monitorTask: Task<Void, Never>?
+    private var toastDismissTask: Task<Void, Never>?
     private var lastQueueCounts: [String: Int] = [:]
     private var lastWatchRunning: Bool?
+    private var seenDiagnosticWarningKeys: Set<String> = []
     private static let repoRootDefaultsKey = "stopmo_repo_root"
     private static let workspaceBookmarkDefaultsKey = "stopmo_workspace_bookmark"
     private var securityScopedWorkspaceURL: URL?
@@ -51,6 +81,7 @@ final class AppState: ObservableObject {
 
     deinit {
         monitorTask?.cancel()
+        toastDismissTask?.cancel()
         if let url = securityScopedWorkspaceURL {
             url.stopAccessingSecurityScopedResource()
         }
@@ -106,9 +137,21 @@ final class AppState: ObservableObject {
             self.applyLiveSnapshots(watchState: watchState, shots: self.shotsSnapshot)
             if watchState.startBlocked == true {
                 self.recordLiveEvent("Watch start blocked by preflight")
+                self.presentWarning(
+                    title: "Watch Start Blocked",
+                    message: "Watch start was blocked by preflight checks.",
+                    likelyCause: "Preflight blockers are still present in the current config/runtime.",
+                    suggestedAction: "Run Watch Preflight in Setup and resolve all blockers, then start watch again."
+                )
                 self.statusMessage = "Watch start blocked"
             } else if let launchError = watchState.launchError, !launchError.isEmpty {
                 self.recordLiveEvent("Watch start failed: \(launchError)")
+                self.presentWarning(
+                    title: "Watch Start Failed",
+                    message: launchError,
+                    likelyCause: "Watch process launch did not complete successfully.",
+                    suggestedAction: "Check Runtime Health and Logs & Diagnostics, then retry Start Watch."
+                )
                 self.statusMessage = "Watch start failed"
             } else {
                 self.recordLiveEvent("Watch service started")
@@ -186,6 +229,7 @@ final class AppState: ObservableObject {
                 )
             }.value
             self.logsDiagnostics = snapshot
+            self.ingestDiagnosticWarnings(snapshot.warnings)
             self.statusMessage = "Logs/diagnostics updated"
         }
     }
@@ -243,6 +287,12 @@ final class AppState: ObservableObject {
                 )
             }.value
             self.lastDiagnosticsBundlePath = result.bundlePath
+            self.presentInfo(
+                title: "Diagnostics Bundle Created",
+                message: result.bundlePath,
+                likelyCause: nil,
+                suggestedAction: "Share this bundle with support or attach it to issue reports."
+            )
             self.statusMessage = "Diagnostics bundle created"
         }
     }
@@ -274,6 +324,16 @@ final class AppState: ObservableObject {
             shotsSnapshot = shots
         }
         let counts = watchState.queue.counts
+        let previousFailed = lastQueueCounts["failed", default: 0]
+        let currentFailed = counts["failed", default: 0]
+        if currentFailed > previousFailed {
+            presentWarning(
+                title: "Queue Failures Detected",
+                message: "\(currentFailed) job(s) are currently in failed state.",
+                likelyCause: "At least one frame failed during decode/xform/write stages.",
+                suggestedAction: "Open Queue to inspect `last error` values and retry failed jobs."
+            )
+        }
         if lastQueueCounts != counts {
             let msg = "Queue counts updated: detected \(counts["detected", default: 0]), decoding \(counts["decoding", default: 0]), xform \(counts["xform", default: 0]), dpx_write \(counts["dpx_write", default: 0]), done \(counts["done", default: 0]), failed \(counts["failed", default: 0])"
             recordLiveEvent(msg)
@@ -485,13 +545,202 @@ final class AppState: ObservableObject {
         presentedError = nil
     }
 
+    func clearNotifications() {
+        notifications = []
+        statusMessage = "Notifications cleared"
+    }
+
+    func dismissToast() {
+        toastDismissTask?.cancel()
+        toastDismissTask = nil
+        activeToast = nil
+    }
+
+    func copyNotificationToPasteboard(_ notification: NotificationRecord) {
+        var lines: [String] = []
+        lines.append("[\(notification.kind.rawValue.uppercased())] \(notification.title)")
+        lines.append(notification.message)
+        if let cause = notification.likelyCause, !cause.isEmpty {
+            lines.append("Likely cause: \(cause)")
+        }
+        if let action = notification.suggestedAction, !action.isEmpty {
+            lines.append("Suggested action: \(action)")
+        }
+        lines.append("Timestamp: \(notification.createdAtLabel)")
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
+        statusMessage = "Notification copied"
+    }
+
+    func presentWarning(
+        title: String,
+        message: String,
+        likelyCause: String? = nil,
+        suggestedAction: String? = nil
+    ) {
+        postNotification(
+            kind: .warning,
+            title: title,
+            message: message,
+            likelyCause: likelyCause,
+            suggestedAction: suggestedAction,
+            showToast: true
+        )
+    }
+
+    func presentInfo(
+        title: String,
+        message: String,
+        likelyCause: String? = nil,
+        suggestedAction: String? = nil
+    ) {
+        postNotification(
+            kind: .info,
+            title: title,
+            message: message,
+            likelyCause: likelyCause,
+            suggestedAction: suggestedAction,
+            showToast: true
+        )
+    }
+
     func presentError(title: String = "Error", message: String) {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return
         }
+        let hints = errorHints(for: trimmed)
+        var alertMessage = trimmed
+        if let cause = hints.likelyCause {
+            alertMessage += "\n\nLikely cause: \(cause)"
+        }
+        if let action = hints.suggestedAction {
+            alertMessage += "\nSuggested action: \(action)"
+        }
         errorMessage = trimmed
-        presentedError = PresentedError(title: title, message: trimmed)
+        presentedError = PresentedError(title: title, message: alertMessage)
+        postNotification(
+            kind: .error,
+            title: title,
+            message: trimmed,
+            likelyCause: hints.likelyCause,
+            suggestedAction: hints.suggestedAction,
+            showToast: false
+        )
         statusMessage = "Error"
+    }
+
+    private func postNotification(
+        kind: NotificationKind,
+        title: String,
+        message: String,
+        likelyCause: String?,
+        suggestedAction: String?,
+        showToast: Bool
+    ) {
+        let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedMessage.isEmpty else {
+            return
+        }
+        let notification = NotificationRecord(
+            kind: kind,
+            title: title,
+            message: trimmedMessage,
+            likelyCause: likelyCause,
+            suggestedAction: suggestedAction,
+            createdAt: Date()
+        )
+        notifications.insert(notification, at: 0)
+        if notifications.count > 200 {
+            notifications = Array(notifications.prefix(200))
+        }
+        if showToast {
+            showToastNotification(notification)
+        }
+    }
+
+    private func showToastNotification(_ notification: NotificationRecord) {
+        toastDismissTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            activeToast = notification
+        }
+        toastDismissTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            guard let self else { return }
+            await MainActor.run {
+                guard self.activeToast?.id == notification.id else {
+                    return
+                }
+                withAnimation(.easeIn(duration: 0.2)) {
+                    self.activeToast = nil
+                }
+                self.toastDismissTask = nil
+            }
+        }
+    }
+
+    private func ingestDiagnosticWarnings(_ warnings: [DiagnosticWarningRecord]) {
+        var emittedToast = false
+        for warning in warnings {
+            let key = "\(warning.code)|\(warning.logger ?? "")|\(warning.message)"
+            guard !seenDiagnosticWarningKeys.contains(key) else {
+                continue
+            }
+            seenDiagnosticWarningKeys.insert(key)
+
+            let severity = warning.severity.uppercased()
+            let isError = severity == "ERROR" || severity == "CRITICAL"
+            let kind: NotificationKind = isError ? .error : .warning
+            let toast = !emittedToast
+            postNotification(
+                kind: kind,
+                title: "Diagnostic \(warning.code)",
+                message: warning.message,
+                likelyCause: warning.logger.map { "Reported by \($0)." },
+                suggestedAction: "Open Logs & Diagnostics for full structured context and remediation.",
+                showToast: toast
+            )
+            if toast {
+                emittedToast = true
+            }
+        }
+    }
+
+    private func errorHints(for message: String) -> (likelyCause: String?, suggestedAction: String?) {
+        let lower = message.lowercased()
+        if lower.contains("no module named") || lower.contains("modulenotfounderror") {
+            return (
+                likelyCause: "Python dependencies are missing or PYTHONPATH/venv is not configured for this workspace.",
+                suggestedAction: "Set repo root to this repository and install dependencies in `.venv` (`pip install -e \".[dev]\"` plus runtime extras)."
+            )
+        }
+        if lower.contains("invalid repo root") || lower.contains("bridge script not found") {
+            return (
+                likelyCause: "Repo root does not point to the stopmo-xcode project root.",
+                suggestedAction: "In Setup, choose a repo root containing `pyproject.toml` and `src/stopmo_xcode`."
+            )
+        }
+        if lower.contains("permission") || lower.contains("not allowed") || lower.contains("operation not permitted") {
+            return (
+                likelyCause: "macOS file/system permission access was denied.",
+                suggestedAction: "Re-select workspace access in Setup and allow the requested permission prompts."
+            )
+        }
+        if lower.contains("ffmpeg") {
+            return (
+                likelyCause: "FFmpeg is missing or unavailable in PATH.",
+                suggestedAction: "Install FFmpeg and run Check Runtime Health to verify dependency availability."
+            )
+        }
+        if lower.contains("decode") || lower.contains("raw") {
+            return (
+                likelyCause: "Input frame decode failed for the selected file.",
+                suggestedAction: "Verify file exists/is supported and inspect Logs & Diagnostics for decode warnings."
+            )
+        }
+        return (
+            likelyCause: "The backend operation failed while processing the request.",
+            suggestedAction: "Check Logs & Diagnostics and retry the operation after correcting config/runtime issues."
+        )
     }
 }

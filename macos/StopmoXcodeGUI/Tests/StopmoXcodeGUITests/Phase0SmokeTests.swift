@@ -38,6 +38,18 @@ final class Phase0SmokeTests: XCTestCase {
     }
 
     @MainActor
+    func testErrorCreatesNotificationWithActionableContext() {
+        let state = AppState()
+        state.presentError(title: "Bridge Failure", message: "No module named stopmo_xcode")
+
+        XCTAssertEqual(state.notifications.count, 1)
+        XCTAssertEqual(state.notifications.first?.kind, .error)
+        XCTAssertNotNil(state.notifications.first?.likelyCause)
+        XCTAssertNotNil(state.notifications.first?.suggestedAction)
+        XCTAssertNotNil(state.presentedError)
+    }
+
+    @MainActor
     func testCriticalAppStateActionsRemainCallable() {
         let state = AppState()
 

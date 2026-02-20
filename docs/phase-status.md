@@ -54,6 +54,7 @@
 - Golden-master regression harness and tight numeric validation data are not bundled yet.
 - GUI phase-1 design-system foundation is now in place (`DesignSystem.swift`) and `SetupView` is migrated as the reference screen with no feature loss.
 - GUI phase-2 app shell/navigation pass is now in place (sidebar icons/subtitles/badges, global command bar, project context chip, and keyboard shortcuts/command menus).
+- GUI phase-3 notification model is now in place (blocking alerts + non-blocking toasts + notifications-center panel with copyable actionable details).
 - macOS GUI shell now includes Setup + Project + Live Monitor + Queue + Shots + Tools + Logs/Diagnostics + History views wired to `gui_bridge`, plus phase-8 resilience checks (config validation, watch preflight, crash-recovery surfacing, safer watch start semantics).
 - Phase-9 distribution scaffolding is added for macOS packaging/signing/notarization (`.app` bundle + zip, Developer ID codesign, notarytool submission/stapling scripts).
 - Phase-10 parity/signoff harness is added under `qa/phase10_parity_signoff.py`, generating reproducible CLI-vs-GUI parity reports (`qa/reports/.../parity_signoff.md` + `.json`).

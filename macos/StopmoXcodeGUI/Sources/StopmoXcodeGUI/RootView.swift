@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var state: AppState
+    @State private var isNotificationsCenterPresented: Bool = false
 
     var body: some View {
         NavigationSplitView {
@@ -39,6 +40,17 @@ struct RootView: View {
                 .padding(.leading, 12)
                 .padding(.bottom, 12)
         }
+        .overlay(alignment: .topTrailing) {
+            if let toast = state.activeToast {
+                NotificationToastView(notification: toast) {
+                    state.dismissToast()
+                }
+                .padding(.trailing, 14)
+                .padding(.top, 14)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: state.activeToast?.id)
     }
 
     @ViewBuilder
@@ -99,6 +111,23 @@ struct RootView: View {
                 Task { await state.refreshHealth() }
             }
             .disabled(state.isBusy)
+
+            Button {
+                isNotificationsCenterPresented.toggle()
+            } label: {
+                Label("Notifications", systemImage: "bell")
+            }
+            .popover(isPresented: $isNotificationsCenterPresented, arrowEdge: .top) {
+                NotificationsCenterPanel()
+                    .environmentObject(state)
+            }
+
+            if !state.notifications.isEmpty {
+                StatusChip(
+                    label: "\(state.notifications.count)",
+                    tone: state.notifications.contains { $0.kind == .error } ? .danger : .warning
+                )
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -240,4 +269,129 @@ struct RootView: View {
 private struct SidebarBadge {
     let label: String
     let tone: StatusTone
+}
+
+private struct NotificationToastView: View {
+    let notification: NotificationRecord
+    let dismiss: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: StopmoUI.Spacing.sm) {
+            StatusChip(label: notification.kind.rawValue.uppercased(), tone: tone(notification.kind))
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
+                Text(notification.title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text(notification.message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Button(action: dismiss) {
+                Image(systemName: "xmark")
+                    .font(.caption2)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+        }
+        .padding(StopmoUI.Spacing.sm)
+        .frame(width: 420, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous))
+        .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 3)
+    }
+
+    private func tone(_ kind: NotificationKind) -> StatusTone {
+        switch kind {
+        case .info:
+            return .neutral
+        case .warning:
+            return .warning
+        case .error:
+            return .danger
+        }
+    }
+}
+
+private struct NotificationsCenterPanel: View {
+    @EnvironmentObject private var state: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+            HStack {
+                Text("Notifications")
+                    .font(.headline)
+                Spacer()
+                if !state.notifications.isEmpty {
+                    Button("Clear All") {
+                        state.clearNotifications()
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+
+            if state.notifications.isEmpty {
+                EmptyStateCard(message: "No notifications yet.")
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                        ForEach(state.notifications) { notification in
+                            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
+                                HStack(spacing: StopmoUI.Spacing.xs) {
+                                    StatusChip(
+                                        label: notification.kind.rawValue.uppercased(),
+                                        tone: tone(notification.kind)
+                                    )
+                                    Text(notification.title)
+                                        .font(.subheadline.weight(.semibold))
+                                    Spacer()
+                                    Text(notification.createdAtLabel)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Text(notification.message)
+                                    .font(.caption)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if let cause = notification.likelyCause, !cause.isEmpty {
+                                    Text("Likely cause: \(cause)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if let action = notification.suggestedAction, !action.isEmpty {
+                                    Text("Suggested action: \(action)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                HStack {
+                                    Button("Copy Details") {
+                                        state.copyNotificationToPasteboard(notification)
+                                    }
+                                    .buttonStyle(.borderless)
+                                    Spacer()
+                                }
+                            }
+                            .padding(StopmoUI.Spacing.sm)
+                            .background(
+                                RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                                    .fill(Color.secondary.opacity(0.08))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        .padding(StopmoUI.Spacing.md)
+        .frame(minWidth: 460, minHeight: 340, idealHeight: 420)
+    }
+
+    private func tone(_ kind: NotificationKind) -> StatusTone {
+        switch kind {
+        case .info:
+            return .neutral
+        case .warning:
+            return .warning
+        case .error:
+            return .danger
+        }
+    }
 }
