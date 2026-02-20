@@ -17,6 +17,8 @@ struct RootView: View {
             .navigationTitle("stopmo-xcode")
         } detail: {
             VStack(spacing: 0) {
+                Color.clear
+                    .frame(height: 6)
                 commandBar
                 Divider()
                 detailView
