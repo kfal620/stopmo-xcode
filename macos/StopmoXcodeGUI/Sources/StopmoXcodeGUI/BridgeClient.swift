@@ -166,6 +166,17 @@ struct BridgeClient: Sendable {
         return try decodeJSON(QueueSnapshot.self, from: data)
     }
 
+    func queueRetryFailed(repoRoot: String, configPath: String, jobIds: [Int]?) throws -> QueueRetryResult {
+        var args = ["queue-retry-failed", "--config", configPath]
+        let ids = (jobIds ?? []).filter { $0 > 0 }
+        if !ids.isEmpty {
+            args.append("--ids")
+            args += ids.map(String.init)
+        }
+        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        return try decodeJSON(QueueRetryResult.self, from: data)
+    }
+
     func shotsSummary(repoRoot: String, configPath: String, limit: Int = 500) throws -> ShotsSummarySnapshot {
         let data = try runBridge(
             repoRoot: repoRoot,

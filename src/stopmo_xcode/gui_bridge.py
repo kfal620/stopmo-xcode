@@ -18,7 +18,7 @@ from typing import Any
 
 from stopmo_xcode import app_api
 from stopmo_xcode.config import AppConfig, OutputConfig, PipelineConfig, WatchConfig, load_config
-from stopmo_xcode.queue import QueueDB
+from stopmo_xcode.queue import JobState, QueueDB
 
 
 def _cfg_to_dict(config: AppConfig) -> dict[str, object]:
@@ -426,6 +426,59 @@ def _queue_status_from_config(config_path: str | Path, limit: int = 200) -> dict
 
 def queue_status_payload(config_path: str | Path, limit: int = 200) -> dict[str, object]:
     return _queue_status_from_config(config_path=config_path, limit=limit)
+
+
+def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = None) -> dict[str, object]:
+    cfg = load_config(config_path)
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        counts_before = db.stats()
+        failed_before = int(counts_before.get(JobState.FAILED.value, 0))
+        now = _now_utc_iso()
+
+        requested_ids = sorted({int(v) for v in (ids or []) if int(v) > 0})
+        if requested_ids:
+            placeholders = ",".join("?" for _ in requested_ids)
+            cur = db._conn.execute(
+                f"""
+                UPDATE jobs
+                SET state = ?, updated_at = ?, worker_id = NULL, started_at = NULL, finished_at = NULL, last_error = NULL
+                WHERE state = ? AND id IN ({placeholders})
+                """,
+                (
+                    JobState.DETECTED.value,
+                    now,
+                    JobState.FAILED.value,
+                    *requested_ids,
+                ),
+            )
+        else:
+            cur = db._conn.execute(
+                """
+                UPDATE jobs
+                SET state = ?, updated_at = ?, worker_id = NULL, started_at = NULL, finished_at = NULL, last_error = NULL
+                WHERE state = ?
+                """,
+                (
+                    JobState.DETECTED.value,
+                    now,
+                    JobState.FAILED.value,
+                ),
+            )
+
+        retried = int(cur.rowcount)
+        counts_after = db.stats()
+        failed_after = int(counts_after.get(JobState.FAILED.value, 0))
+    finally:
+        db.close()
+
+    return {
+        "retried": retried,
+        "requested_ids": requested_ids,
+        "failed_before": failed_before,
+        "failed_after": failed_after,
+        "queue": _queue_status_from_config(config_path=config_path, limit=250),
+    }
 
 
 def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str, object]:
@@ -1186,6 +1239,10 @@ def _build_parser() -> argparse.ArgumentParser:
     queue_status.add_argument("--config", required=True, help="Path to YAML config")
     queue_status.add_argument("--limit", type=int, default=200, help="Recent jobs limit")
 
+    queue_retry_failed = sub.add_parser("queue-retry-failed", help="Retry failed queue jobs by resetting to detected")
+    queue_retry_failed.add_argument("--config", required=True, help="Path to YAML config")
+    queue_retry_failed.add_argument("--ids", nargs="*", type=int, default=None, help="Optional failed job IDs to retry")
+
     shots_summary = sub.add_parser("shots-summary", help="Emit per-shot queue summary JSON")
     shots_summary.add_argument("--config", required=True, help="Path to YAML config")
     shots_summary.add_argument("--limit", type=int, default=500, help="Max shots")
@@ -1270,6 +1327,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "queue-status":
             print(json.dumps(queue_status_payload(args.config, limit=args.limit), indent=2))
+            return 0
+        if args.command == "queue-retry-failed":
+            print(json.dumps(queue_retry_failed_payload(args.config, ids=args.ids), indent=2))
             return 0
         if args.command == "shots-summary":
             print(json.dumps(shots_summary_payload(args.config, limit=args.limit), indent=2))

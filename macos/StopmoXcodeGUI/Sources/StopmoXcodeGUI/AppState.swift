@@ -302,6 +302,79 @@ final class AppState: ObservableObject {
         }
     }
 
+    func retryFailedQueueJobs(jobIds: [Int]? = nil) async {
+        await runBlockingTask(label: "Retrying failed queue jobs") {
+            let repoRoot = self.repoRoot
+            let configPath = self.configPath
+            let retryIds = jobIds
+            let result = try await Task.detached(priority: .userInitiated) {
+                try BridgeClient().queueRetryFailed(
+                    repoRoot: repoRoot,
+                    configPath: configPath,
+                    jobIds: retryIds
+                )
+            }.value
+            self.queueSnapshot = result.queue
+            if var watch = self.watchServiceState {
+                watch.queue = result.queue
+                self.watchServiceState = watch
+            }
+            if result.retried > 0 {
+                self.presentInfo(
+                    title: "Queue Jobs Retried",
+                    message: "Reset \(result.retried) failed job(s) to detected.",
+                    likelyCause: nil,
+                    suggestedAction: "Monitor Live Monitor/Queue to confirm jobs progress through stages."
+                )
+            } else {
+                self.presentWarning(
+                    title: "No Failed Jobs Retried",
+                    message: "No failed jobs matched the selected retry criteria.",
+                    likelyCause: "There are no failed jobs or selected IDs are not currently failed.",
+                    suggestedAction: "Refresh Queue and verify failed rows before retrying."
+                )
+            }
+            self.statusMessage = "Retried \(result.retried) failed job(s)"
+        }
+    }
+
+    func exportQueueSnapshot() {
+        guard let snapshot = queueSnapshot else {
+            presentWarning(
+                title: "Export Queue Snapshot",
+                message: "No queue snapshot is currently loaded.",
+                likelyCause: "Queue view has not been refreshed yet.",
+                suggestedAction: "Refresh queue data, then export snapshot again."
+            )
+            return
+        }
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.allowedContentTypes = [UTType.json]
+        panel.nameFieldStringValue = "queue_snapshot.json"
+        panel.title = "Export Queue Snapshot"
+        let response = panel.runModal()
+        guard response == .OK, let url = panel.url else {
+            return
+        }
+        do {
+            let encoder = JSONEncoder()
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(snapshot)
+            try data.write(to: url, options: .atomic)
+            presentInfo(
+                title: "Queue Snapshot Exported",
+                message: url.path,
+                likelyCause: nil,
+                suggestedAction: "Use this JSON snapshot for debugging or support triage."
+            )
+            statusMessage = "Queue snapshot exported"
+        } catch {
+            presentError(title: "Queue Export Failed", message: error.localizedDescription)
+        }
+    }
+
     private func startMonitoringLoop() {
         if monitorTask != nil {
             return
@@ -567,6 +640,44 @@ final class AppState: ObservableObject {
             title: "Open in Finder Failed",
             message: "Config path not found: \(configPath)"
         )
+    }
+
+    func openPathInFinder(_ path: String) {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            presentWarning(
+                title: "Open in Finder",
+                message: "No path provided.",
+                likelyCause: "Selected row has an empty path field.",
+                suggestedAction: "Select a row with a valid path and retry."
+            )
+            return
+        }
+        let fm = FileManager.default
+        let url = URL(fileURLWithPath: trimmed)
+        if fm.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+            statusMessage = "Opened in Finder"
+            return
+        }
+        let parent = url.deletingLastPathComponent()
+        if fm.fileExists(atPath: parent.path) {
+            NSWorkspace.shared.open(parent)
+            presentWarning(
+                title: "Path Missing",
+                message: "Opened parent folder because target path was not found.",
+                likelyCause: "The referenced output/source path does not exist yet.",
+                suggestedAction: "Verify pipeline outputs or refresh live state."
+            )
+            return
+        }
+        presentError(title: "Open in Finder Failed", message: "Path not found: \(trimmed)")
+    }
+
+    func copyTextToPasteboard(_ text: String, label: String = "Text") {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        statusMessage = "Copied \(label)"
     }
 
     private func restoreWorkspaceAccess() {

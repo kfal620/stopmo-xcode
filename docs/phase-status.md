@@ -58,6 +58,7 @@
 - GUI phase-4 setup redesign is now in place (paths/permissions/runtime/dependency/validation/preflight cards, sample-config bootstrap actions, and dependency fix hints).
 - GUI phase-5 project IA pass is now in place (segmented editor, dirty-state save/discard flow, matrix reset/paste/copy controls, per-section validation status, and local named presets).
 - GUI phase-6 live monitor upgrade is now in place (watch controls card with explicit blockers/errors, KPI strip, queue-depth trend sparkline, and filterable activity feed with pause/search).
+- GUI phase-7 shots/queue workflow pass is now in place (master-detail shots triage, search/filter/sort in shots + queue, selected-row context panels, queue retry-selected/all failed actions, and queue snapshot export).
 - macOS GUI shell now includes Setup + Project + Live Monitor + Queue + Shots + Tools + Logs/Diagnostics + History views wired to `gui_bridge`, plus phase-8 resilience checks (config validation, watch preflight, crash-recovery surfacing, safer watch start semantics).
 - Phase-9 distribution scaffolding is added for macOS packaging/signing/notarization (`.app` bundle + zip, Developer ID codesign, notarytool submission/stapling scripts).
 - Phase-10 parity/signoff harness is added under `qa/phase10_parity_signoff.py`, generating reproducible CLI-vs-GUI parity reports (`qa/reports/.../parity_signoff.md` + `.json`).

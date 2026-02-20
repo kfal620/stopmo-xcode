@@ -64,12 +64,16 @@ final class Phase0SmokeTests: XCTestCase {
         let _: () async -> Void = state.refreshWatchPreflight
         let _: () async -> Void = state.refreshHistory
         let _: (String?) async -> Void = state.copyDiagnosticsBundle
+        let _: ([Int]?) async -> Void = state.retryFailedQueueJobs
+        let _: () -> Void = state.exportQueueSnapshot
         let _: () -> Void = state.chooseWorkspaceDirectory
         let _: () -> Void = state.chooseRepoRootDirectory
         let _: () -> Void = state.chooseConfigFile
         let _: () -> Void = state.useSampleConfig
         let _: () -> Void = state.createConfigFromSample
         let _: () -> Void = state.openConfigInFinder
+        let _: (String) -> Void = state.openPathInFinder
+        let _: (String, String) -> Void = state.copyTextToPasteboard
     }
 
     func testCriticalBridgeActionsRemainCallable() {
@@ -79,6 +83,7 @@ final class Phase0SmokeTests: XCTestCase {
         let _: (String, String) throws -> StopmoConfigDocument = client.readConfig
         let _: (String, String, StopmoConfigDocument) throws -> StopmoConfigDocument = client.writeConfig
         let _: (String, String, Int) throws -> QueueSnapshot = client.queueStatus
+        let _: (String, String, [Int]?) throws -> QueueRetryResult = client.queueRetryFailed
         let _: (String, String, Int) throws -> ShotsSummarySnapshot = client.shotsSummary
         let _: (String, String) throws -> WatchServiceState = client.watchStart
         let _: (String, String, Double) throws -> WatchServiceState = client.watchStop

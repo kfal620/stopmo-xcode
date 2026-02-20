@@ -45,6 +45,7 @@ SwiftUI shell integration uses:
 - `python -m stopmo_xcode.gui_bridge config-write --config <path>` (JSON stdin)
 - `python -m stopmo_xcode.gui_bridge health [--config <path>]`
 - `python -m stopmo_xcode.gui_bridge queue-status --config <path> [--limit N]`
+- `python -m stopmo_xcode.gui_bridge queue-retry-failed --config <path> [--ids <id> ...]`
 - `python -m stopmo_xcode.gui_bridge shots-summary --config <path> [--limit N]`
 - `python -m stopmo_xcode.gui_bridge watch-start --config <path>`
 - `python -m stopmo_xcode.gui_bridge watch-stop --config <path> [--timeout S]`

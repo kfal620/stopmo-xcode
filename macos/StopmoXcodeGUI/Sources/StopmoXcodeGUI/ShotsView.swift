@@ -1,17 +1,47 @@
 import SwiftUI
 
+private enum ShotStateFilter: String, CaseIterable, Identifiable {
+    case all = "All"
+    case issues = "Issues"
+    case processing = "Processing"
+    case queued = "Queued"
+    case done = "Done"
+
+    var id: String { rawValue }
+}
+
+private enum ShotSortOption: String, CaseIterable, Identifiable {
+    case updatedDesc = "Updated (Newest)"
+    case progressDesc = "Progress (High-Low)"
+    case failedDesc = "Failed Frames"
+    case shotAsc = "Shot (A-Z)"
+
+    var id: String { rawValue }
+}
+
 struct ShotsView: View {
     @EnvironmentObject private var state: AppState
+
+    @State private var searchText: String = ""
+    @State private var selectedFilter: ShotStateFilter = .all
+    @State private var selectedSort: ShotSortOption = .updatedDesc
+    @State private var selectedShotName: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
             ScreenHeader(
                 title: "Shots",
-                subtitle: "Shot-level frame progress and assembly status."
+                subtitle: "Shot-level progress, assembly triage, and output navigation."
             ) {
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     if let count = state.shotsSnapshot?.count {
                         StatusChip(label: "Shots \(count)", tone: .neutral)
+                    }
+                    if issuesCount > 0 {
+                        StatusChip(label: "Issues \(issuesCount)", tone: .danger)
+                    }
+                    if processingCount > 0 {
+                        StatusChip(label: "Processing \(processingCount)", tone: .warning)
                     }
                     Button("Refresh") {
                         Task { await state.refreshLiveData() }
@@ -20,29 +50,83 @@ struct ShotsView: View {
                 }
             }
 
-            SectionCard("Shot Summary") {
-                if let snapshot = state.shotsSnapshot {
+            controlsCard
+            shotsTableCard
+            selectedShotDetailCard
+            Spacer()
+        }
+        .padding(StopmoUI.Spacing.lg)
+        .onAppear {
+            if state.shotsSnapshot == nil {
+                Task { await state.refreshLiveData() }
+            } else {
+                syncSelectedShot()
+            }
+        }
+        .onChange(of: state.shotsSnapshot?.count ?? -1) { _, _ in
+            syncSelectedShot()
+        }
+        .onChange(of: filteredShots.map(\.shotName)) { _, _ in
+            syncSelectedShot()
+        }
+    }
+
+    private var controlsCard: some View {
+        SectionCard("Filters") {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                TextField("Search shot/output/review path", text: $searchText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 290)
+
+                Picker("State", selection: $selectedFilter) {
+                    ForEach(ShotStateFilter.allCases) { filter in
+                        Text(filter.rawValue).tag(filter)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 420)
+
+                Picker("Sort", selection: $selectedSort) {
+                    ForEach(ShotSortOption.allCases) { sort in
+                        Text(sort.rawValue).tag(sort)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 180)
+
+                Spacer()
+
+                StatusChip(label: "Visible \(filteredShots.count)", tone: .neutral)
+            }
+        }
+    }
+
+    private var shotsTableCard: some View {
+        SectionCard("Shot Summary Table") {
+            if state.shotsSnapshot != nil {
+                if filteredShots.isEmpty {
+                    EmptyStateCard(message: "No shots match the current filters.")
+                } else {
                     ScrollView([.horizontal, .vertical]) {
                         LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                             headerRow
                             Divider()
-                            ForEach(snapshot.shots) { row in
+                            ForEach(filteredShots) { row in
                                 shotRow(row)
                             }
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                } else {
-                    EmptyStateCard(message: "No shot summary yet.")
+                    .frame(minHeight: 220, maxHeight: 340)
                 }
+            } else {
+                EmptyStateCard(message: "No shot summary yet.")
             }
-            Spacer()
         }
-        .padding(StopmoUI.Spacing.lg)
     }
 
     private var headerRow: some View {
         HStack(spacing: 10) {
+            col("Select", width: 58)
             col("Shot", width: 160)
             col("State", width: 90)
             col("Frames", width: 120)
@@ -51,14 +135,25 @@ struct ShotsView: View {
             col("Inflight", width: 80)
             col("Progress", width: 90)
             col("Assembly", width: 110)
-            col("Updated", width: 220)
-            col("Output MOV", width: 280)
+            col("Updated", width: 210)
+            col("Output MOV", width: 250)
+            col("Review MOV", width: 250)
+            col("Actions", width: 110)
         }
         .font(.caption.bold())
     }
 
     private func shotRow(_ shot: ShotSummaryRow) -> some View {
         HStack(spacing: 10) {
+            Button {
+                selectedShotName = shot.shotName
+            } label: {
+                Image(systemName: selectedShotName == shot.shotName ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selectedShotName == shot.shotName ? Color.accentColor : .secondary)
+            }
+            .buttonStyle(.plain)
+            .frame(width: 58, alignment: .leading)
+
             col(shot.shotName, width: 160)
             shotStateCell(shot.state)
             col("\(shot.totalFrames)", width: 120)
@@ -67,11 +162,113 @@ struct ShotsView: View {
             col("\(shot.inflightFrames)", width: 80)
             progressCell(shot.progressRatio)
             assemblyCell(shot.assemblyState)
-            col(shot.lastUpdatedAt ?? "-", width: 220)
-            col(shot.outputMovPath ?? "-", width: 280)
+            col(shot.lastUpdatedAt ?? "-", width: 210)
+            col(shot.outputMovPath ?? "-", width: 250)
+            col(shot.reviewMovPath ?? "-", width: 250)
+            actionsCell(for: shot)
         }
         .font(.system(.caption, design: .monospaced))
         .textSelection(.enabled)
+        .padding(.vertical, 1)
+        .padding(.horizontal, 4)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .fill(selectedShotName == shot.shotName ? Color.accentColor.opacity(0.12) : .clear)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedShotName = shot.shotName
+        }
+    }
+
+    private func actionsCell(for shot: ShotSummaryRow) -> some View {
+        HStack(spacing: 8) {
+            Button {
+                state.openPathInFinder(shotRootPath(for: shot))
+            } label: {
+                Image(systemName: "folder")
+            }
+            .buttonStyle(.plain)
+            .help("Open shot folder in Finder")
+
+            Button {
+                state.copyTextToPasteboard(shot.shotName, label: "shot name")
+            } label: {
+                Image(systemName: "doc.on.doc")
+            }
+            .buttonStyle(.plain)
+            .help("Copy shot name")
+        }
+        .frame(width: 110, alignment: .leading)
+    }
+
+    private var selectedShotDetailCard: some View {
+        SectionCard("Shot Detail") {
+            if let shot = selectedShot {
+                KeyValueRow(key: "Shot", value: shot.shotName)
+                KeyValueRow(key: "State", value: shot.state, tone: stateTone(shot.state))
+                KeyValueRow(key: "Assembly", value: shot.assemblyState ?? "-", tone: assemblyTone(shot.assemblyState ?? "-"))
+                KeyValueRow(key: "Frames", value: "\(shot.doneFrames) done / \(shot.failedFrames) failed / \(shot.inflightFrames) inflight / \(shot.totalFrames) total")
+                KeyValueRow(key: "Last Updated", value: shot.lastUpdatedAt ?? "-")
+
+                if let exposure = shot.exposureOffsetStops {
+                    KeyValueRow(key: "Effective Exposure Offset", value: String(format: "%.3f stops", exposure))
+                } else {
+                    KeyValueRow(key: "Effective Exposure Offset", value: "-")
+                }
+
+                if let wb = shot.wbMultipliers, !wb.isEmpty {
+                    let wbText = wb.map { String(format: "%.4f", $0) }.joined(separator: ", ")
+                    KeyValueRow(key: "Locked WB Multipliers", value: wbText)
+                } else {
+                    KeyValueRow(key: "Locked WB Multipliers", value: "-")
+                }
+
+                KeyValueRow(
+                    key: "Output MOV",
+                    value: shot.outputMovPath ?? "-",
+                    tone: pathExists(shot.outputMovPath) ? .success : .neutral
+                )
+                KeyValueRow(
+                    key: "Review MOV",
+                    value: shot.reviewMovPath ?? "-",
+                    tone: pathExists(shot.reviewMovPath) ? .success : .neutral
+                )
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                    Text("Open In Finder")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        Button("Shot Folder") {
+                            state.openPathInFinder(shotRootPath(for: shot))
+                        }
+                        Button("DPX") {
+                            state.openPathInFinder(dpxPath(for: shot))
+                        }
+                        Button("Frame JSON") {
+                            state.openPathInFinder(frameJsonPath(for: shot))
+                        }
+                        Button("Truth Frame") {
+                            state.openPathInFinder(truthFramePath(for: shot))
+                        }
+                        Button("Manifest") {
+                            state.openPathInFinder(manifestPath(for: shot))
+                        }
+                        Button("Output MOV") {
+                            state.openPathInFinder(shot.outputMovPath ?? "")
+                        }
+                        .disabled((shot.outputMovPath ?? "").isEmpty)
+                        Button("Review MOV") {
+                            state.openPathInFinder(shot.reviewMovPath ?? "")
+                        }
+                        .disabled((shot.reviewMovPath ?? "").isEmpty)
+                    }
+                }
+            } else {
+                EmptyStateCard(message: "Select a shot row to inspect details and output actions.")
+            }
+        }
     }
 
     private func col(_ text: String, width: CGFloat) -> some View {
@@ -106,7 +303,7 @@ struct ShotsView: View {
 
     private func stateTone(_ value: String) -> StatusTone {
         let v = value.lowercased()
-        if v.contains("failed") {
+        if v.contains("failed") || v.contains("issue") {
             return .danger
         }
         if v.contains("done") {
@@ -137,5 +334,163 @@ struct ShotsView: View {
             return .neutral
         }
         return .danger
+    }
+
+    private func pathExists(_ path: String?) -> Bool {
+        guard let path, !path.isEmpty else {
+            return false
+        }
+        return FileManager.default.fileExists(atPath: path)
+    }
+
+    private func shotRootPath(for shot: ShotSummaryRow) -> String {
+        let base = state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !base.isEmpty else {
+            return shot.shotName
+        }
+        return (base as NSString).appendingPathComponent(shot.shotName)
+    }
+
+    private func dpxPath(for shot: ShotSummaryRow) -> String {
+        (shotRootPath(for: shot) as NSString).appendingPathComponent("dpx")
+    }
+
+    private func frameJsonPath(for shot: ShotSummaryRow) -> String {
+        (shotRootPath(for: shot) as NSString).appendingPathComponent("frame_json")
+    }
+
+    private func truthFramePath(for shot: ShotSummaryRow) -> String {
+        (shotRootPath(for: shot) as NSString).appendingPathComponent("truth_frame")
+    }
+
+    private func manifestPath(for shot: ShotSummaryRow) -> String {
+        (shotRootPath(for: shot) as NSString).appendingPathComponent("manifest.json")
+    }
+
+    private var selectedShot: ShotSummaryRow? {
+        if let selectedShotName {
+            if let matched = filteredShots.first(where: { $0.shotName == selectedShotName }) {
+                return matched
+            }
+            if let matched = state.shotsSnapshot?.shots.first(where: { $0.shotName == selectedShotName }) {
+                return matched
+            }
+        }
+        return filteredShots.first
+    }
+
+    private func syncSelectedShot() {
+        guard !filteredShots.isEmpty else {
+            selectedShotName = nil
+            return
+        }
+        if let selectedShotName, filteredShots.contains(where: { $0.shotName == selectedShotName }) {
+            return
+        }
+        self.selectedShotName = filteredShots.first?.shotName
+    }
+
+    private var issuesCount: Int {
+        state.shotsSnapshot?.shots.filter(isIssuesShot).count ?? 0
+    }
+
+    private var processingCount: Int {
+        state.shotsSnapshot?.shots.filter(isProcessingShot).count ?? 0
+    }
+
+    private var filteredShots: [ShotSummaryRow] {
+        guard let shots = state.shotsSnapshot?.shots else { return [] }
+        let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        var rows = shots.filter { shot in
+            switch selectedFilter {
+            case .all:
+                break
+            case .issues:
+                if !isIssuesShot(shot) { return false }
+            case .processing:
+                if !isProcessingShot(shot) { return false }
+            case .queued:
+                if !isQueuedShot(shot) { return false }
+            case .done:
+                if !isDoneShot(shot) { return false }
+            }
+
+            if !term.isEmpty {
+                let haystack = [
+                    shot.shotName,
+                    shot.state,
+                    shot.assemblyState ?? "",
+                    shot.lastUpdatedAt ?? "",
+                    shot.outputMovPath ?? "",
+                    shot.reviewMovPath ?? "",
+                    "\(shot.totalFrames)",
+                    "\(shot.doneFrames)",
+                    "\(shot.failedFrames)",
+                    "\(shot.inflightFrames)",
+                ]
+                    .joined(separator: " ")
+                    .lowercased()
+                if !haystack.contains(term) {
+                    return false
+                }
+            }
+            return true
+        }
+
+        switch selectedSort {
+        case .updatedDesc:
+            rows.sort { ($0.lastUpdatedAt ?? "") > ($1.lastUpdatedAt ?? "") }
+        case .progressDesc:
+            rows.sort {
+                if $0.progressRatio == $1.progressRatio {
+                    return $0.shotName.localizedCaseInsensitiveCompare($1.shotName) == .orderedAscending
+                }
+                return $0.progressRatio > $1.progressRatio
+            }
+        case .failedDesc:
+            rows.sort {
+                if $0.failedFrames == $1.failedFrames {
+                    return ($0.lastUpdatedAt ?? "") > ($1.lastUpdatedAt ?? "")
+                }
+                return $0.failedFrames > $1.failedFrames
+            }
+        case .shotAsc:
+            rows.sort { $0.shotName.localizedCaseInsensitiveCompare($1.shotName) == .orderedAscending }
+        }
+
+        return rows
+    }
+
+    private func isIssuesShot(_ shot: ShotSummaryRow) -> Bool {
+        if shot.failedFrames > 0 {
+            return true
+        }
+        let stateLower = shot.state.lowercased()
+        if stateLower.contains("issue") || stateLower.contains("fail") {
+            return true
+        }
+        let assemblyLower = (shot.assemblyState ?? "").lowercased()
+        return assemblyLower.contains("fail")
+    }
+
+    private func isProcessingShot(_ shot: ShotSummaryRow) -> Bool {
+        if shot.inflightFrames > 0 {
+            return true
+        }
+        let stateLower = shot.state.lowercased()
+        return stateLower.contains("process") || stateLower == "processing"
+    }
+
+    private func isDoneShot(_ shot: ShotSummaryRow) -> Bool {
+        let stateLower = shot.state.lowercased()
+        if stateLower == "done" {
+            return true
+        }
+        return shot.totalFrames > 0 && (shot.doneFrames + shot.failedFrames) >= shot.totalFrames && shot.failedFrames == 0
+    }
+
+    private func isQueuedShot(_ shot: ShotSummaryRow) -> Bool {
+        !isIssuesShot(shot) && !isProcessingShot(shot) && !isDoneShot(shot)
     }
 }

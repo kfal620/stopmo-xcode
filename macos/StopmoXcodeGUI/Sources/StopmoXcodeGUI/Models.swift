@@ -196,6 +196,14 @@ struct QueueSnapshot: Codable, Sendable {
     var recent: [QueueJobRecord]
 }
 
+struct QueueRetryResult: Codable, Sendable {
+    var retried: Int
+    var requestedIds: [Int]
+    var failedBefore: Int
+    var failedAfter: Int
+    var queue: QueueSnapshot
+}
+
 struct ShotSummaryRow: Codable, Sendable, Identifiable {
     var shotName: String
     var state: String
