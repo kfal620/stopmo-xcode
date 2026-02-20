@@ -53,6 +53,7 @@ Install runtime extras only when needed:
 - Color and transforms: `/Users/kyle/Documents/Coding/stopmo-xcode/src/stopmo_xcode/color/`
 - Writers/manifests/DPX: `/Users/kyle/Documents/Coding/stopmo-xcode/src/stopmo_xcode/write/`
 - ProRes assembly: `/Users/kyle/Documents/Coding/stopmo-xcode/src/stopmo_xcode/assemble/`
+- macOS GUI guide: `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/AGENTS.md`
 
 ## Project Invariants (Do Not Break)
 

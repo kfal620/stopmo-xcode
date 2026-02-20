@@ -2,6 +2,13 @@
 
 SwiftUI shell for `stopmo-xcode`.
 
+## Architecture / Contributor Docs
+
+- UI architecture map:
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/docs/ui-architecture.md`
+- macOS GUI agent guide:
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/AGENTS.md`
+
 ## Build
 
 ```bash
@@ -15,6 +22,11 @@ swift build
 cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
 swift test
 ```
+
+Focused regression tests for recent UI refactors:
+
+- `Tests/StopmoXcodeGUITests/ProjectEditorViewModelTests.swift`
+- `Tests/StopmoXcodeGUITests/NotificationPresenterStateTests.swift`
 
 Phase-0 UI parity/baseline reference:
 
