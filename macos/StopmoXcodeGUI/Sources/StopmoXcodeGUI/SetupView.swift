@@ -3,6 +3,11 @@ import SwiftUI
 struct SetupView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false
+    @State private var showPathBootstrapActions: Bool = false
+    @State private var showRuntimeDetails: Bool = false
+    @State private var showDependencyChecks: Bool = false
+    @State private var showValidationIssues: Bool = false
+    @State private var showPreflightChecks: Bool = false
 
     var body: some View {
         ScrollView {
@@ -14,6 +19,7 @@ struct SetupView: View {
                     )
                 }
 
+                readinessOverviewCard
                 pathsCard
                 permissionsCard
                 runtimeHealthCard
@@ -22,6 +28,56 @@ struct SetupView: View {
                 watchSafetyCard
             }
             .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
+        }
+    }
+
+    private var readinessOverviewCard: some View {
+        SectionCard("Readiness Overview", subtitle: "Confirm core setup status before capture.") {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                StatusChip(
+                    label: "Workspace \(state.workspaceAccessActive ? "Granted" : "Needed")",
+                    tone: state.workspaceAccessActive ? .success : .warning
+                )
+                StatusChip(label: "Runtime \(runtimeReadinessLabel)", tone: runtimeReadinessTone)
+                StatusChip(label: "Config \(validationReadinessLabel)", tone: validationReadinessTone)
+                StatusChip(label: "Preflight \(preflightReadinessLabel)", tone: preflightReadinessTone)
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Button("Check Runtime Health") {
+                        Task { await state.refreshHealth() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Validate Config") {
+                        Task { await state.validateConfig() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Run Watch Preflight") {
+                        Task { await state.refreshWatchPreflight() }
+                    }
+                    .disabled(state.isBusy)
+                }
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    Button("Check Runtime Health") {
+                        Task { await state.refreshHealth() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Validate Config") {
+                        Task { await state.validateConfig() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Run Watch Preflight") {
+                        Task { await state.refreshWatchPreflight() }
+                    }
+                    .disabled(state.isBusy)
+                }
+            }
         }
     }
 
@@ -49,26 +105,18 @@ struct SetupView: View {
                 state.chooseConfigFile()
             }
 
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    pathsActions
+            DisclosureGroup(isExpanded: $showPathBootstrapActions) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        pathsActions
+                    }
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                        pathsActions
+                    }
                 }
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                    Button("Use Sample Config Path") {
-                        state.useSampleConfig()
-                    }
-                    .disabled(state.isBusy)
-
-                    Button("Create Config From Sample") {
-                        state.createConfigFromSample()
-                    }
-                    .disabled(state.isBusy)
-
-                    Button("Open Config In Finder") {
-                        state.openConfigInFinder()
-                    }
-                    .disabled(state.isBusy)
-                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                DisclosureToggleLabel(title: "Config Bootstrap Actions", isExpanded: $showPathBootstrapActions)
             }
 
             HStack {
@@ -107,35 +155,48 @@ struct SetupView: View {
 
     private var runtimeHealthCard: some View {
         SectionCard("Runtime Health", subtitle: "Verify Python runtime and bridge prerequisites.") {
+            HStack {
+                Text("Status")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                StatusChip(label: runtimeReadinessLabel, tone: runtimeReadinessTone)
+            }
             Button("Check Runtime Health") {
                 Task { await state.refreshHealth() }
             }
             .disabled(state.isBusy)
 
             if let health = state.health {
-                KeyValueRow(key: "Python", value: health.pythonExecutable)
                 KeyValueRow(key: "Python Version", value: health.pythonVersion)
-                KeyValueRow(key: "Venv Python", value: health.venvPython)
+                KeyValueRow(key: "stopmo Version", value: health.stopmoVersion ?? "unknown")
                 KeyValueRow(
                     key: "Venv Exists",
                     value: health.venvPythonExists ? "yes" : "no",
                     tone: health.venvPythonExists ? .success : .danger
                 )
-                KeyValueRow(key: "stopmo Version", value: health.stopmoVersion ?? "unknown")
                 KeyValueRow(
                     key: "FFmpeg",
                     value: health.ffmpegPath ?? "not found",
                     tone: health.ffmpegPath == nil ? .warning : .success
                 )
-                if let configLoadOk = health.configLoadOk {
-                    KeyValueRow(
-                        key: "Config Load",
-                        value: configLoadOk ? "ok" : "failed",
-                        tone: configLoadOk ? .success : .danger
-                    )
-                }
-                if let configError = health.configError, !configError.isEmpty {
-                    KeyValueRow(key: "Config Error", value: configError, tone: .danger)
+                DisclosureGroup(isExpanded: $showRuntimeDetails) {
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                        KeyValueRow(key: "Python", value: health.pythonExecutable)
+                        KeyValueRow(key: "Venv Python", value: health.venvPython)
+                        if let configLoadOk = health.configLoadOk {
+                            KeyValueRow(
+                                key: "Config Load",
+                                value: configLoadOk ? "ok" : "failed",
+                                tone: configLoadOk ? .success : .danger
+                            )
+                        }
+                        if let configError = health.configError, !configError.isEmpty {
+                            KeyValueRow(key: "Config Error", value: configError, tone: .danger)
+                        }
+                    }
+                    .padding(.top, StopmoUI.Spacing.xs)
+                } label: {
+                    DisclosureToggleLabel(title: "Runtime Detail (Advanced)", isExpanded: $showRuntimeDetails)
                 }
             } else {
                 EmptyStateCard(message: "Runtime health not loaded yet.")
@@ -144,28 +205,42 @@ struct SetupView: View {
     }
 
     private var dependencyChecksCard: some View {
-        SectionCard("Dependency Checks", subtitle: "Status, details, and remediation hints per dependency.") {
+        SectionCard("Dependency Checks", subtitle: "Detailed dependency import diagnostics and remediation hints.") {
             if state.health != nil {
                 if dependencyRows.isEmpty {
                     EmptyStateCard(message: "No dependency checks available in this runtime report.")
                 } else {
-                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                        HStack(spacing: StopmoUI.Spacing.sm) {
-                            tableHeading("Dependency", width: 140)
-                            tableHeading("Status", width: 100)
-                            tableHeading("Detail", width: 220)
-                            tableHeading("Fix Hint", width: nil)
-                        }
-                        ForEach(dependencyRows, id: \.name) { row in
-                            HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.sm) {
-                                tableCell(row.name, width: 140)
-                                StatusChip(label: row.ok ? "Available" : "Missing", tone: row.ok ? .success : .danger)
-                                    .frame(width: 100, alignment: .leading)
-                                tableCell(row.detail, width: 220)
-                                tableCell(row.fixHint, width: nil)
+                    HStack {
+                        Text("Missing Dependencies")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        StatusChip(
+                            label: "\(dependencyRows.filter { !$0.ok }.count)",
+                            tone: dependencyRows.contains { !$0.ok } ? .warning : .success
+                        )
+                    }
+                    DisclosureGroup(isExpanded: $showDependencyChecks) {
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                            HStack(spacing: StopmoUI.Spacing.sm) {
+                                tableHeading("Dependency", width: 140)
+                                tableHeading("Status", width: 100)
+                                tableHeading("Detail", width: 220)
+                                tableHeading("Fix Hint", width: nil)
                             }
-                            .font(.caption)
+                            ForEach(dependencyRows, id: \.name) { row in
+                                HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.sm) {
+                                    tableCell(row.name, width: 140)
+                                    StatusChip(label: row.ok ? "Available" : "Missing", tone: row.ok ? .success : .danger)
+                                        .frame(width: 100, alignment: .leading)
+                                    tableCell(row.detail, width: 220)
+                                    tableCell(row.fixHint, width: nil)
+                                }
+                                .font(.caption)
+                            }
                         }
+                        .padding(.top, StopmoUI.Spacing.xs)
+                    } label: {
+                        DisclosureToggleLabel(title: "Dependency Table (Advanced)", isExpanded: $showDependencyChecks)
                     }
                 }
             } else {
@@ -176,21 +251,39 @@ struct SetupView: View {
 
     private var configValidationCard: some View {
         SectionCard("Config Validation", subtitle: "Schema and value checks for current config file.") {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                Button("Load Config") {
-                    Task { await state.loadConfig() }
-                }
-                .disabled(state.isBusy)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Button("Load Config") {
+                        Task { await state.loadConfig() }
+                    }
+                    .disabled(state.isBusy)
 
-                Button("Save Config") {
-                    Task { await state.saveConfig() }
-                }
-                .disabled(state.isBusy)
+                    Button("Save Config") {
+                        Task { await state.saveConfig() }
+                    }
+                    .disabled(state.isBusy)
 
-                Button("Validate Config") {
-                    Task { await state.validateConfig() }
+                    Button("Validate Config") {
+                        Task { await state.validateConfig() }
+                    }
+                    .disabled(state.isBusy)
                 }
-                .disabled(state.isBusy)
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    Button("Load Config") {
+                        Task { await state.loadConfig() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Save Config") {
+                        Task { await state.saveConfig() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Validate Config") {
+                        Task { await state.validateConfig() }
+                    }
+                    .disabled(state.isBusy)
+                }
             }
 
             if let validation = state.configValidation {
@@ -203,22 +296,36 @@ struct SetupView: View {
                         tone: validation.ok ? .success : .danger
                     )
                 }
-                if !validation.errors.isEmpty {
-                    Text("Errors")
-                        .font(.subheadline)
-                    ForEach(validation.errors) { item in
-                        Text("[\(item.field)] \(item.message)")
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    StatusChip(label: "\(validation.errors.count) Errors", tone: validation.errors.isEmpty ? .success : .danger)
+                    StatusChip(label: "\(validation.warnings.count) Warnings", tone: validation.warnings.isEmpty ? .success : .warning)
                 }
-                if !validation.warnings.isEmpty {
-                    Text("Warnings")
-                        .font(.subheadline)
-                    ForEach(validation.warnings) { item in
-                        Text("[\(item.field)] \(item.message)")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
+
+                if !validation.errors.isEmpty || !validation.warnings.isEmpty {
+                    DisclosureGroup(isExpanded: $showValidationIssues) {
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                            if !validation.errors.isEmpty {
+                                Text("Errors")
+                                    .font(.subheadline)
+                                ForEach(validation.errors) { item in
+                                    Text("[\(item.field)] \(item.message)")
+                                        .font(.caption)
+                                        .foregroundStyle(.red)
+                                }
+                            }
+                            if !validation.warnings.isEmpty {
+                                Text("Warnings")
+                                    .font(.subheadline)
+                                ForEach(validation.warnings) { item in
+                                    Text("[\(item.field)] \(item.message)")
+                                        .font(.caption)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+                        }
+                        .padding(.top, StopmoUI.Spacing.xs)
+                    } label: {
+                        DisclosureToggleLabel(title: "Validation Report (Advanced)", isExpanded: $showValidationIssues)
                     }
                 }
             } else {
@@ -229,6 +336,12 @@ struct SetupView: View {
 
     private var watchSafetyCard: some View {
         SectionCard("Watch Start Safety", subtitle: "Preflight check before launching watch service.") {
+            HStack {
+                Text("Status")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                StatusChip(label: preflightReadinessLabel, tone: preflightReadinessTone)
+            }
             Button("Run Watch Preflight") {
                 Task { await state.refreshWatchPreflight() }
             }
@@ -253,16 +366,21 @@ struct SetupView: View {
                 }
                 let checks = preflight.healthChecks.keys.sorted()
                 if !checks.isEmpty {
-                    Text("Health Checks")
-                        .font(.subheadline)
-                    ForEach(checks, id: \.self) { key in
-                        HStack {
-                            Text(key)
-                            Spacer()
-                            let ok = preflight.healthChecks[key] ?? false
-                            StatusChip(label: ok ? "OK" : "Missing", tone: ok ? .success : .danger)
+                    DisclosureGroup(isExpanded: $showPreflightChecks) {
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                            ForEach(checks, id: \.self) { key in
+                                HStack {
+                                    Text(key)
+                                    Spacer()
+                                    let ok = preflight.healthChecks[key] ?? false
+                                    StatusChip(label: ok ? "OK" : "Missing", tone: ok ? .success : .danger)
+                                }
+                                .font(.caption)
+                            }
                         }
-                        .font(.caption)
+                        .padding(.top, StopmoUI.Spacing.xs)
+                    } label: {
+                        DisclosureToggleLabel(title: "Health Checks (Advanced)", isExpanded: $showPreflightChecks)
                     }
                 }
             } else {
@@ -273,6 +391,54 @@ struct SetupView: View {
 
     private var sampleConfigExists: Bool {
         FileManager.default.fileExists(atPath: state.sampleConfigPath)
+    }
+
+    private var runtimeReadinessLabel: String {
+        guard let health = state.health else {
+            return "Not Checked"
+        }
+        if health.venvPythonExists, health.ffmpegPath != nil, health.configLoadOk != false {
+            return "Ready"
+        }
+        return "Needs Attention"
+    }
+
+    private var runtimeReadinessTone: StatusTone {
+        guard let health = state.health else {
+            return .warning
+        }
+        if health.venvPythonExists, health.ffmpegPath != nil, health.configLoadOk != false {
+            return .success
+        }
+        return .danger
+    }
+
+    private var validationReadinessLabel: String {
+        guard let validation = state.configValidation else {
+            return "Not Checked"
+        }
+        return validation.ok ? "Valid" : "Invalid"
+    }
+
+    private var validationReadinessTone: StatusTone {
+        guard let validation = state.configValidation else {
+            return .warning
+        }
+        return validation.ok ? .success : .danger
+    }
+
+    private var preflightReadinessLabel: String {
+        guard let preflight = state.watchPreflight else {
+            return "Not Checked"
+        }
+        return preflight.ok ? "Ready" : "Blocked"
+    }
+
+    private var preflightReadinessTone: StatusTone {
+        guard let preflight = state.watchPreflight else {
+            return .warning
+        }
+        return preflight.ok ? .success : .danger
     }
 
     private var pathsActions: some View {

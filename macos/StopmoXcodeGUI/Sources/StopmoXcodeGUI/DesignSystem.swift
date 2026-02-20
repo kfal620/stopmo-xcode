@@ -199,6 +199,26 @@ struct PanelChipButton: View {
     }
 }
 
+struct DisclosureToggleLabel: View {
+    let title: String
+    @Binding var isExpanded: Bool
+    var font: Font = .subheadline.weight(.semibold)
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(font)
+            Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.12)) {
+                isExpanded.toggle()
+            }
+        }
+    }
+}
+
 struct SectionCard<Content: View>: View {
     let title: String
     let subtitle: String?

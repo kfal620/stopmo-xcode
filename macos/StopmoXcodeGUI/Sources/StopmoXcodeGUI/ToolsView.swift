@@ -130,6 +130,11 @@ struct ToolsView: View {
     @State private var lastToolCompletedLabel: String = "-"
     @State private var eventFilter: ToolEventFilter = .all
     @State private var eventSearch: String = ""
+    @State private var showTranscodeAdvanced: Bool = false
+    @State private var showMatrixAdvanced: Bool = false
+    @State private var showCalibrationDiagnostics: Bool = false
+    @State private var showTimelineDetails: Bool = false
+    @State private var showEventDetails: Bool = false
 
     var body: some View {
         ScrollView {
@@ -152,8 +157,12 @@ struct ToolsView: View {
                 if showsDelivery {
                     dpxSection
                 }
-                timelineSection
-                eventsSection
+                if mode == .utilitiesOnly {
+                    calibrationDiagnosticsSection
+                } else {
+                    timelineSection
+                    eventsSection
+                }
             }
             .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
         }
@@ -205,7 +214,7 @@ struct ToolsView: View {
         case .all:
             return "Guided one-off workflows with preflight checks, staged progress, and actionable results."
         case .utilitiesOnly:
-            return "Utility workflows for single-frame transcode and matrix suggestion."
+            return "Utility workflows for single-frame transcode and matrix suggestion, with advanced diagnostics on demand."
         case .deliveryOnly:
             return "Batch DPX to ProRes assembly for end-of-day delivery."
         }
@@ -247,25 +256,32 @@ struct ToolsView: View {
                     onClear: { recentTranscodeInputRaw = "" }
                 )
 
-                LabeledPathField(
-                    label: "Output Override (Optional)",
-                    placeholder: "/path/to/output",
-                    text: $transcodeOutputDir,
-                    icon: "folder",
-                    browseHelp: "Choose output directory override",
-                    isDisabled: isRunningTool
-                ) {
-                    if let path = chooseDirectoryPath() {
-                        transcodeOutputDir = path
-                    }
-                }
+                DisclosureGroup(isExpanded: $showTranscodeAdvanced) {
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                        LabeledPathField(
+                            label: "Output Override (Optional)",
+                            placeholder: "/path/to/output",
+                            text: $transcodeOutputDir,
+                            icon: "folder",
+                            browseHelp: "Choose output directory override",
+                            isDisabled: isRunningTool
+                        ) {
+                            if let path = chooseDirectoryPath() {
+                                transcodeOutputDir = path
+                            }
+                        }
 
-                recentMenuRow(
-                    title: "Recent Outputs",
-                    values: decodeRecentValues(recentTranscodeOutputRaw),
-                    onPick: { transcodeOutputDir = $0 },
-                    onClear: { recentTranscodeOutputRaw = "" }
-                )
+                        recentMenuRow(
+                            title: "Recent Outputs",
+                            values: decodeRecentValues(recentTranscodeOutputRaw),
+                            onPick: { transcodeOutputDir = $0 },
+                            onClear: { recentTranscodeOutputRaw = "" }
+                        )
+                    }
+                    .padding(.top, StopmoUI.Spacing.xs)
+                } label: {
+                    DisclosureToggleLabel(title: "Output Override (Advanced)", isExpanded: $showTranscodeAdvanced)
+                }
 
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     Button("Run Transcode One") {
@@ -321,33 +337,43 @@ struct ToolsView: View {
                     onClear: { recentMatrixInputRaw = "" }
                 )
 
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    TextField("Camera make override (optional)", text: $matrixCameraMake)
-                        .textFieldStyle(.roundedBorder)
-                    TextField("Camera model override (optional)", text: $matrixCameraModel)
-                        .textFieldStyle(.roundedBorder)
-                }
-                .frame(maxWidth: 760)
+                DisclosureGroup(isExpanded: $showMatrixAdvanced) {
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                        HStack(spacing: StopmoUI.Spacing.sm) {
+                            TextField("Camera make override (optional)", text: $matrixCameraMake)
+                                .textFieldStyle(.roundedBorder)
+                            TextField("Camera model override (optional)", text: $matrixCameraModel)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                        .frame(maxWidth: 760)
 
-                LabeledPathField(
-                    label: "JSON Report Path (Optional)",
-                    placeholder: "/path/to/matrix_report.json",
-                    text: $matrixWriteJsonPath,
-                    icon: "doc.badge.plus",
-                    browseHelp: "Choose JSON report output path",
-                    isDisabled: isRunningTool
-                ) {
-                    if let path = chooseSaveFilePath(defaultName: "matrix_report.json", contentType: .json) {
-                        matrixWriteJsonPath = path
+                        LabeledPathField(
+                            label: "JSON Report Path (Optional)",
+                            placeholder: "/path/to/matrix_report.json",
+                            text: $matrixWriteJsonPath,
+                            icon: "doc.badge.plus",
+                            browseHelp: "Choose JSON report output path",
+                            isDisabled: isRunningTool
+                        ) {
+                            if let path = chooseSaveFilePath(defaultName: "matrix_report.json", contentType: .json) {
+                                matrixWriteJsonPath = path
+                            }
+                        }
+
+                        recentMenuRow(
+                            title: "Recent Reports",
+                            values: decodeRecentValues(recentMatrixReportRaw),
+                            onPick: { matrixWriteJsonPath = $0 },
+                            onClear: { recentMatrixReportRaw = "" }
+                        )
                     }
+                    .padding(.top, StopmoUI.Spacing.xs)
+                } label: {
+                    DisclosureToggleLabel(
+                        title: "Camera Overrides & JSON Report (Advanced)",
+                        isExpanded: $showMatrixAdvanced
+                    )
                 }
-
-                recentMenuRow(
-                    title: "Recent Reports",
-                    values: decodeRecentValues(recentMatrixReportRaw),
-                    onPick: { matrixWriteJsonPath = $0 },
-                    onClear: { recentMatrixReportRaw = "" }
-                )
 
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     Button("Run Suggest Matrix") {
@@ -490,8 +516,39 @@ struct ToolsView: View {
         }
     }
 
+    private var calibrationDiagnosticsSection: some View {
+        SectionCard("Run Diagnostics", subtitle: "Advanced timeline and event logs from utility runs.") {
+            DisclosureGroup(isExpanded: $showCalibrationDiagnostics) {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+                    DisclosureGroup(isExpanded: $showTimelineDetails) {
+                        timelineContent
+                            .padding(.top, StopmoUI.Spacing.xs)
+                    } label: {
+                        DisclosureToggleLabel(title: "Progress Timeline", isExpanded: $showTimelineDetails)
+                    }
+
+                    DisclosureGroup(isExpanded: $showEventDetails) {
+                        eventsContent
+                            .padding(.top, StopmoUI.Spacing.xs)
+                    } label: {
+                        DisclosureToggleLabel(title: "Operation Events", isExpanded: $showEventDetails)
+                    }
+                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                DisclosureToggleLabel(title: "Show Diagnostics", isExpanded: $showCalibrationDiagnostics)
+            }
+        }
+    }
+
     private var timelineSection: some View {
         SectionCard("Progress Timeline", subtitle: "Staged progress milestones for the latest tool run.") {
+            timelineContent
+        }
+    }
+
+    private var timelineContent: some View {
+        Group {
             if toolTimeline.isEmpty {
                 EmptyStateCard(message: "No timeline yet. Run a tool to capture staged progress.")
             } else {
@@ -513,6 +570,12 @@ struct ToolsView: View {
 
     private var eventsSection: some View {
         SectionCard("Operation Events", subtitle: "Captured backend events from the latest tool run.") {
+            eventsContent
+        }
+    }
+
+    private var eventsContent: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             HStack(spacing: StopmoUI.Spacing.sm) {
                 Picker("Filter", selection: $eventFilter) {
                     ForEach(ToolEventFilter.allCases) { filter in

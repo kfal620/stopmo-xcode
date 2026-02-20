@@ -33,8 +33,7 @@ struct ProjectPipelineSectionView: View {
                 matrixEditor
                     .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                Text("Camera Matrix (Advanced)")
-                    .font(.subheadline.weight(.semibold))
+                DisclosureToggleLabel(title: "Camera Matrix (Advanced)", isExpanded: $showMatrixControls)
             }
 
             DisclosureGroup(isExpanded: $showAutoExposureControls) {
@@ -55,8 +54,10 @@ struct ProjectPipelineSectionView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                Text("Auto-Exposure Controls (Advanced)")
-                    .font(.subheadline.weight(.semibold))
+                DisclosureToggleLabel(
+                    title: "Auto-Exposure Controls (Advanced)",
+                    isExpanded: $showAutoExposureControls
+                )
             }
 
             DisclosureGroup(isExpanded: $showColorManagementControls) {
@@ -85,8 +86,7 @@ struct ProjectPipelineSectionView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                Text("Color Management (Advanced)")
-                    .font(.subheadline.weight(.semibold))
+                DisclosureToggleLabel(title: "Color Management (Advanced)", isExpanded: $showColorManagementControls)
             }
         }
     }
