@@ -21,6 +21,33 @@ enum StopmoUI {
     }
 }
 
+extension LifecycleHub {
+    var accentColor: Color {
+        switch self {
+        case .configure:
+            return Color.blue
+        case .capture:
+            return Color.green
+        case .triage:
+            return Color.orange
+        case .deliver:
+            return Color.teal
+        }
+    }
+
+    var accentGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                accentColor.opacity(0.34),
+                accentColor.opacity(0.14),
+                Color.secondary.opacity(0.08),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
 enum StatusTone {
     case neutral
     case success
@@ -83,6 +110,92 @@ struct ScreenHeader<Trailing: View>: View {
             Spacer(minLength: 0)
             trailing
         }
+    }
+}
+
+struct LifecycleStageHeader<Trailing: View>: View {
+    let hub: LifecycleHub
+    let title: String
+    let subtitle: String?
+    @ViewBuilder let trailing: Trailing
+
+    init(
+        hub: LifecycleHub,
+        title: String,
+        subtitle: String? = nil,
+        @ViewBuilder trailing: () -> Trailing = { EmptyView() }
+    ) {
+        self.hub = hub
+        self.title = title
+        self.subtitle = subtitle
+        self.trailing = trailing()
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                HStack(spacing: StopmoUI.Spacing.xs) {
+                    Image(systemName: hub.iconName)
+                    Text(hub.rawValue.uppercased())
+                        .font(.caption.weight(.bold))
+                }
+                .foregroundStyle(hub.accentColor)
+
+                Text(title)
+                    .font(.title2.weight(.bold))
+
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+            trailing
+        }
+        .padding(StopmoUI.Spacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(hub.accentGradient)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .stroke(hub.accentColor.opacity(0.35), lineWidth: 1)
+        )
+    }
+}
+
+struct PanelChipButton: View {
+    let label: String
+    let iconName: String
+    let isSelected: Bool
+    let accentColor: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: StopmoUI.Spacing.xs) {
+                Image(systemName: iconName)
+                Text(label)
+                    .lineLimit(1)
+            }
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .foregroundStyle(isSelected ? Color.white : Color.primary)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(isSelected ? accentColor : Color.secondary.opacity(0.12))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(
+                        isSelected ? accentColor.opacity(0.9) : Color.primary.opacity(0.08),
+                        lineWidth: isSelected ? 0 : 0.75
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

@@ -4,30 +4,32 @@ import XCTest
 final class Phase0SmokeTests: XCTestCase {
     func testPrimarySidebarSectionsArePresentAndOrdered() {
         XCTAssertEqual(
-            AppSection.allCases.map(\.rawValue),
+            LifecycleHub.allCases.map(\.rawValue),
             [
-                "Setup",
-                "Project",
-                "Live Monitor",
-                "Shots",
-                "Queue",
-                "Tools",
-                "Logs & Diagnostics",
-                "History",
+                "Configure",
+                "Capture",
+                "Triage",
+                "Deliver",
             ]
         )
     }
 
     func testSidebarSectionIdentifiersAreUnique() {
-        let ids = AppSection.allCases.map(\.id)
+        let ids = LifecycleHub.allCases.map(\.id)
         XCTAssertEqual(Set(ids).count, ids.count)
     }
 
     func testSidebarMetadataIsPresent() {
-        for section in AppSection.allCases {
-            XCTAssertFalse(section.iconName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            XCTAssertFalse(section.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        for hub in LifecycleHub.allCases {
+            XCTAssertFalse(hub.iconName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            XCTAssertFalse(hub.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
+    }
+
+    func testLifecyclePanelsArePresent() {
+        XCTAssertEqual(ConfigurePanel.allCases.map(\.rawValue), ["Workspace & Health", "Project Settings", "Calibration"])
+        XCTAssertEqual(TriagePanel.allCases.map(\.rawValue), ["Shots", "Queue", "Diagnostics"])
+        XCTAssertEqual(DeliverPanel.allCases.map(\.rawValue), ["Day Wrap", "Run History"])
     }
 
     func testInterpretationContractDefaultsRemainStable() {
@@ -50,6 +52,85 @@ final class Phase0SmokeTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshDispatchMappingByHubPanel() {
+        let state = AppState()
+
+        state.selectedHub = .configure
+        state.selectedConfigurePanel = .workspaceHealth
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .health)
+
+        state.selectedConfigurePanel = .projectSettings
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .config)
+
+        state.selectedConfigurePanel = .calibration
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .config)
+
+        state.selectedHub = .capture
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .live)
+
+        state.selectedHub = .triage
+        state.selectedTriagePanel = .shots
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .live)
+
+        state.selectedTriagePanel = .queue
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .live)
+
+        state.selectedTriagePanel = .diagnostics
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .logs)
+
+        state.selectedHub = .deliver
+        state.selectedDeliverPanel = .dayWrap
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .dayWrap)
+
+        state.selectedDeliverPanel = .runHistory
+        XCTAssertEqual(state.refreshKindForCurrentSelection(), .history)
+    }
+
+    @MainActor
+    func testMonitoringEnablementRulesByHubPanel() {
+        let state = AppState()
+
+        state.selectedHub = .capture
+        XCTAssertTrue(state.shouldMonitorCurrentSelection())
+
+        state.selectedHub = .triage
+        state.selectedTriagePanel = .shots
+        XCTAssertTrue(state.shouldMonitorCurrentSelection())
+
+        state.selectedTriagePanel = .queue
+        XCTAssertTrue(state.shouldMonitorCurrentSelection())
+
+        state.selectedTriagePanel = .diagnostics
+        XCTAssertFalse(state.shouldMonitorCurrentSelection())
+
+        state.selectedHub = .configure
+        XCTAssertFalse(state.shouldMonitorCurrentSelection())
+
+        state.selectedHub = .deliver
+        XCTAssertFalse(state.shouldMonitorCurrentSelection())
+    }
+
+    func testToolsModeFiltersAndPrefillHelpers() {
+        XCTAssertEqual(
+            ToolsView.visibleToolKinds(for: .utilitiesOnly),
+            [.transcodeOne, .suggestMatrix]
+        )
+        XCTAssertEqual(
+            ToolsView.visibleToolKinds(for: .deliveryOnly),
+            [.dpxToProres]
+        )
+
+        XCTAssertEqual(
+            ToolsView.resolvedDpxInputDir(currentInputDir: "", configOutputDir: "/shots/output"),
+            "/shots/output"
+        )
+        XCTAssertEqual(
+            ToolsView.resolvedDpxInputDir(currentInputDir: "/custom/dpx", configOutputDir: "/shots/output"),
+            "/custom/dpx"
+        )
+    }
+
+    @MainActor
     func testCriticalAppStateActionsRemainCallable() {
         let state = AppState()
 
@@ -60,6 +141,7 @@ final class Phase0SmokeTests: XCTestCase {
         let _: () async -> Void = state.stopWatchService
         let _: () async -> Void = state.restartWatchService
         let _: (Bool) async -> Void = state.refreshLiveData
+        let _: () async -> Void = state.refreshCurrentSelection
         let _: (String?) async -> Void = state.refreshLogsDiagnostics
         let _: () async -> Void = state.validateConfig
         let _: () async -> Void = state.refreshWatchPreflight
@@ -76,6 +158,9 @@ final class Phase0SmokeTests: XCTestCase {
         let _: (String) -> Void = state.openPathInFinder
         let _: (String, String) -> Void = state.copyTextToPasteboard
         let _: () -> Void = state.restartMonitoringLoop
+        let _: () -> Void = state.updateMonitoringForSelection
+        let _: () -> AppState.RefreshKind = state.refreshKindForCurrentSelection
+        let _: () -> Bool = state.shouldMonitorCurrentSelection
     }
 
     func testCriticalBridgeActionsRemainCallable() {

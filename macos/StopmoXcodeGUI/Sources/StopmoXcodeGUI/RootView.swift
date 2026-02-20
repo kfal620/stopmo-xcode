@@ -13,7 +13,7 @@ struct RootView: View {
                 .safeAreaInset(edge: .top, spacing: 0) {
                     VStack(spacing: 0) {
                         RootCommandBarView {
-                            await refreshSelectedSection()
+                            await state.refreshCurrentSelection()
                         }
                         Divider()
                     }
@@ -22,11 +22,14 @@ struct RootView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear {
-            state.setMonitoringEnabled(for: state.selectedSection)
+            state.updateMonitoringForSelection()
             state.reduceMotionEnabled = reduceMotion
         }
-        .onChange(of: state.selectedSection) { _, next in
-            state.setMonitoringEnabled(for: next)
+        .onChange(of: state.selectedHub) { _, _ in
+            state.updateMonitoringForSelection()
+        }
+        .onChange(of: state.selectedTriagePanel) { _, _ in
+            state.updateMonitoringForSelection()
         }
         .onChange(of: reduceMotion) { _, next in
             state.reduceMotionEnabled = next
@@ -48,40 +51,15 @@ struct RootView: View {
 
     @ViewBuilder
     private var detailView: some View {
-        switch state.selectedSection {
-        case .setup:
-            SetupView()
-        case .project:
-            ProjectView()
-        case .liveMonitor:
-            LiveMonitorView()
-        case .shots:
-            ShotsView()
-        case .queue:
-            QueueView()
-        case .tools:
-            ToolsView()
-        case .logs:
-            LogsDiagnosticsView()
-        case .history:
-            HistoryView()
-        }
-    }
-
-    private func refreshSelectedSection() async {
-        switch state.selectedSection {
-        case .setup:
-            await state.refreshHealth()
-        case .project:
-            await state.loadConfig()
-        case .liveMonitor, .queue, .shots:
-            await state.refreshLiveData()
-        case .tools:
-            await state.refreshLiveData()
-        case .logs:
-            await state.refreshLogsDiagnostics()
-        case .history:
-            await state.refreshHistory()
+        switch state.selectedHub {
+        case .configure:
+            ConfigureHubView()
+        case .capture:
+            CaptureHubView()
+        case .triage:
+            TriageHubView()
+        case .deliver:
+            DeliverHubView()
         }
     }
 }

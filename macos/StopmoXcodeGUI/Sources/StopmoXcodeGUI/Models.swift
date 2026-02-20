@@ -1,56 +1,90 @@
 import Foundation
 
-enum AppSection: String, CaseIterable, Identifiable {
-    case setup = "Setup"
-    case project = "Project"
-    case liveMonitor = "Live Monitor"
-    case shots = "Shots"
-    case queue = "Queue"
-    case tools = "Tools"
-    case logs = "Logs & Diagnostics"
-    case history = "History"
+enum LifecycleHub: String, CaseIterable, Identifiable {
+    case configure = "Configure"
+    case capture = "Capture"
+    case triage = "Triage"
+    case deliver = "Deliver"
 
     var id: String { rawValue }
 
     var iconName: String {
         switch self {
-        case .setup:
-            return "wrench.and.screwdriver"
-        case .project:
+        case .configure:
             return "slider.horizontal.3"
-        case .liveMonitor:
+        case .capture:
             return "dot.radiowaves.left.and.right"
-        case .shots:
-            return "film.stack"
-        case .queue:
-            return "list.bullet.rectangle"
-        case .tools:
-            return "hammer"
-        case .logs:
-            return "doc.text.magnifyingglass"
-        case .history:
-            return "clock.arrow.circlepath"
+        case .triage:
+            return "stethoscope"
+        case .deliver:
+            return "shippingbox"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .setup:
-            return "Runtime, paths, and safety checks"
-        case .project:
-            return "Watch, pipeline, and output config"
-        case .liveMonitor:
-            return "Watch controls and live telemetry"
+        case .configure:
+            return "Workspace, project settings, and calibration"
+        case .capture:
+            return "Live watch control and ingest telemetry"
+        case .triage:
+            return "Shots, queue recovery, and diagnostics"
+        case .deliver:
+            return "Day wrap ProRes assembly and history"
+        }
+    }
+}
+
+enum ConfigurePanel: String, CaseIterable, Identifiable {
+    case workspaceHealth = "Workspace & Health"
+    case projectSettings = "Project Settings"
+    case calibration = "Calibration"
+
+    var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .workspaceHealth:
+            return "wrench.and.screwdriver"
+        case .projectSettings:
+            return "slider.horizontal.3"
+        case .calibration:
+            return "camera.filters"
+        }
+    }
+}
+
+enum TriagePanel: String, CaseIterable, Identifiable {
+    case shots = "Shots"
+    case queue = "Queue"
+    case diagnostics = "Diagnostics"
+
+    var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
         case .shots:
-            return "Shot-level progress and assembly"
+            return "film.stack"
         case .queue:
-            return "Recent jobs and retry context"
-        case .tools:
-            return "One-off transcode and matrix tools"
-        case .logs:
-            return "Warnings, logs, diagnostics bundle"
-        case .history:
-            return "Past runs and reproducibility data"
+            return "list.bullet.rectangle"
+        case .diagnostics:
+            return "doc.text.magnifyingglass"
+        }
+    }
+}
+
+enum DeliverPanel: String, CaseIterable, Identifiable {
+    case dayWrap = "Day Wrap"
+    case runHistory = "Run History"
+
+    var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .dayWrap:
+            return "film.badge.plus"
+        case .runHistory:
+            return "clock.arrow.circlepath"
         }
     }
 }

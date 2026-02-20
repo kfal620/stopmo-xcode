@@ -2,10 +2,16 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-private enum ToolKind: String, CaseIterable {
+enum ToolKind: String, CaseIterable {
     case transcodeOne = "Transcode One"
     case suggestMatrix = "Suggest Matrix"
     case dpxToProres = "DPX To ProRes"
+}
+
+enum ToolsMode: String, CaseIterable {
+    case all
+    case utilitiesOnly
+    case deliveryOnly
 }
 
 private enum ToolRunStatus {
@@ -66,6 +72,13 @@ private struct ToolTimelineItem: Identifiable {
 
 struct ToolsView: View {
     @EnvironmentObject private var state: AppState
+    let mode: ToolsMode
+    let embedded: Bool
+
+    init(mode: ToolsMode = .all, embedded: Bool = false) {
+        self.mode = mode
+        self.embedded = embedded
+    }
 
     @AppStorage("tools.transcode.input_path")
     private var transcodeInputPath: String = ""
@@ -121,26 +134,90 @@ struct ToolsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-                ScreenHeader(
-                    title: "Tools",
-                    subtitle: "Guided one-off workflows with preflight checks, staged progress, and actionable results."
-                ) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        if let activeTool {
-                            StatusChip(label: activeTool.rawValue, tone: .warning)
-                        }
-                        StatusChip(label: lastToolStatus.label, tone: lastToolStatus.tone)
-                        StatusChip(label: "Last Run \(lastToolCompletedLabel)", tone: .neutral)
+                if !embedded {
+                    ScreenHeader(
+                        title: headerTitle,
+                        subtitle: headerSubtitle
+                    ) {
+                        headerStatusChips
                     }
+                } else {
+                    headerStatusChips
                 }
 
-                transcodeSection
-                matrixSection
-                dpxSection
+                if showsUtilities {
+                    transcodeSection
+                    matrixSection
+                }
+                if showsDelivery {
+                    dpxSection
+                }
                 timelineSection
                 eventsSection
             }
-            .padding(StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
+        }
+        .onAppear {
+            initializeModeDefaultsIfNeeded()
+        }
+    }
+
+    nonisolated static func visibleToolKinds(for mode: ToolsMode) -> [ToolKind] {
+        switch mode {
+        case .all:
+            return [.transcodeOne, .suggestMatrix, .dpxToProres]
+        case .utilitiesOnly:
+            return [.transcodeOne, .suggestMatrix]
+        case .deliveryOnly:
+            return [.dpxToProres]
+        }
+    }
+
+    nonisolated static func resolvedDpxInputDir(currentInputDir: String, configOutputDir: String) -> String {
+        let current = currentInputDir.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !current.isEmpty {
+            return current
+        }
+        return configOutputDir.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var showsUtilities: Bool {
+        Self.visibleToolKinds(for: mode).contains(.transcodeOne)
+    }
+
+    private var showsDelivery: Bool {
+        Self.visibleToolKinds(for: mode).contains(.dpxToProres)
+    }
+
+    private var headerTitle: String {
+        switch mode {
+        case .all:
+            return "Tools"
+        case .utilitiesOnly:
+            return "Calibration"
+        case .deliveryOnly:
+            return "Day Wrap"
+        }
+    }
+
+    private var headerSubtitle: String {
+        switch mode {
+        case .all:
+            return "Guided one-off workflows with preflight checks, staged progress, and actionable results."
+        case .utilitiesOnly:
+            return "Utility workflows for single-frame transcode and matrix suggestion."
+        case .deliveryOnly:
+            return "Batch DPX to ProRes assembly for end-of-day delivery."
+        }
+    }
+
+    private var headerStatusChips: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            if let activeTool {
+                StatusChip(label: activeTool.rawValue, tone: .warning)
+            }
+            StatusChip(label: lastToolStatus.label, tone: lastToolStatus.tone)
+            StatusChip(label: "Last Run \(lastToolCompletedLabel)", tone: .neutral)
         }
     }
 
@@ -883,6 +960,19 @@ struct ToolsView: View {
         toolTimeline.insert(item, at: 0)
         if toolTimeline.count > 80 {
             toolTimeline = Array(toolTimeline.prefix(80))
+        }
+    }
+
+    private func initializeModeDefaultsIfNeeded() {
+        guard showsDelivery else {
+            return
+        }
+        let resolved = Self.resolvedDpxInputDir(
+            currentInputDir: dpxInputDir,
+            configOutputDir: state.config.watch.outputDir
+        )
+        if resolved != dpxInputDir, !resolved.isEmpty {
+            dpxInputDir = resolved
         }
     }
 

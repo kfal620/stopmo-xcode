@@ -24,8 +24,8 @@ struct StopmoXcodeGUIApp: App {
 
                 Divider()
 
-                Button("Refresh Current Section") {
-                    Task { await refreshCurrentSection() }
+                Button("Refresh Current Panel") {
+                    Task { await state.refreshCurrentSelection() }
                 }
                 .keyboardShortcut("r", modifiers: [.command, .option])
 
@@ -41,40 +41,58 @@ struct StopmoXcodeGUIApp: App {
             }
 
             CommandMenu("Navigate") {
-                Button("Setup") { state.selectedSection = .setup }
+                Button("Configure") { state.selectedHub = .configure }
                     .keyboardShortcut("1", modifiers: [.command])
-                Button("Project") { state.selectedSection = .project }
+                Button("Capture") { state.selectedHub = .capture }
                     .keyboardShortcut("2", modifiers: [.command])
-                Button("Live Monitor") { state.selectedSection = .liveMonitor }
+                Button("Triage") { state.selectedHub = .triage }
                     .keyboardShortcut("3", modifiers: [.command])
-                Button("Shots") { state.selectedSection = .shots }
+                Button("Deliver") { state.selectedHub = .deliver }
                     .keyboardShortcut("4", modifiers: [.command])
-                Button("Queue") { state.selectedSection = .queue }
-                    .keyboardShortcut("5", modifiers: [.command])
-                Button("Tools") { state.selectedSection = .tools }
-                    .keyboardShortcut("6", modifiers: [.command])
-                Button("Logs & Diagnostics") { state.selectedSection = .logs }
-                    .keyboardShortcut("7", modifiers: [.command])
-                Button("History") { state.selectedSection = .history }
-                    .keyboardShortcut("8", modifiers: [.command])
-            }
-        }
-    }
 
-    private func refreshCurrentSection() async {
-        switch state.selectedSection {
-        case .setup:
-            await state.refreshHealth()
-        case .project:
-            await state.loadConfig()
-        case .liveMonitor, .queue, .shots:
-            await state.refreshLiveData()
-        case .tools:
-            await state.refreshLiveData()
-        case .logs:
-            await state.refreshLogsDiagnostics()
-        case .history:
-            await state.refreshHistory()
+                Divider()
+
+                Menu("Configure Panels") {
+                    Button("Workspace & Health") {
+                        state.selectedHub = .configure
+                        state.selectedConfigurePanel = .workspaceHealth
+                    }
+                    Button("Project Settings") {
+                        state.selectedHub = .configure
+                        state.selectedConfigurePanel = .projectSettings
+                    }
+                    Button("Calibration") {
+                        state.selectedHub = .configure
+                        state.selectedConfigurePanel = .calibration
+                    }
+                }
+
+                Menu("Triage Panels") {
+                    Button("Shots") {
+                        state.selectedHub = .triage
+                        state.selectedTriagePanel = .shots
+                    }
+                    Button("Queue") {
+                        state.selectedHub = .triage
+                        state.selectedTriagePanel = .queue
+                    }
+                    Button("Diagnostics") {
+                        state.selectedHub = .triage
+                        state.selectedTriagePanel = .diagnostics
+                    }
+                }
+
+                Menu("Deliver Panels") {
+                    Button("Day Wrap") {
+                        state.selectedHub = .deliver
+                        state.selectedDeliverPanel = .dayWrap
+                    }
+                    Button("Run History") {
+                        state.selectedHub = .deliver
+                        state.selectedDeliverPanel = .runHistory
+                    }
+                }
+            }
         }
     }
 }

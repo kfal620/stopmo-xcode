@@ -43,6 +43,7 @@ private enum ProjectEditorSection: String, CaseIterable, Identifiable {
 
 struct ProjectView: View {
     @EnvironmentObject private var state: AppState
+    var embedded: Bool = false
 
     @StateObject private var editor = ProjectEditorViewModel()
     @State private var selectedEditorSection: ProjectEditorSection = .watch
@@ -57,32 +58,15 @@ struct ProjectView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-                ScreenHeader(
-                    title: "Project",
-                    subtitle: "Watch, pipeline, output, logging, and reusable presets."
-                ) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        StatusChip(
-                            label: hasUnsavedChanges ? "Unsaved Changes" : "Saved",
-                            tone: hasUnsavedChanges ? .warning : .success
-                        )
-
-                        Button("Reload") {
-                            Task { await reloadFromDisk() }
-                        }
-                        .disabled(state.isBusy)
-
-                        Button("Save") {
-                            Task { await saveToDisk() }
-                        }
-                        .keyboardShortcut("s", modifiers: [.command])
-                        .disabled(state.isBusy || !hasUnsavedChanges)
-
-                        Button("Discard") {
-                            discardLocalChanges()
-                        }
-                        .disabled(state.isBusy || !hasUnsavedChanges)
+                if !embedded {
+                    ScreenHeader(
+                        title: "Project",
+                        subtitle: "Watch, pipeline, output, logging, and reusable presets."
+                    ) {
+                        headerActions
                     }
+                } else {
+                    headerActions
                 }
 
                 if hasUnsavedChanges {
@@ -105,7 +89,7 @@ struct ProjectView: View {
 
                 sectionWorkspace
             }
-            .padding(StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
         }
         .onAppear {
             loadPresets()
@@ -120,6 +104,31 @@ struct ProjectView: View {
             if status == "Loaded config" || status == "Saved config" {
                 editor.acceptLoadedConfig(state.config)
             }
+        }
+    }
+
+    private var headerActions: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            StatusChip(
+                label: hasUnsavedChanges ? "Unsaved Changes" : "Saved",
+                tone: hasUnsavedChanges ? .warning : .success
+            )
+
+            Button("Reload") {
+                Task { await reloadFromDisk() }
+            }
+            .disabled(state.isBusy)
+
+            Button("Save") {
+                Task { await saveToDisk() }
+            }
+            .keyboardShortcut("s", modifiers: [.command])
+            .disabled(state.isBusy || !hasUnsavedChanges)
+
+            Button("Discard") {
+                discardLocalChanges()
+            }
+            .disabled(state.isBusy || !hasUnsavedChanges)
         }
     }
 

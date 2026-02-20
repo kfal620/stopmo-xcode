@@ -25,6 +25,7 @@ private enum ShotsFocusField: Hashable {
 
 struct ShotsView: View {
     @EnvironmentObject private var state: AppState
+    var embedded: Bool = false
 
     @State private var searchText: String = ""
     @State private var selectedFilter: ShotStateFilter = .all
@@ -37,25 +38,15 @@ struct ShotsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-                ScreenHeader(
-                    title: "Shots",
-                    subtitle: "Shot-level progress, assembly triage, and output navigation."
-                ) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        if let count = state.shotsSnapshot?.count {
-                            StatusChip(label: "Shots \(count)", tone: .neutral)
-                        }
-                        if issuesCount > 0 {
-                            StatusChip(label: "Issues \(issuesCount)", tone: .danger)
-                        }
-                        if processingCount > 0 {
-                            StatusChip(label: "Processing \(processingCount)", tone: .warning)
-                        }
-                        Button("Refresh") {
-                            Task { await state.refreshLiveData() }
-                        }
-                        .disabled(state.isBusy)
+                if !embedded {
+                    ScreenHeader(
+                        title: "Shots",
+                        subtitle: "Shot-level progress, assembly triage, and output navigation."
+                    ) {
+                        headerActions
                     }
+                } else {
+                    headerActions
                 }
 
                 controlsCard
@@ -63,7 +54,7 @@ struct ShotsView: View {
                 selectedShotDetailCard
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
@@ -85,6 +76,24 @@ struct ShotsView: View {
         .onChange(of: pageSize) { _, _ in
             clampPageIndex()
             syncSelectedShot()
+        }
+    }
+
+    private var headerActions: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            if let count = state.shotsSnapshot?.count {
+                StatusChip(label: "Shots \(count)", tone: .neutral)
+            }
+            if issuesCount > 0 {
+                StatusChip(label: "Issues \(issuesCount)", tone: .danger)
+            }
+            if processingCount > 0 {
+                StatusChip(label: "Processing \(processingCount)", tone: .warning)
+            }
+            Button("Refresh") {
+                Task { await state.refreshLiveData() }
+            }
+            .disabled(state.isBusy)
         }
     }
 

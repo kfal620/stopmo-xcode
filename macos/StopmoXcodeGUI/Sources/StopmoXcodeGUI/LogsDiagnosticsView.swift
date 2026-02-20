@@ -29,6 +29,7 @@ private struct DiagnosticHint {
 
 struct LogsDiagnosticsView: View {
     @EnvironmentObject private var state: AppState
+    var embedded: Bool = false
 
     @State private var refreshSeverityCSV: String = ""
     @State private var logSeverityFilter: LogSeverityFilter = .all
@@ -45,22 +46,15 @@ struct LogsDiagnosticsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-                ScreenHeader(
-                    title: "Logs & Diagnostics",
-                    subtitle: "Structured log analysis, issue remediation guidance, and diagnostics export."
-                ) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        if let count = state.logsDiagnostics?.entries.count {
-                            StatusChip(label: "Logs \(count)", tone: .neutral)
-                        }
-                        if let warnings = state.logsDiagnostics?.warnings.count, warnings > 0 {
-                            StatusChip(label: "Issues \(warnings)", tone: .warning)
-                        }
-                        Button("Refresh") {
-                            Task { await refreshLogsFromToolbar() }
-                        }
-                        .disabled(state.isBusy)
+                if !embedded {
+                    ScreenHeader(
+                        title: "Logs & Diagnostics",
+                        subtitle: "Structured log analysis, issue remediation guidance, and diagnostics export."
+                    ) {
+                        headerActions
                     }
+                } else {
+                    headerActions
                 }
 
                 controlsCard
@@ -74,7 +68,7 @@ struct LogsDiagnosticsView: View {
                     EmptyStateCard(message: "No diagnostics loaded yet.")
                 }
             }
-            .padding(StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
         }
         .onAppear {
             if state.logsDiagnostics == nil {
@@ -107,6 +101,21 @@ struct LogsDiagnosticsView: View {
         }
         .onChange(of: logsPageSize) { _, _ in
             logsPageIndex = 0
+        }
+    }
+
+    private var headerActions: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            if let count = state.logsDiagnostics?.entries.count {
+                StatusChip(label: "Logs \(count)", tone: .neutral)
+            }
+            if let warnings = state.logsDiagnostics?.warnings.count, warnings > 0 {
+                StatusChip(label: "Issues \(warnings)", tone: .warning)
+            }
+            Button("Refresh") {
+                Task { await refreshLogsFromToolbar() }
+            }
+            .disabled(state.isBusy)
         }
     }
 
@@ -496,7 +505,7 @@ struct LogsDiagnosticsView: View {
         case "dependency_error":
             return DiagnosticHint(
                 likelyCause: "Required runtime dependency is missing in the active Python environment.",
-                suggestedAction: "Run Setup health checks, install missing packages/binaries, and retry."
+                suggestedAction: "Run Configure > Workspace & Health checks, install missing packages/binaries, and retry."
             )
         case "decode_failure":
             return DiagnosticHint(

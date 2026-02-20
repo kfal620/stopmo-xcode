@@ -37,7 +37,10 @@ struct NotificationRecord: Identifiable, Sendable {
 
 @MainActor
 final class AppState: ObservableObject {
-    @Published var selectedSection: AppSection = .setup
+    @Published var selectedHub: LifecycleHub = .configure
+    @Published var selectedConfigurePanel: ConfigurePanel = .workspaceHealth
+    @Published var selectedTriagePanel: TriagePanel = .shots
+    @Published var selectedDeliverPanel: DeliverPanel = .dayWrap
     @Published var repoRoot: String {
         didSet {
             UserDefaults.standard.set(repoRoot, forKey: Self.repoRootDefaultsKey)
@@ -119,6 +122,23 @@ final class AppState: ObservableObject {
         return "Degraded"
     }
 
+    var currentPanelLabel: String {
+        switch selectedHub {
+        case .configure:
+            return selectedConfigurePanel.rawValue
+        case .capture:
+            return "Live Capture"
+        case .triage:
+            return selectedTriagePanel.rawValue
+        case .deliver:
+            return selectedDeliverPanel.rawValue
+        }
+    }
+
+    var hubPanelContextLabel: String {
+        "\(selectedHub.rawValue) / \(currentPanelLabel)"
+    }
+
     func restartMonitoringLoop() {
         stopMonitoringLoop()
         startMonitoringLoop(force: true)
@@ -182,7 +202,7 @@ final class AppState: ObservableObject {
                     title: "Watch Start Blocked",
                     message: "Watch start was blocked by preflight checks.",
                     likelyCause: "Preflight blockers are still present in the current config/runtime.",
-                    suggestedAction: "Run Watch Preflight in Setup and resolve all blockers, then start watch again."
+                    suggestedAction: "Run Watch Preflight in Configure > Workspace & Health, resolve blockers, then start watch again."
                 )
                 self.statusMessage = "Watch start blocked"
             } else if let launchError = watchState.launchError, !launchError.isEmpty {
@@ -200,7 +220,7 @@ final class AppState: ObservableObject {
             }
             self.watchPreflight = watchState.preflight
         }
-        if shouldResumeMonitoring, shouldMonitorSection(selectedSection) {
+        if shouldResumeMonitoring, shouldMonitorCurrentSelection() {
             startMonitoringLoop(force: true)
         }
     }
@@ -220,7 +240,7 @@ final class AppState: ObservableObject {
             self.recordLiveEvent("Watch service stopped")
             self.statusMessage = "Watch service stopped"
         }
-        if shouldResumeMonitoring, shouldMonitorSection(selectedSection) {
+        if shouldResumeMonitoring, shouldMonitorCurrentSelection() {
             startMonitoringLoop(force: true)
         }
     }
@@ -250,7 +270,7 @@ final class AppState: ObservableObject {
                     title: "Watch Restart Blocked",
                     message: "Watch restart was blocked by preflight checks.",
                     likelyCause: "Preflight blockers are still present in the current config/runtime.",
-                    suggestedAction: "Run Watch Preflight in Setup, resolve blockers, then retry restart."
+                    suggestedAction: "Run Watch Preflight in Configure > Workspace & Health, resolve blockers, then retry restart."
                 )
                 self.statusMessage = "Watch restart blocked"
             } else if let launchError = watchState.launchError, !launchError.isEmpty {
@@ -268,7 +288,7 @@ final class AppState: ObservableObject {
             }
             self.watchPreflight = watchState.preflight
         }
-        if shouldResumeMonitoring, shouldMonitorSection(selectedSection) {
+        if shouldResumeMonitoring, shouldMonitorCurrentSelection() {
             startMonitoringLoop(force: true)
         }
     }
@@ -281,8 +301,65 @@ final class AppState: ObservableObject {
         )
     }
 
-    func setMonitoringEnabled(for section: AppSection) {
-        if shouldMonitorSection(section) {
+    enum RefreshKind: Equatable {
+        case health
+        case config
+        case live
+        case logs
+        case history
+        case dayWrap
+    }
+
+    func refreshKindForCurrentSelection() -> RefreshKind {
+        switch selectedHub {
+        case .configure:
+            switch selectedConfigurePanel {
+            case .workspaceHealth:
+                return .health
+            case .projectSettings:
+                return .config
+            case .calibration:
+                return .config
+            }
+        case .capture:
+            return .live
+        case .triage:
+            switch selectedTriagePanel {
+            case .shots, .queue:
+                return .live
+            case .diagnostics:
+                return .logs
+            }
+        case .deliver:
+            switch selectedDeliverPanel {
+            case .dayWrap:
+                return .dayWrap
+            case .runHistory:
+                return .history
+            }
+        }
+    }
+
+    func refreshCurrentSelection() async {
+        switch refreshKindForCurrentSelection() {
+        case .health:
+            await refreshHealth()
+        case .config:
+            await loadConfig()
+        case .live:
+            await refreshLiveData()
+        case .logs:
+            await refreshLogsDiagnostics()
+        case .history:
+            await refreshHistory()
+        case .dayWrap:
+            await loadConfig()
+            await refreshLiveData(silent: true)
+        }
+    }
+
+    func updateMonitoringForSelection() {
+        if shouldMonitorCurrentSelection() {
             startMonitoringLoop()
         } else {
             stopMonitoringLoop()
@@ -307,7 +384,7 @@ final class AppState: ObservableObject {
 
         let repoRoot = self.repoRoot
         let configPath = self.configPath
-        let limits = snapshotFetchLimits(for: selectedSection)
+        let limits = snapshotFetchLimitsForCurrentSelection()
 
         liveRefreshInFlight = true
         if source == .monitor {
@@ -377,15 +454,20 @@ final class AppState: ObservableObject {
         let shotsLimit: Int
     }
 
-    private func snapshotFetchLimits(for section: AppSection) -> LiveSnapshotFetchLimits {
-        switch section {
-        case .queue:
-            return LiveSnapshotFetchLimits(queueLimit: 350, logTailLines: 40, includeShots: false, shotsLimit: 0)
-        case .shots:
-            return LiveSnapshotFetchLimits(queueLimit: 260, logTailLines: 30, includeShots: true, shotsLimit: 500)
-        case .liveMonitor:
+    private func snapshotFetchLimitsForCurrentSelection() -> LiveSnapshotFetchLimits {
+        switch selectedHub {
+        case .capture:
             return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 60, includeShots: false, shotsLimit: 0)
-        default:
+        case .triage:
+            switch selectedTriagePanel {
+            case .queue:
+                return LiveSnapshotFetchLimits(queueLimit: 350, logTailLines: 40, includeShots: false, shotsLimit: 0)
+            case .shots:
+                return LiveSnapshotFetchLimits(queueLimit: 260, logTailLines: 30, includeShots: true, shotsLimit: 500)
+            case .diagnostics:
+                return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 40, includeShots: false, shotsLimit: 0)
+            }
+        case .configure, .deliver:
             return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 40, includeShots: false, shotsLimit: 0)
         }
     }
@@ -596,9 +678,15 @@ final class AppState: ObservableObject {
         case monitor
     }
 
-    private func shouldMonitorSection(_ section: AppSection) -> Bool {
-        let liveSections: Set<AppSection> = [.liveMonitor, .queue, .shots]
-        return liveSections.contains(section)
+    func shouldMonitorCurrentSelection() -> Bool {
+        switch selectedHub {
+        case .capture:
+            return true
+        case .triage:
+            return selectedTriagePanel == .shots || selectedTriagePanel == .queue
+        case .configure, .deliver:
+            return false
+        }
     }
 
     private func startMonitoringLoop(force: Bool = false) {
@@ -1249,13 +1337,13 @@ final class AppState: ObservableObject {
         if lower.contains("invalid repo root") || lower.contains("bridge script not found") {
             return (
                 likelyCause: "Repo root does not point to the stopmo-xcode project root.",
-                suggestedAction: "In Setup, choose a repo root containing `pyproject.toml` and `src/stopmo_xcode`."
+                suggestedAction: "In Configure > Workspace & Health, choose a repo root containing `pyproject.toml` and `src/stopmo_xcode`."
             )
         }
         if lower.contains("permission") || lower.contains("not allowed") || lower.contains("operation not permitted") {
             return (
                 likelyCause: "macOS file/system permission access was denied.",
-                suggestedAction: "Re-select workspace access in Setup and allow the requested permission prompts."
+                suggestedAction: "Re-select workspace access in Configure > Workspace & Health and allow permission prompts."
             )
         }
         if lower.contains("ffmpeg") {

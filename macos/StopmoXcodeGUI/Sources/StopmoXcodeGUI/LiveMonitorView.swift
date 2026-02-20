@@ -11,6 +11,7 @@ private enum ActivityFilter: String, CaseIterable, Identifiable {
 
 struct LiveMonitorView: View {
     @EnvironmentObject private var state: AppState
+    var embedded: Bool = false
 
     @State private var activityFilter: ActivityFilter = .all
     @State private var pauseActivityUpdates: Bool = false
@@ -20,10 +21,12 @@ struct LiveMonitorView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-                ScreenHeader(
-                    title: "Live Monitor",
-                    subtitle: "Watch controls, queue telemetry, throughput, and live activity."
-                )
+                if !embedded {
+                    ScreenHeader(
+                        title: "Live Monitor",
+                        subtitle: "Watch controls, queue telemetry, throughput, and live activity."
+                    )
+                }
 
                 watchControlsCard
                 if shouldShowRecoveryCard {
@@ -39,7 +42,7 @@ struct LiveMonitorView: View {
 
                 activityCard
             }
-            .padding(StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
         }
         .onChange(of: pauseActivityUpdates) { _, paused in
             if paused {
@@ -147,7 +150,7 @@ struct LiveMonitorView: View {
                 Button("Restart Monitoring") {
                     state.restartMonitoringLoop()
                 }
-                .disabled(!state.monitoringEnabled && state.selectedSection != .liveMonitor)
+                .disabled(!state.monitoringEnabled && state.selectedHub != .capture)
 
                 Button("Restart Watch") {
                     Task { await state.restartWatchService() }

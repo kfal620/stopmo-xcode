@@ -38,7 +38,7 @@ struct RootCommandBarView: View {
 
                 CommandIconButton(
                     systemImage: "arrow.clockwise",
-                    tooltip: "Refresh current section",
+                    tooltip: "Refresh current panel",
                     accessibilityLabel: "Refresh",
                     isDisabled: state.isBusy
                 ) {
@@ -68,8 +68,13 @@ struct RootCommandBarView: View {
                 value: configName,
                 tooltip: "Config Path"
             )
+            CommandContextChip(
+                icon: "map",
+                value: state.hubPanelContextLabel,
+                tooltip: "Current Hub / Panel"
+            )
         }
-        .frame(maxWidth: 430, alignment: .leading)
+        .frame(maxWidth: 640, alignment: .leading)
     }
 
     private var repoRootName: String {

@@ -2,14 +2,17 @@ import SwiftUI
 
 struct SetupView: View {
     @EnvironmentObject private var state: AppState
+    var embedded: Bool = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-                ScreenHeader(
-                    title: "Setup",
-                    subtitle: "Workspace permissions, runtime readiness, and config bootstrapping."
-                )
+                if !embedded {
+                    ScreenHeader(
+                        title: "Setup",
+                        subtitle: "Workspace permissions, runtime readiness, and config bootstrapping."
+                    )
+                }
 
                 pathsCard
                 permissionsCard
@@ -18,7 +21,7 @@ struct SetupView: View {
                 configValidationCard
                 watchSafetyCard
             }
-            .padding(StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
         }
     }
 

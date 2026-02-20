@@ -66,26 +66,22 @@ STOPMO_XCODE_ROOT=/Users/kyle/Documents/Coding/stopmo-xcode swift run StopmoXcod
   - `.venv/bin/python -m stopmo_xcode.gui_bridge ...`
 - It expects the repo root to contain `.venv` and `pyproject.toml`.
 - Current phase includes:
-  - Sidebar navigation shell
-  - Setup view (runtime/dependency checks)
-  - Project view (full config edit and save)
-  - Live Monitor view (watch start/stop, queue progress, activity/log tail)
-  - Queue view (recent job table)
-  - Shots view (per-shot progress and assembly state summary)
-  - Tools view:
-    - Transcode One workflow
-    - Suggest Matrix workflow (with apply-to-project helper)
-    - DPX to ProRes batch workflow (with completion summary)
-  - Logs & Diagnostics view:
-    - Structured log viewer with severity filtering
-    - Warning surfacing (clipping, non-finite, WB drift, dependency/decode failures)
-    - Diagnostics bundle export
-  - History view:
-    - Past run summary (start/end, counts, failures, output/repro metadata)
+  - Lifecycle hubs:
+    - Configure
+      - Workspace & Health (runtime/dependency checks, validation, preflight)
+      - Project Settings (full config edit/save)
+      - Calibration (Transcode One + Suggest Matrix)
+    - Capture
+      - Live Capture (watch start/stop, queue progress, activity/log tail)
+    - Triage
+      - Shots + Queue + Diagnostics
+    - Deliver
+      - Day Wrap (DPX to ProRes batch-first)
+      - Run History (run summary and compare)
   - Resilience hardening:
-    - Config validation panel in Setup
+    - Config validation panel in Configure
     - Watch preflight/blocker checks before start
-    - Crash-recovery status surfaced in Live Monitor
+    - Crash-recovery status surfaced in Capture
 
 ## Packaging / Signing / Notarization
 

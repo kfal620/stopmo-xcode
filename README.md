@@ -115,20 +115,31 @@ The command prints a YAML snippet you can paste into `config/sample.yaml` and
 writes a JSON report with source/provenance, assumptions, notes, and warnings.
 An example report schema is provided at `config/sample.matrix.json`.
 
-## macOS GUI Shell (Phase 4)
+## macOS GUI Shell (Phase 12)
 
 A SwiftUI shell has been added under:
 
 - `macos/StopmoXcodeGUI`
 
-It currently includes:
+It currently uses a lifecycle navigation model:
 
-- App sidebar/navigation shell
-- Setup view with runtime dependency checks
-- Project view with full config editing and save/load via Python bridge
-- Live Monitor with watch service start/stop and queue progress
-- Queue browser for recent jobs
-- Shots summary view with per-shot progress/state
+- `Configure`
+  - Workspace & Health
+  - Project Settings
+  - Calibration (Transcode One + Suggest Matrix)
+- `Capture`
+  - Live Capture monitor (watch controls, telemetry, activity)
+- `Triage`
+  - Shots, Queue, Diagnostics
+- `Deliver`
+  - Day Wrap (DPX to ProRes batch-first)
+  - Run History
+
+Notes:
+
+- `Write ProRes On Shot Complete` remains in Configure > Project Settings > Output.
+- Deliver Day Wrap defaults DPX input to configured `watch.output_dir` when empty.
+- All previous backend bridge capabilities remain available; the change is IA/UX.
 
 Run from repo root:
 

@@ -26,6 +26,7 @@ private enum QueueFocusField: Hashable {
 
 struct QueueView: View {
     @EnvironmentObject private var state: AppState
+    var embedded: Bool = false
 
     @State private var searchText: String = ""
     @State private var selectedFilter: QueueStateFilter = .all
@@ -40,25 +41,15 @@ struct QueueView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-                ScreenHeader(
-                    title: "Queue",
-                    subtitle: "Triage jobs, retry failures, and export queue state for diagnostics."
-                ) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        if let total = state.queueSnapshot?.total {
-                            StatusChip(label: "Jobs \(total)", tone: .neutral)
-                        }
-                        if failedCount > 0 {
-                            StatusChip(label: "Failed \(failedCount)", tone: .danger)
-                        }
-                        if inflightCount > 0 {
-                            StatusChip(label: "Inflight \(inflightCount)", tone: .warning)
-                        }
-                        Button("Refresh") {
-                            Task { await state.refreshLiveData() }
-                        }
-                        .disabled(state.isBusy)
+                if !embedded {
+                    ScreenHeader(
+                        title: "Queue",
+                        subtitle: "Triage jobs, retry failures, and export queue state for diagnostics."
+                    ) {
+                        headerActions
                     }
+                } else {
+                    headerActions
                 }
 
                 controlsCard
@@ -66,7 +57,7 @@ struct QueueView: View {
                 selectedJobDetailCard
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
@@ -90,6 +81,24 @@ struct QueueView: View {
         .onChange(of: pageSize) { _, _ in
             clampPageIndex()
             syncFocusedJob()
+        }
+    }
+
+    private var headerActions: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            if let total = state.queueSnapshot?.total {
+                StatusChip(label: "Jobs \(total)", tone: .neutral)
+            }
+            if failedCount > 0 {
+                StatusChip(label: "Failed \(failedCount)", tone: .danger)
+            }
+            if inflightCount > 0 {
+                StatusChip(label: "Inflight \(inflightCount)", tone: .warning)
+            }
+            Button("Refresh") {
+                Task { await state.refreshLiveData() }
+            }
+            .disabled(state.isBusy)
         }
     }
 

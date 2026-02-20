@@ -23,6 +23,7 @@ private struct CompareRowModel: Identifiable {
 
 struct HistoryView: View {
     @EnvironmentObject private var state: AppState
+    var embedded: Bool = false
 
     @State private var searchText: String = ""
     @State private var sortOption: HistorySortOption = .startNewest
@@ -36,30 +37,22 @@ struct HistoryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-                ScreenHeader(
-                    title: "History",
-                    subtitle: "Run summaries and reproducibility compare mode."
-                ) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        if let count = state.historySummary?.count {
-                            StatusChip(label: "Runs \(count)", tone: .neutral)
-                        }
-                        StatusChip(
-                            label: "Selected \(selectedRunIds.count)/2",
-                            tone: selectedRunIds.count == 2 ? .success : .warning
-                        )
-                        Button("Refresh") {
-                            Task { await state.refreshHistory() }
-                        }
-                        .disabled(state.isBusy)
+                if !embedded {
+                    ScreenHeader(
+                        title: "History",
+                        subtitle: "Run summaries and reproducibility compare mode."
+                    ) {
+                        headerActions
                     }
+                } else {
+                    headerActions
                 }
 
                 controlsCard
                 compareCard
                 historyCardsSection
             }
-            .padding(StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
         }
         .onAppear {
             if state.historySummary == nil {
@@ -76,6 +69,22 @@ struct HistoryView: View {
         }
         .onChange(of: pageSize) { _, _ in
             clampPageIndex()
+        }
+    }
+
+    private var headerActions: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            if let count = state.historySummary?.count {
+                StatusChip(label: "Runs \(count)", tone: .neutral)
+            }
+            StatusChip(
+                label: "Selected \(selectedRunIds.count)/2",
+                tone: selectedRunIds.count == 2 ? .success : .warning
+            )
+            Button("Refresh") {
+                Task { await state.refreshHistory() }
+            }
+            .disabled(state.isBusy)
         }
     }
 
