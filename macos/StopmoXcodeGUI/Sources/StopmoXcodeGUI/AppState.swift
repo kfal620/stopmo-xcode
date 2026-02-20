@@ -445,6 +445,90 @@ final class AppState: ObservableObject {
         statusMessage = "Config path updated"
     }
 
+    var sampleConfigPath: String {
+        "\(repoRoot)/config/sample.yaml"
+    }
+
+    func useSampleConfig() {
+        let sample = sampleConfigPath
+        guard FileManager.default.fileExists(atPath: sample) else {
+            presentError(
+                title: "Sample Config Missing",
+                message: "Could not find sample config at \(sample)"
+            )
+            return
+        }
+        configPath = sample
+        statusMessage = "Using sample config path"
+    }
+
+    func createConfigFromSample() {
+        let sample = sampleConfigPath
+        let destination = configPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !destination.isEmpty else {
+            presentError(title: "Create Config Failed", message: "Config path is empty.")
+            return
+        }
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: sample) else {
+            presentError(
+                title: "Sample Config Missing",
+                message: "Could not find sample config at \(sample)"
+            )
+            return
+        }
+        if fm.fileExists(atPath: destination) {
+            presentInfo(
+                title: "Config Already Exists",
+                message: destination,
+                likelyCause: "A config file is already present at the selected config path.",
+                suggestedAction: "Use Load Config to read the file or choose another config path."
+            )
+            return
+        }
+        do {
+            let parent = (destination as NSString).deletingLastPathComponent
+            if !parent.isEmpty, !fm.fileExists(atPath: parent) {
+                try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
+            }
+            try fm.copyItem(atPath: sample, toPath: destination)
+            presentInfo(
+                title: "Config Created",
+                message: destination,
+                likelyCause: nil,
+                suggestedAction: "Load the config, edit project values, then save."
+            )
+            statusMessage = "Config created from sample"
+        } catch {
+            presentError(title: "Create Config Failed", message: error.localizedDescription)
+        }
+    }
+
+    func openConfigInFinder() {
+        let fm = FileManager.default
+        let configURL = URL(fileURLWithPath: configPath)
+        if fm.fileExists(atPath: configURL.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([configURL])
+            statusMessage = "Opened config in Finder"
+            return
+        }
+        let parent = configURL.deletingLastPathComponent()
+        if fm.fileExists(atPath: parent.path) {
+            NSWorkspace.shared.open(parent)
+            presentWarning(
+                title: "Config File Missing",
+                message: "Opened config directory because the target file was not found.",
+                likelyCause: "The configured config path does not exist yet.",
+                suggestedAction: "Create a config from sample or choose an existing config file."
+            )
+            return
+        }
+        presentError(
+            title: "Open in Finder Failed",
+            message: "Config path not found: \(configPath)"
+        )
+    }
+
     private func restoreWorkspaceAccess() {
         guard let data = UserDefaults.standard.data(forKey: Self.workspaceBookmarkDefaultsKey) else {
             workspaceAccessActive = false

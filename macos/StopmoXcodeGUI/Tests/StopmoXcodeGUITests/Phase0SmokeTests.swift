@@ -67,6 +67,9 @@ final class Phase0SmokeTests: XCTestCase {
         let _: () -> Void = state.chooseWorkspaceDirectory
         let _: () -> Void = state.chooseRepoRootDirectory
         let _: () -> Void = state.chooseConfigFile
+        let _: () -> Void = state.useSampleConfig
+        let _: () -> Void = state.createConfigFromSample
+        let _: () -> Void = state.openConfigInFinder
     }
 
     func testCriticalBridgeActionsRemainCallable() {
