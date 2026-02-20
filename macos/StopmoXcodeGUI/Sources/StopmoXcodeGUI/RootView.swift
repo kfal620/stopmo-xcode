@@ -46,24 +46,27 @@ struct RootView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let toast = state.activeToast {
+                HStack {
+                    Spacer(minLength: 0)
+                    NotificationToastView(notification: toast) {
+                        state.dismissToast()
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
+                .transition(
+                    reduceMotion
+                        ? .opacity
+                        : .move(edge: .bottom).combined(with: .opacity)
+                )
+            }
+        }
         .overlay(alignment: .bottomLeading) {
             statusBar
                 .padding(.leading, 12)
                 .padding(.bottom, 12)
-        }
-        .overlay(alignment: .topTrailing) {
-            if let toast = state.activeToast {
-                NotificationToastView(notification: toast) {
-                    state.dismissToast()
-                }
-                .padding(.trailing, 14)
-                .padding(.top, 14)
-                .transition(
-                    reduceMotion
-                        ? .opacity
-                        : .move(edge: .top).combined(with: .opacity)
-                )
-            }
         }
         .animation(
             reduceMotion ? nil : .easeInOut(duration: 0.2),
@@ -148,14 +151,15 @@ struct RootView: View {
                 }
             }
             .padding(4)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .stroke(Color.primary.opacity(0.09), lineWidth: 0.75)
             )
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.top, 4)
+        .padding(.bottom, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.bar)
         .zIndex(20)
@@ -171,26 +175,17 @@ struct RootView: View {
 
     private var projectContextChip: some View {
         HStack(spacing: StopmoUI.Spacing.xs) {
-            Image(systemName: "folder")
-                .foregroundStyle(.secondary)
-            Text(repoRootName)
-                .lineLimit(1)
-                .truncationMode(.middle)
-            Divider()
-                .frame(height: 12)
-            Image(systemName: "doc.text")
-                .foregroundStyle(.secondary)
-            Text(configName)
-                .lineLimit(1)
-                .truncationMode(.middle)
+            ToolbarContextChip(
+                icon: "folder",
+                value: repoRootName,
+                tooltip: "Repo Root"
+            )
+            ToolbarContextChip(
+                icon: "doc.text",
+                value: configName,
+                tooltip: "Config Path"
+            )
         }
-        .font(.caption)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                .fill(Color.secondary.opacity(0.16))
-        )
         .frame(maxWidth: 430, alignment: .leading)
     }
 
@@ -204,7 +199,9 @@ struct RootView: View {
 
             Spacer(minLength: 0)
 
-            if let badge = sidebarBadge(for: section) {
+            if section == .liveMonitor {
+                LiveMonitorStatusChip(isRunning: state.watchServiceState?.running == true)
+            } else if let badge = sidebarBadge(for: section) {
                 StatusChip(label: badge.label, tone: badge.tone)
             }
         }
@@ -213,11 +210,6 @@ struct RootView: View {
 
     private func sidebarBadge(for section: AppSection) -> SidebarBadge? {
         switch section {
-        case .liveMonitor:
-            if state.watchServiceState?.running == true {
-                return SidebarBadge(label: "RUN", tone: .success)
-            }
-            return nil
         case .queue:
             let failed = state.queueSnapshot?.counts["failed"] ?? 0
             if failed > 0 {
@@ -301,6 +293,115 @@ private struct SidebarBadge {
     let tone: StatusTone
 }
 
+private struct LiveMonitorStatusChip: View {
+    let isRunning: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isPulsing: Bool = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(dotColor)
+                .frame(width: 7, height: 7)
+                .scaleEffect(isRunning && isPulsing ? 1.15 : 1.0)
+                .opacity(isRunning && isPulsing ? 0.75 : 1.0)
+            Text(isRunning ? "Live" : "Idle")
+                .font(.caption2.weight(.semibold))
+        }
+        .foregroundStyle(isRunning ? Color.green : .secondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(isRunning ? Color.green.opacity(0.18) : Color.secondary.opacity(0.14))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke((isRunning ? Color.green : Color.secondary).opacity(0.25), lineWidth: 0.75)
+        )
+        .onAppear {
+            setPulseAnimation()
+        }
+        .onChange(of: isRunning) { _, _ in
+            setPulseAnimation()
+        }
+        .help(isRunning ? "Watcher is running" : "Watcher is stopped")
+        .accessibilityLabel(Text(isRunning ? "Watcher live" : "Watcher idle"))
+    }
+
+    private var dotColor: Color {
+        isRunning ? .green : .secondary
+    }
+
+    private func setPulseAnimation() {
+        guard isRunning, !reduceMotion else {
+            isPulsing = false
+            return
+        }
+        withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+            isPulsing = true
+        }
+    }
+}
+
+private struct ToolbarContextChip: View {
+    let icon: String
+    let value: String
+    let tooltip: String
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered: Bool = false
+
+    var body: some View {
+        HStack(spacing: StopmoUI.Spacing.xs) {
+            Image(systemName: icon)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .font(.caption)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .fill(isHovered ? Color.secondary.opacity(0.22) : Color.secondary.opacity(0.16))
+        )
+        .overlay(alignment: .top) {
+            if isHovered {
+                Text(tooltip)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(.regularMaterial)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Color.primary.opacity(0.12), lineWidth: 0.75)
+                    )
+                    .fixedSize(horizontal: true, vertical: true)
+                    .shadow(color: Color.black.opacity(0.16), radius: 6, x: 0, y: 2)
+                    .offset(y: -28)
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.98)))
+                    .allowsHitTesting(false)
+            }
+        }
+        .onHover { hovering in
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) {
+                isHovered = hovering
+            }
+        }
+        .zIndex(isHovered ? 80 : 0)
+        .help(tooltip)
+        .accessibilityLabel(Text(value))
+        .accessibilityHint(Text(tooltip))
+    }
+}
+
 private struct ToolbarIconButton: View {
     let systemImage: String
     let tooltip: String
@@ -317,19 +418,19 @@ private struct ToolbarIconButton: View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(iconColor)
                     .frame(
-                        width: 28,
-                        height: 28
+                        width: 31,
+                        height: 31
                     )
                     .contentShape(Rectangle())
                     .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
                             .fill(hoverBackground)
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
                             .stroke(hoverBorder, lineWidth: 0.75)
                     )
                 if let badgeText {
@@ -342,7 +443,7 @@ private struct ToolbarIconButton: View {
                             Capsule(style: .continuous)
                                 .fill(badgeTone == .danger ? Color.red : Color.orange)
                         )
-                        .offset(x: 9, y: -8)
+                        .offset(x: 10, y: -9)
                 }
             }
         }
@@ -402,36 +503,69 @@ private struct NotificationToastView: View {
     let dismiss: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: StopmoUI.Spacing.sm) {
-            StatusChip(label: notification.kind.rawValue.uppercased(), tone: tone(notification.kind))
-            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
-                Text(notification.title)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: symbolName(notification.kind))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(emphasisColor(notification.kind))
+                .frame(width: 16, height: 16)
+                .padding(4)
+                .background(
+                    Circle()
+                        .fill(emphasisColor(notification.kind).opacity(0.18))
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(notification.kind.rawValue.uppercased())
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(emphasisColor(notification.kind))
+                    Text(notification.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.96))
+                        .lineLimit(1)
+                }
                 Text(notification.message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.78))
                     .lineLimit(2)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             Button(action: dismiss) {
-                Image(systemName: "xmark")
-                    .font(.caption2)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 13, weight: .semibold))
                     .frame(
-                        width: StopmoUI.Width.iconTapTarget,
-                        height: StopmoUI.Width.iconTapTarget
+                        width: 22,
+                        height: 22
                     )
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(.white.opacity(0.5))
             .accessibilityLabel(Text("Dismiss notification toast"))
             .accessibilityHint(Text("Closes this temporary notification."))
         }
-        .padding(StopmoUI.Spacing.sm)
-        .frame(width: 420, alignment: .leading)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous))
-        .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 3)
+        .padding(.leading, 9)
+        .padding(.trailing, 8)
+        .padding(.vertical, 7)
+        .frame(minWidth: 280, idealWidth: 360, maxWidth: 420, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(Color.black.opacity(0.72))
+        )
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(emphasisColor(notification.kind))
+                .frame(width: 3)
+                .padding(.vertical, 8)
+                .padding(.leading, 6)
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .stroke(emphasisColor(notification.kind).opacity(0.45), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.28), radius: 12, x: 0, y: 5)
     }
 
     private func tone(_ kind: NotificationKind) -> StatusTone {
@@ -442,6 +576,28 @@ private struct NotificationToastView: View {
             return .warning
         case .error:
             return .danger
+        }
+    }
+
+    private func symbolName(_ kind: NotificationKind) -> String {
+        switch kind {
+        case .info:
+            return "info.circle.fill"
+        case .warning:
+            return "exclamationmark.triangle.fill"
+        case .error:
+            return "exclamationmark.octagon.fill"
+        }
+    }
+
+    private func emphasisColor(_ kind: NotificationKind) -> Color {
+        switch kind {
+        case .info:
+            return Color.blue
+        case .warning:
+            return Color.orange
+        case .error:
+            return Color.red
         }
     }
 }

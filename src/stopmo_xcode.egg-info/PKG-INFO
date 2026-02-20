@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: stopmo-xcode
-Version: 0.1.0
+Version: 0.2.0
 Summary: Deterministic stop-motion RAW to LogC3/AWG transcoder
 Author: stopmo-xcode
 License: MIT

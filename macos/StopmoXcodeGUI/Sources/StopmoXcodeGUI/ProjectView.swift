@@ -9,6 +9,36 @@ private enum ProjectEditorSection: String, CaseIterable, Identifiable {
     case presets = "Presets"
 
     var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .watch:
+            return "dot.radiowaves.left.and.right"
+        case .pipeline:
+            return "camera.filters"
+        case .output:
+            return "square.and.arrow.down"
+        case .logging:
+            return "doc.text.magnifyingglass"
+        case .presets:
+            return "square.stack.3d.up"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .watch:
+            return "Source/work/output paths and watch behavior."
+        case .pipeline:
+            return "Color transforms, exposure policy, and OCIO settings."
+        case .output:
+            return "Frame outputs, truth frame behavior, and review defaults."
+        case .logging:
+            return "Log level and destination file settings."
+        case .presets:
+            return "Save and load named config presets locally."
+        }
+    }
 }
 
 struct ProjectView: View {
@@ -74,16 +104,7 @@ struct ProjectView: View {
                     }
                 }
 
-                Picker("Project Section", selection: $selectedEditorSection) {
-                    ForEach(ProjectEditorSection.allCases) { section in
-                        Text(section.rawValue).tag(section)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                validationStrip
-
-                selectedSectionContent
+                sectionWorkspace
             }
             .padding(StopmoUI.Spacing.lg)
         }
@@ -103,40 +124,72 @@ struct ProjectView: View {
         }
     }
 
+    @ViewBuilder
     private var selectedSectionContent: some View {
-        Group {
-            switch selectedEditorSection {
-            case .watch:
-                watchSection
-            case .pipeline:
-                pipelineSection
-            case .output:
-                outputSection
-            case .logging:
-                loggingSection
-            case .presets:
-                presetsSection
-            }
+        switch selectedEditorSection {
+        case .watch:
+            watchSection
+        case .pipeline:
+            pipelineSection
+        case .output:
+            outputSection
+        case .logging:
+            loggingSection
+        case .presets:
+            presetsSection
         }
     }
 
-    private var validationStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                ForEach(ProjectEditorSection.allCases) { section in
-                    let status = validationStatus(for: section)
-                    StatusChip(
-                        label: "\(section.rawValue): \(status.label)",
-                        tone: status.tone
-                    )
+    private var sectionWorkspace: some View {
+        SectionCard(selectedSectionTitle, subtitle: selectedEditorSection.subtitle) {
+            sectionNavigator
+            Divider()
+            selectedSectionContent
+        }
+    }
+
+    private var sectionNavigator: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+            Text("Select the section to edit")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: StopmoUI.Spacing.xs) {
+                    ForEach(ProjectEditorSection.allCases) { section in
+                        let isSelected = section == selectedEditorSection
+                        Button {
+                            selectedEditorSection = section
+                        } label: {
+                            Label(section.rawValue, systemImage: section.iconName)
+                                .font(.subheadline.weight(.semibold))
+                                .lineLimit(1)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .foregroundStyle(isSelected ? Color.white : Color.primary)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(isSelected ? Color.accentColor : Color.secondary.opacity(0.12))
+                                )
+                                .overlay(
+                                    Capsule(style: .continuous)
+                                        .stroke(
+                                            isSelected ? Color.accentColor.opacity(0.9) : Color.primary.opacity(0.08),
+                                            lineWidth: isSelected ? 0 : 0.75
+                                        )
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(section.rawValue))
+                        .accessibilityAddTraits(isSelected ? .isSelected : [])
+                    }
                 }
             }
         }
     }
 
     private var watchSection: some View {
-        let status = validationStatus(for: .watch)
-        return SectionCard("Watch Configuration", subtitle: "Source/work/output paths and watch behavior. \(status.label)") {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             fieldRow("Source Directory") {
                 textField("Source directory", text: $state.config.watch.sourceDir)
             }
@@ -180,8 +233,7 @@ struct ProjectView: View {
     }
 
     private var pipelineSection: some View {
-        let status = validationStatus(for: .pipeline)
-        return SectionCard("Pipeline Configuration", subtitle: "Color transforms, exposure policy, and OCIO settings. \(status.label)") {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
                 HStack {
                     Text("Camera To Reference Matrix")
@@ -283,8 +335,7 @@ struct ProjectView: View {
     }
 
     private var outputSection: some View {
-        let status = validationStatus(for: .output)
-        return SectionCard("Output Configuration", subtitle: "Frame outputs, truth frame behavior, and review defaults. \(status.label)") {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             toggleRow("Emit Per Frame JSON", isOn: $state.config.output.emitPerFrameJson)
             toggleRow("Emit Truth Frame Pack", isOn: $state.config.output.emitTruthFramePack)
             fieldRow("Truth Frame Index") {
@@ -308,8 +359,7 @@ struct ProjectView: View {
     }
 
     private var loggingSection: some View {
-        let status = validationStatus(for: .logging)
-        return SectionCard("Logging Configuration", subtitle: status.label) {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             fieldRow("Log Level") {
                 textField("Log level", text: $state.config.logLevel)
             }
@@ -326,7 +376,7 @@ struct ProjectView: View {
     }
 
     private var presetsSection: some View {
-        SectionCard("Project Presets", subtitle: "Save and load named config presets locally.") {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             fieldRow("Preset Name") {
                 textField("Preset name", text: $presetNameInput)
             }
@@ -358,6 +408,21 @@ struct ProjectView: View {
                     KeyValueRow(key: "Preset Framerate", value: "\(selected.output.framerate)")
                 }
             }
+        }
+    }
+
+    private var selectedSectionTitle: String {
+        switch selectedEditorSection {
+        case .watch:
+            return "Watch Configuration"
+        case .pipeline:
+            return "Pipeline Configuration"
+        case .output:
+            return "Output Configuration"
+        case .logging:
+            return "Logging Configuration"
+        case .presets:
+            return "Project Presets"
         }
     }
 
@@ -505,66 +570,6 @@ struct ProjectView: View {
         } catch {
             state.presentError(title: "Preset Save Failed", message: error.localizedDescription)
         }
-    }
-
-    private func validationStatus(for section: ProjectEditorSection) -> (label: String, tone: StatusTone) {
-        if section == .presets {
-            return ("N/A", .neutral)
-        }
-        guard state.configValidation != nil else {
-            return ("Not Run", .neutral)
-        }
-        let counts = validationCounts(for: section)
-        if counts.errors > 0 {
-            let suffix = counts.errors == 1 ? "" : "s"
-            return ("\(counts.errors) error\(suffix)", .danger)
-        }
-        if counts.warnings > 0 {
-            let suffix = counts.warnings == 1 ? "" : "s"
-            return ("\(counts.warnings) warning\(suffix)", .warning)
-        }
-        return ("OK", .success)
-    }
-
-    private func validationCounts(for section: ProjectEditorSection) -> (errors: Int, warnings: Int) {
-        guard let validation = state.configValidation else {
-            return (0, 0)
-        }
-        let errors = validation.errors.filter { validationSection(forField: $0.field) == section }.count
-        let warnings = validation.warnings.filter { validationSection(forField: $0.field) == section }.count
-        return (errors, warnings)
-    }
-
-    private func validationSection(forField field: String) -> ProjectEditorSection? {
-        let normalized = field.lowercased()
-        if normalized.hasPrefix("watch") || normalized.contains("watch.") {
-            return .watch
-        }
-        if normalized.hasPrefix("pipeline")
-            || normalized.contains("pipeline.")
-            || normalized.contains("ocio")
-            || normalized.contains("matrix")
-            || normalized.contains("exposure")
-            || normalized.contains("wb")
-            || normalized.contains("lut")
-        {
-            return .pipeline
-        }
-        if normalized.hasPrefix("output")
-            || normalized.contains("output.")
-            || normalized.contains("truth")
-            || normalized.contains("framerate")
-            || normalized.contains("prores")
-        {
-            return .output
-        }
-        if normalized.hasPrefix("log")
-            || normalized.contains("log_")
-            || normalized.contains("logging")
-        {
-            return .logging
-        }
-        return nil
     }
 
     private func resetMatrixIdentity() {

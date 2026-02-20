@@ -27,7 +27,7 @@ Signed package:
 
 ```bash
 SIGN_IDENTITY="Developer ID Application: YOUR NAME (TEAMID)" \
-VERSION="0.1.0" \
+VERSION="0.2.0" \
 BUILD_NUMBER="1" \
 scripts/package_release.sh
 ```
@@ -53,7 +53,7 @@ Submit and staple:
 ```bash
 NOTARY_PROFILE="stopmo-notary" \
 scripts/notarize_release.sh \
-  dist/StopmoXcodeGUI-0.1.0.zip \
+  dist/StopmoXcodeGUI-0.2.0.zip \
   dist/StopmoXcodeGUI.app
 ```
 

@@ -6,7 +6,7 @@ GUI_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 APP_NAME="${APP_NAME:-StopmoXcodeGUI}"
 BUNDLE_ID="${BUNDLE_ID:-com.stopmo.xcode.gui}"
-VERSION="${VERSION:-0.1.0}"
+VERSION="${VERSION:-0.2.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 DIST_DIR="${DIST_DIR:-${GUI_ROOT}/dist}"
 SIGN_IDENTITY="${SIGN_IDENTITY:-}"
