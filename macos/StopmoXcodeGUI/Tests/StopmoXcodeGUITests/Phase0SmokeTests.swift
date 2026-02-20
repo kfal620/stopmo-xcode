@@ -58,6 +58,7 @@ final class Phase0SmokeTests: XCTestCase {
         let _: () async -> Void = state.saveConfig
         let _: () async -> Void = state.startWatchService
         let _: () async -> Void = state.stopWatchService
+        let _: () async -> Void = state.restartWatchService
         let _: (Bool) async -> Void = state.refreshLiveData
         let _: (String?) async -> Void = state.refreshLogsDiagnostics
         let _: () async -> Void = state.validateConfig
@@ -74,6 +75,7 @@ final class Phase0SmokeTests: XCTestCase {
         let _: () -> Void = state.openConfigInFinder
         let _: (String) -> Void = state.openPathInFinder
         let _: (String, String) -> Void = state.copyTextToPasteboard
+        let _: () -> Void = state.restartMonitoringLoop
     }
 
     func testCriticalBridgeActionsRemainCallable() {

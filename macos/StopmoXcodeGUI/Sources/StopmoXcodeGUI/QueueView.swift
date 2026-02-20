@@ -20,6 +20,10 @@ private enum QueueSortOption: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+private enum QueueFocusField: Hashable {
+    case search
+}
+
 struct QueueView: View {
     @EnvironmentObject private var state: AppState
 
@@ -29,6 +33,9 @@ struct QueueView: View {
     @State private var selectedJobIDs: Set<Int> = []
     @State private var showOnlySelected: Bool = false
     @State private var focusedJobID: Int?
+    @State private var pageSize: Int = 75
+    @State private var pageIndex: Int = 0
+    @FocusState private var focusedField: QueueFocusField?
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
@@ -65,13 +72,20 @@ struct QueueView: View {
             } else {
                 syncFocusedJob()
             }
+            focusedField = .search
         }
         .onChange(of: state.queueSnapshot?.total ?? -1) { _, _ in
             pruneSelection()
+            clampPageIndex()
             syncFocusedJob()
         }
         .onChange(of: filteredJobs.map(\.id)) { _, _ in
             pruneSelection()
+            clampPageIndex()
+            syncFocusedJob()
+        }
+        .onChange(of: pageSize) { _, _ in
+            clampPageIndex()
             syncFocusedJob()
         }
     }
@@ -82,6 +96,7 @@ struct QueueView: View {
                 TextField("Search id/shot/source/error", text: $searchText)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 280)
+                    .focused($focusedField, equals: .search)
 
                 Picker("State", selection: $selectedFilter) {
                     ForEach(QueueStateFilter.allCases) { filter in
@@ -129,6 +144,32 @@ struct QueueView: View {
                 StatusChip(label: "Visible \(filteredJobs.count)", tone: .neutral)
                 StatusChip(label: "Selected \(selectedJobIDs.count)", tone: selectedJobIDs.isEmpty ? .neutral : .warning)
             }
+
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                Picker("Page Size", selection: $pageSize) {
+                    Text("50").tag(50)
+                    Text("75").tag(75)
+                    Text("100").tag(100)
+                    Text("150").tag(150)
+                }
+                .pickerStyle(.menu)
+                .frame(width: 110)
+
+                Button("Previous") {
+                    pageIndex = max(0, pageIndex - 1)
+                }
+                .disabled(pageIndex == 0 || filteredJobs.isEmpty)
+
+                Button("Next") {
+                    pageIndex = min(pageCount - 1, pageIndex + 1)
+                }
+                .disabled(pageIndex >= pageCount - 1 || filteredJobs.isEmpty)
+
+                Spacer()
+
+                StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
+                StatusChip(label: pageRangeLabel, tone: .neutral)
+            }
         }
     }
 
@@ -145,7 +186,7 @@ struct QueueView: View {
                         LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                             headerRow
                             Divider()
-                            ForEach(filteredJobs) { job in
+                            ForEach(pagedJobs) { job in
                                 row(job)
                             }
                         }
@@ -177,12 +218,16 @@ struct QueueView: View {
 
     private func row(_ job: QueueJobRecord) -> some View {
         HStack(spacing: 10) {
-            Button {
+            IconActionButton(
+                systemName: selectedJobIDs.contains(job.id) ? "checkmark.square.fill" : "square",
+                accessibilityLabel: selectedJobIDs.contains(job.id)
+                    ? "Deselect queue job \(job.id)"
+                    : "Select queue job \(job.id)",
+                accessibilityHint: "Toggles this queue job in bulk selection."
+            ) {
                 toggleSelection(job.id)
-            } label: {
-                Image(systemName: selectedJobIDs.contains(job.id) ? "checkmark.square.fill" : "square")
             }
-            .buttonStyle(.plain)
+            .help("Toggle selection")
             .frame(width: 40, alignment: .leading)
 
             col("\(job.id)", width: 60)
@@ -212,39 +257,43 @@ struct QueueView: View {
 
     private func actionsCell(_ job: QueueJobRecord) -> some View {
         HStack(spacing: 8) {
-            Button {
+            IconActionButton(
+                systemName: "folder",
+                accessibilityLabel: "Open source path for queue job \(job.id)",
+                accessibilityHint: "Opens the source file in Finder."
+            ) {
                 state.openPathInFinder(job.source)
-            } label: {
-                Image(systemName: "folder")
             }
             .help("Open source in Finder")
-            .buttonStyle(.plain)
 
-            Button {
+            IconActionButton(
+                systemName: "link",
+                accessibilityLabel: "Copy source path for queue job \(job.id)",
+                accessibilityHint: "Copies the source path."
+            ) {
                 state.copyTextToPasteboard(job.source, label: "source path")
-            } label: {
-                Image(systemName: "link")
             }
             .help("Copy source path")
-            .buttonStyle(.plain)
 
-            Button {
+            IconActionButton(
+                systemName: "doc.on.doc",
+                accessibilityLabel: "Copy last error for queue job \(job.id)",
+                accessibilityHint: "Copies the most recent error text.",
+                isDisabled: (job.lastError ?? "").isEmpty
+            ) {
                 state.copyTextToPasteboard(job.lastError ?? "", label: "error")
-            } label: {
-                Image(systemName: "doc.on.doc")
             }
             .help("Copy last error")
-            .buttonStyle(.plain)
-            .disabled((job.lastError ?? "").isEmpty)
 
-            Button {
+            IconActionButton(
+                systemName: "arrow.counterclockwise",
+                accessibilityLabel: "Retry queue job \(job.id)",
+                accessibilityHint: "Retries this job if it is in failed state.",
+                isDisabled: job.state.lowercased() != "failed"
+            ) {
                 Task { await state.retryFailedQueueJobs(jobIds: [job.id]) }
-            } label: {
-                Image(systemName: "arrow.counterclockwise")
             }
             .help("Retry this failed job")
-            .buttonStyle(.plain)
-            .disabled(job.state.lowercased() != "failed")
         }
         .frame(width: 180, alignment: .leading)
     }
@@ -356,10 +405,10 @@ struct QueueView: View {
             focusedJobID = nil
             return
         }
-        if let focusedJobID, filteredJobs.contains(where: { $0.id == focusedJobID }) {
+        if let focusedJobID, pagedJobs.contains(where: { $0.id == focusedJobID }) {
             return
         }
-        focusedJobID = filteredJobs.first?.id
+        focusedJobID = pagedJobs.first?.id
     }
 
     private var selectedJob: QueueJobRecord? {
@@ -371,7 +420,7 @@ struct QueueView: View {
                 return row
             }
         }
-        return filteredJobs.first
+        return pagedJobs.first
     }
 
     private var failedCount: Int {
@@ -469,6 +518,37 @@ struct QueueView: View {
         }
 
         return rows
+    }
+
+    private var safePageIndex: Int {
+        guard !filteredJobs.isEmpty else { return 0 }
+        return min(max(0, pageIndex), pageCount - 1)
+    }
+
+    private var pageCount: Int {
+        guard !filteredJobs.isEmpty else { return 1 }
+        return max(1, (filteredJobs.count + pageSize - 1) / pageSize)
+    }
+
+    private var pagedJobs: [QueueJobRecord] {
+        guard !filteredJobs.isEmpty else { return [] }
+        let start = safePageIndex * pageSize
+        let end = min(filteredJobs.count, start + pageSize)
+        if start >= end {
+            return []
+        }
+        return Array(filteredJobs[start..<end])
+    }
+
+    private var pageRangeLabel: String {
+        guard !pagedJobs.isEmpty else { return "Rows 0-0" }
+        let start = safePageIndex * pageSize + 1
+        let end = start + pagedJobs.count - 1
+        return "Rows \(start)-\(end)"
+    }
+
+    private func clampPageIndex() {
+        pageIndex = safePageIndex
     }
 
     private func shotOutputPath(for job: QueueJobRecord) -> String {

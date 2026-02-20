@@ -19,6 +19,10 @@ private enum ShotSortOption: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+private enum ShotsFocusField: Hashable {
+    case search
+}
+
 struct ShotsView: View {
     @EnvironmentObject private var state: AppState
 
@@ -26,6 +30,9 @@ struct ShotsView: View {
     @State private var selectedFilter: ShotStateFilter = .all
     @State private var selectedSort: ShotSortOption = .updatedDesc
     @State private var selectedShotName: String?
+    @State private var pageSize: Int = 75
+    @State private var pageIndex: Int = 0
+    @FocusState private var focusedField: ShotsFocusField?
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
@@ -62,11 +69,18 @@ struct ShotsView: View {
             } else {
                 syncSelectedShot()
             }
+            focusedField = .search
         }
         .onChange(of: state.shotsSnapshot?.count ?? -1) { _, _ in
+            clampPageIndex()
             syncSelectedShot()
         }
         .onChange(of: filteredShots.map(\.shotName)) { _, _ in
+            clampPageIndex()
+            syncSelectedShot()
+        }
+        .onChange(of: pageSize) { _, _ in
+            clampPageIndex()
             syncSelectedShot()
         }
     }
@@ -77,6 +91,7 @@ struct ShotsView: View {
                 TextField("Search shot/output/review path", text: $searchText)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 290)
+                    .focused($focusedField, equals: .search)
 
                 Picker("State", selection: $selectedFilter) {
                     ForEach(ShotStateFilter.allCases) { filter in
@@ -98,6 +113,32 @@ struct ShotsView: View {
 
                 StatusChip(label: "Visible \(filteredShots.count)", tone: .neutral)
             }
+
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                Picker("Page Size", selection: $pageSize) {
+                    Text("50").tag(50)
+                    Text("75").tag(75)
+                    Text("100").tag(100)
+                    Text("150").tag(150)
+                }
+                .pickerStyle(.menu)
+                .frame(width: 110)
+
+                Button("Previous") {
+                    pageIndex = max(0, pageIndex - 1)
+                }
+                .disabled(pageIndex == 0 || filteredShots.isEmpty)
+
+                Button("Next") {
+                    pageIndex = min(pageCount - 1, pageIndex + 1)
+                }
+                .disabled(pageIndex >= pageCount - 1 || filteredShots.isEmpty)
+
+                Spacer()
+
+                StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
+                StatusChip(label: pageRangeLabel, tone: .neutral)
+            }
         }
     }
 
@@ -111,7 +152,7 @@ struct ShotsView: View {
                         LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                             headerRow
                             Divider()
-                            ForEach(filteredShots) { row in
+                            ForEach(pagedShots) { row in
                                 shotRow(row)
                             }
                         }
@@ -145,13 +186,17 @@ struct ShotsView: View {
 
     private func shotRow(_ shot: ShotSummaryRow) -> some View {
         HStack(spacing: 10) {
-            Button {
+            IconActionButton(
+                systemName: selectedShotName == shot.shotName ? "checkmark.circle.fill" : "circle",
+                accessibilityLabel: selectedShotName == shot.shotName
+                    ? "Deselect shot \(shot.shotName)"
+                    : "Select shot \(shot.shotName)",
+                accessibilityHint: "Selects this shot for detail inspection."
+            ) {
                 selectedShotName = shot.shotName
-            } label: {
-                Image(systemName: selectedShotName == shot.shotName ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(selectedShotName == shot.shotName ? Color.accentColor : .secondary)
             }
-            .buttonStyle(.plain)
+            .foregroundStyle(selectedShotName == shot.shotName ? Color.accentColor : .secondary)
+            .help("Select shot")
             .frame(width: 58, alignment: .leading)
 
             col(shot.shotName, width: 160)
@@ -183,20 +228,22 @@ struct ShotsView: View {
 
     private func actionsCell(for shot: ShotSummaryRow) -> some View {
         HStack(spacing: 8) {
-            Button {
+            IconActionButton(
+                systemName: "folder",
+                accessibilityLabel: "Open shot folder for \(shot.shotName)",
+                accessibilityHint: "Opens the shot folder in Finder."
+            ) {
                 state.openPathInFinder(shotRootPath(for: shot))
-            } label: {
-                Image(systemName: "folder")
             }
-            .buttonStyle(.plain)
             .help("Open shot folder in Finder")
 
-            Button {
+            IconActionButton(
+                systemName: "doc.on.doc",
+                accessibilityLabel: "Copy shot name \(shot.shotName)",
+                accessibilityHint: "Copies the selected shot name."
+            ) {
                 state.copyTextToPasteboard(shot.shotName, label: "shot name")
-            } label: {
-                Image(systemName: "doc.on.doc")
             }
-            .buttonStyle(.plain)
             .help("Copy shot name")
         }
         .frame(width: 110, alignment: .leading)
@@ -369,14 +416,14 @@ struct ShotsView: View {
 
     private var selectedShot: ShotSummaryRow? {
         if let selectedShotName {
-            if let matched = filteredShots.first(where: { $0.shotName == selectedShotName }) {
+            if let matched = pagedShots.first(where: { $0.shotName == selectedShotName }) {
                 return matched
             }
             if let matched = state.shotsSnapshot?.shots.first(where: { $0.shotName == selectedShotName }) {
                 return matched
             }
         }
-        return filteredShots.first
+        return pagedShots.first
     }
 
     private func syncSelectedShot() {
@@ -384,10 +431,10 @@ struct ShotsView: View {
             selectedShotName = nil
             return
         }
-        if let selectedShotName, filteredShots.contains(where: { $0.shotName == selectedShotName }) {
+        if let selectedShotName, pagedShots.contains(where: { $0.shotName == selectedShotName }) {
             return
         }
-        self.selectedShotName = filteredShots.first?.shotName
+        self.selectedShotName = pagedShots.first?.shotName
     }
 
     private var issuesCount: Int {
@@ -460,6 +507,37 @@ struct ShotsView: View {
         }
 
         return rows
+    }
+
+    private var safePageIndex: Int {
+        guard !filteredShots.isEmpty else { return 0 }
+        return min(max(0, pageIndex), pageCount - 1)
+    }
+
+    private var pageCount: Int {
+        guard !filteredShots.isEmpty else { return 1 }
+        return max(1, (filteredShots.count + pageSize - 1) / pageSize)
+    }
+
+    private var pagedShots: [ShotSummaryRow] {
+        guard !filteredShots.isEmpty else { return [] }
+        let start = safePageIndex * pageSize
+        let end = min(filteredShots.count, start + pageSize)
+        if start >= end {
+            return []
+        }
+        return Array(filteredShots[start..<end])
+    }
+
+    private var pageRangeLabel: String {
+        guard !pagedShots.isEmpty else { return "Rows 0-0" }
+        let start = safePageIndex * pageSize + 1
+        let end = start + pagedShots.count - 1
+        return "Rows \(start)-\(end)"
+    }
+
+    private func clampPageIndex() {
+        pageIndex = safePageIndex
     }
 
     private func isIssuesShot(_ shot: ShotSummaryRow) -> Bool {

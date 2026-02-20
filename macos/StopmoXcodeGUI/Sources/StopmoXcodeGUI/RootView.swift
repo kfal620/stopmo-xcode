@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var state: AppState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isNotificationsCenterPresented: Bool = false
 
     var body: some View {
@@ -26,9 +27,13 @@ struct RootView: View {
         }
         .onAppear {
             state.setMonitoringEnabled(for: state.selectedSection)
+            state.reduceMotionEnabled = reduceMotion
         }
         .onChange(of: state.selectedSection) { _, next in
             state.setMonitoringEnabled(for: next)
+        }
+        .onChange(of: reduceMotion) { _, next in
+            state.reduceMotionEnabled = next
         }
         .alert(item: $state.presentedError) { presented in
             Alert(
@@ -49,10 +54,17 @@ struct RootView: View {
                 }
                 .padding(.trailing, 14)
                 .padding(.top, 14)
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .transition(
+                    reduceMotion
+                        ? .opacity
+                        : .move(edge: .top).combined(with: .opacity)
+                )
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: state.activeToast?.id)
+        .animation(
+            reduceMotion ? nil : .easeInOut(duration: 0.2),
+            value: state.activeToast?.id
+        )
     }
 
     @ViewBuilder
@@ -292,9 +304,16 @@ private struct NotificationToastView: View {
             Button(action: dismiss) {
                 Image(systemName: "xmark")
                     .font(.caption2)
+                    .frame(
+                        width: StopmoUI.Width.iconTapTarget,
+                        height: StopmoUI.Width.iconTapTarget
+                    )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
+            .accessibilityLabel(Text("Dismiss notification toast"))
+            .accessibilityHint(Text("Closes this temporary notification."))
         }
         .padding(StopmoUI.Spacing.sm)
         .frame(width: 420, alignment: .leading)

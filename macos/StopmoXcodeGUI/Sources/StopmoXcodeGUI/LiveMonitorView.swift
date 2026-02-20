@@ -26,6 +26,9 @@ struct LiveMonitorView: View {
                 )
 
                 watchControlsCard
+                if shouldShowRecoveryCard {
+                    monitoringRecoveryCard
+                }
                 liveKpiCard
                 queueTrendCard
                 watchServiceCard
@@ -71,6 +74,16 @@ struct LiveMonitorView: View {
                     label: (state.watchServiceState?.running ?? false) ? "Running" : "Stopped",
                     tone: (state.watchServiceState?.running ?? false) ? .success : .warning
                 )
+                StatusChip(
+                    label: "Polling \(state.monitoringStatusLabel)",
+                    tone: monitoringTone
+                )
+                if state.monitoringBackoffActive {
+                    StatusChip(
+                        label: String(format: "Backoff %.1fs", state.monitoringPollIntervalSeconds),
+                        tone: .warning
+                    )
+                }
 
                 if let watch = state.watchServiceState {
                     if watch.startBlocked == true {
@@ -93,6 +106,58 @@ struct LiveMonitorView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
+            }
+        }
+    }
+
+    private var monitoringRecoveryCard: some View {
+        SectionCard("Recovery", subtitle: "Bridge/watch failure handling with safe restart controls.") {
+            if let message = state.monitoringLastFailureMessage, !message.isEmpty {
+                Text(message)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+            } else if let launchError = state.watchServiceState?.launchError, !launchError.isEmpty {
+                Text(launchError)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+            }
+
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                StatusChip(label: "Failures \(state.monitoringConsecutiveFailures)", tone: state.monitoringBackoffActive ? .danger : .success)
+                if let nextPoll = state.monitoringNextPollAt {
+                    TimelineView(.periodic(from: Date(), by: 1)) { context in
+                        StatusChip(label: nextPollLabel(at: context.date, nextPollAt: nextPoll), tone: .warning)
+                    }
+                }
+                if let lastSuccess = state.monitoringLastSuccessAt {
+                    TimelineView(.periodic(from: Date(), by: 1)) { context in
+                        StatusChip(label: "Last success \(relativeTimeLabel(from: lastSuccess, now: context.date))", tone: .neutral)
+                    }
+                }
+            }
+
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                Button("Retry Now") {
+                    Task { await state.refreshLiveData() }
+                }
+                .disabled(state.isBusy)
+
+                Button("Restart Monitoring") {
+                    state.restartMonitoringLoop()
+                }
+                .disabled(!state.monitoringEnabled && state.selectedSection != .liveMonitor)
+
+                Button("Restart Watch") {
+                    Task { await state.restartWatchService() }
+                }
+                .disabled(state.isBusy)
+
+                Button("Check Runtime Health") {
+                    Task { await state.refreshHealth() }
+                }
+                .disabled(state.isBusy)
             }
         }
     }
@@ -316,13 +381,38 @@ struct LiveMonitorView: View {
         guard let last = state.lastFrameAt else {
             return "--"
         }
-        let delta = max(0, Int(now.timeIntervalSince(last)))
+        return relativeTimeLabel(from: last, now: now)
+    }
+
+    private func nextPollLabel(at now: Date, nextPollAt: Date) -> String {
+        let delta = max(0, Int(nextPollAt.timeIntervalSince(now)))
+        return "Next poll \(delta)s"
+    }
+
+    private func relativeTimeLabel(from start: Date, now: Date) -> String {
+        let delta = max(0, Int(now.timeIntervalSince(start)))
         if delta < 60 {
             return "\(delta)s ago"
         }
         let mins = delta / 60
         let secs = delta % 60
         return "\(mins)m \(secs)s ago"
+    }
+
+    private var monitoringTone: StatusTone {
+        if state.monitoringConsecutiveFailures >= 3 {
+            return .danger
+        }
+        if state.monitoringConsecutiveFailures > 0 {
+            return .warning
+        }
+        return state.monitoringEnabled ? .success : .neutral
+    }
+
+    private var shouldShowRecoveryCard: Bool {
+        state.monitoringConsecutiveFailures > 0
+            || ((state.watchServiceState?.launchError?.isEmpty == false))
+            || (state.watchServiceState?.startBlocked == true)
     }
 }
 

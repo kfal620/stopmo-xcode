@@ -65,9 +65,21 @@ final class AppState: ObservableObject {
     @Published var activeToast: NotificationRecord?
     @Published var isBusy: Bool = false
     @Published var workspaceAccessActive: Bool = false
+    @Published var reduceMotionEnabled: Bool = false
+    @Published var monitoringEnabled: Bool = false
+    @Published var monitoringPollInFlight: Bool = false
+    @Published var monitoringConsecutiveFailures: Int = 0
+    @Published var monitoringPollIntervalSeconds: Double = 1.0
+    @Published var monitoringNextPollAt: Date?
+    @Published var monitoringLastSuccessAt: Date?
+    @Published var monitoringLastFailureAt: Date?
+    @Published var monitoringLastFailureMessage: String?
 
     private var monitorTask: Task<Void, Never>?
     private var toastDismissTask: Task<Void, Never>?
+    private var monitorSessionToken = UUID()
+    private var liveRefreshInFlight: Bool = false
+    private var hasEmittedMonitoringFailureWarning: Bool = false
     private var lastQueueCounts: [String: Int] = [:]
     private var lastWatchRunning: Bool?
     private var lastDoneFrameCountSample: Int?
@@ -90,6 +102,25 @@ final class AppState: ObservableObject {
         if let url = securityScopedWorkspaceURL {
             url.stopAccessingSecurityScopedResource()
         }
+    }
+
+    var monitoringBackoffActive: Bool {
+        monitoringConsecutiveFailures > 0
+    }
+
+    var monitoringStatusLabel: String {
+        if monitoringConsecutiveFailures == 0 {
+            return monitoringEnabled ? "Healthy" : "Idle"
+        }
+        if monitoringConsecutiveFailures >= 3 {
+            return "Recovery Needed"
+        }
+        return "Degraded"
+    }
+
+    func restartMonitoringLoop() {
+        stopMonitoringLoop()
+        startMonitoringLoop(force: true)
     }
 
     func refreshHealth() async {
@@ -133,6 +164,10 @@ final class AppState: ObservableObject {
     }
 
     func startWatchService() async {
+        let shouldResumeMonitoring = monitorTask != nil
+        if shouldResumeMonitoring {
+            stopMonitoringLoop()
+        }
         await runBlockingTask(label: "Starting watch service") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
@@ -164,9 +199,16 @@ final class AppState: ObservableObject {
             }
             self.watchPreflight = watchState.preflight
         }
+        if shouldResumeMonitoring, shouldMonitorSection(selectedSection) {
+            startMonitoringLoop(force: true)
+        }
     }
 
     func stopWatchService() async {
+        let shouldResumeMonitoring = monitorTask != nil
+        if shouldResumeMonitoring {
+            stopMonitoringLoop()
+        }
         await runBlockingTask(label: "Stopping watch service") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
@@ -177,48 +219,221 @@ final class AppState: ObservableObject {
             self.recordLiveEvent("Watch service stopped")
             self.statusMessage = "Watch service stopped"
         }
+        if shouldResumeMonitoring, shouldMonitorSection(selectedSection) {
+            startMonitoringLoop(force: true)
+        }
+    }
+
+    func restartWatchService() async {
+        let shouldResumeMonitoring = monitorTask != nil
+        if shouldResumeMonitoring {
+            stopMonitoringLoop()
+        }
+        await runBlockingTask(label: "Restarting watch service") {
+            let repoRoot = self.repoRoot
+            let configPath = self.configPath
+            let client = BridgeClient()
+
+            _ = try await Task.detached(priority: .userInitiated) {
+                try client.watchStop(repoRoot: repoRoot, configPath: configPath)
+            }.value
+
+            let watchState = try await Task.detached(priority: .userInitiated) {
+                try client.watchStart(repoRoot: repoRoot, configPath: configPath)
+            }.value
+
+            self.applyLiveSnapshots(watchState: watchState, shots: self.shotsSnapshot)
+            if watchState.startBlocked == true {
+                self.recordLiveEvent("Watch restart blocked by preflight")
+                self.presentWarning(
+                    title: "Watch Restart Blocked",
+                    message: "Watch restart was blocked by preflight checks.",
+                    likelyCause: "Preflight blockers are still present in the current config/runtime.",
+                    suggestedAction: "Run Watch Preflight in Setup, resolve blockers, then retry restart."
+                )
+                self.statusMessage = "Watch restart blocked"
+            } else if let launchError = watchState.launchError, !launchError.isEmpty {
+                self.recordLiveEvent("Watch restart failed: \(launchError)")
+                self.presentWarning(
+                    title: "Watch Restart Failed",
+                    message: launchError,
+                    likelyCause: "Watch process did not relaunch successfully.",
+                    suggestedAction: "Run Runtime Health checks and review watch log tail, then retry."
+                )
+                self.statusMessage = "Watch restart failed"
+            } else {
+                self.recordLiveEvent("Watch service restarted")
+                self.statusMessage = "Watch service running"
+            }
+            self.watchPreflight = watchState.preflight
+        }
+        if shouldResumeMonitoring, shouldMonitorSection(selectedSection) {
+            startMonitoringLoop(force: true)
+        }
     }
 
     func refreshLiveData(silent: Bool = false) async {
+        _ = await refreshLiveDataInternal(
+            silent: silent,
+            source: .manual,
+            expectedSessionToken: monitorSessionToken
+        )
+    }
+
+    func setMonitoringEnabled(for section: AppSection) {
+        if shouldMonitorSection(section) {
+            startMonitoringLoop()
+        } else {
+            stopMonitoringLoop()
+        }
+    }
+
+    @discardableResult
+    private func refreshLiveDataInternal(
+        silent: Bool,
+        source: LiveRefreshSource,
+        expectedSessionToken: UUID
+    ) async -> Bool {
+        if source == .monitor, expectedSessionToken != monitorSessionToken {
+            return false
+        }
+        if liveRefreshInFlight {
+            if !silent {
+                statusMessage = "Live refresh already in progress"
+            }
+            return true
+        }
+
         let repoRoot = self.repoRoot
         let configPath = self.configPath
+        let limits = snapshotFetchLimits(for: selectedSection)
 
+        liveRefreshInFlight = true
+        if source == .monitor {
+            monitoringPollInFlight = true
+            monitoringEnabled = true
+        }
         if !silent {
             isBusy = true
             clearError()
             statusMessage = "Refreshing live status"
         }
+        defer {
+            liveRefreshInFlight = false
+            if source == .monitor {
+                monitoringPollInFlight = false
+            }
+            if !silent {
+                isBusy = false
+            }
+        }
+
         do {
             let snapshot = try await Task.detached(priority: .utility) {
                 let client = BridgeClient()
-                let watchState = try client.watchState(repoRoot: repoRoot, configPath: configPath, limit: 250, tailLines: 60)
-                let shots = try client.shotsSummary(repoRoot: repoRoot, configPath: configPath, limit: 500)
+                let watchState = try client.watchState(
+                    repoRoot: repoRoot,
+                    configPath: configPath,
+                    limit: limits.queueLimit,
+                    tailLines: limits.logTailLines
+                )
+                let shots: ShotsSummarySnapshot? = limits.includeShots
+                    ? try client.shotsSummary(repoRoot: repoRoot, configPath: configPath, limit: limits.shotsLimit)
+                    : nil
                 return (watchState, shots)
             }.value
+
+            if source == .monitor, expectedSessionToken != monitorSessionToken {
+                return false
+            }
+
             applyLiveSnapshots(watchState: snapshot.0, shots: snapshot.1)
             watchPreflight = snapshot.0.preflight ?? watchPreflight
+            registerMonitoringSuccess(with: snapshot.0)
             if !silent {
                 statusMessage = "Live status updated"
             }
         } catch {
+            if source == .monitor, expectedSessionToken != monitorSessionToken {
+                return false
+            }
+
+            registerMonitoringFailure(error.localizedDescription)
             if !silent {
                 presentError(title: "Live Refresh Failed", message: error.localizedDescription)
-            } else {
-                recordLiveEvent("Live poll error: \(error.localizedDescription)")
+            } else if monitoringConsecutiveFailures == 1 || monitoringConsecutiveFailures % 3 == 0 {
+                let delayText = String(format: "%.1f", monitoringPollIntervalSeconds)
+                recordLiveEvent("Live poll error: \(error.localizedDescription) (retry in \(delayText)s)")
             }
         }
-        if !silent {
-            isBusy = false
+        return true
+    }
+
+    private struct LiveSnapshotFetchLimits {
+        let queueLimit: Int
+        let logTailLines: Int
+        let includeShots: Bool
+        let shotsLimit: Int
+    }
+
+    private func snapshotFetchLimits(for section: AppSection) -> LiveSnapshotFetchLimits {
+        switch section {
+        case .queue:
+            return LiveSnapshotFetchLimits(queueLimit: 350, logTailLines: 40, includeShots: false, shotsLimit: 0)
+        case .shots:
+            return LiveSnapshotFetchLimits(queueLimit: 260, logTailLines: 30, includeShots: true, shotsLimit: 500)
+        case .liveMonitor:
+            return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 60, includeShots: false, shotsLimit: 0)
+        default:
+            return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 40, includeShots: false, shotsLimit: 0)
         }
     }
 
-    func setMonitoringEnabled(for section: AppSection) {
-        let liveSections: Set<AppSection> = [.liveMonitor, .queue, .shots]
-        if liveSections.contains(section) {
-            startMonitoringLoop()
-        } else {
-            stopMonitoringLoop()
+    private func registerMonitoringSuccess(with watchState: WatchServiceState) {
+        let hadFailures = monitoringConsecutiveFailures > 0
+        monitoringConsecutiveFailures = 0
+        monitoringLastFailureMessage = nil
+        monitoringLastSuccessAt = Date()
+        monitoringPollIntervalSeconds = preferredSuccessPollInterval(using: watchState)
+        monitoringNextPollAt = nil
+        if hadFailures {
+            recordLiveEvent("Live polling recovered")
         }
+        hasEmittedMonitoringFailureWarning = false
+    }
+
+    private func registerMonitoringFailure(_ message: String) {
+        monitoringConsecutiveFailures += 1
+        monitoringLastFailureAt = Date()
+        monitoringLastFailureMessage = message
+        monitoringPollIntervalSeconds = preferredFailurePollInterval(for: monitoringConsecutiveFailures)
+        monitoringNextPollAt = Date().addingTimeInterval(monitoringPollIntervalSeconds)
+        if monitoringConsecutiveFailures >= 3, !hasEmittedMonitoringFailureWarning {
+            presentWarning(
+                title: "Live Monitoring Degraded",
+                message: "Polling has failed \(monitoringConsecutiveFailures) times in a row.",
+                likelyCause: "Bridge/watch calls are failing or timing out.",
+                suggestedAction: "Use Retry/Restart actions in Live Monitor recovery controls."
+            )
+            hasEmittedMonitoringFailureWarning = true
+        }
+    }
+
+    private func preferredSuccessPollInterval(using watchState: WatchServiceState) -> Double {
+        let counts = watchState.queue.counts
+        let queueDepth = counts["detected", default: 0]
+            + counts["decoding", default: 0]
+            + counts["xform", default: 0]
+            + counts["dpx_write", default: 0]
+        if watchState.running || queueDepth > 0 || watchState.inflightFrames > 0 {
+            return 1.0
+        }
+        return 2.5
+    }
+
+    private func preferredFailurePollInterval(for failureCount: Int) -> Double {
+        let backoff = pow(2.0, Double(min(max(1, failureCount), 4)))
+        return min(12.0, max(1.0, backoff))
     }
 
     func refreshLogsDiagnostics(severity: String? = nil) async {
@@ -375,16 +590,63 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func startMonitoringLoop() {
-        if monitorTask != nil {
+    private enum LiveRefreshSource {
+        case manual
+        case monitor
+    }
+
+    private func shouldMonitorSection(_ section: AppSection) -> Bool {
+        let liveSections: Set<AppSection> = [.liveMonitor, .queue, .shots]
+        return liveSections.contains(section)
+    }
+
+    private func startMonitoringLoop(force: Bool = false) {
+        if monitorTask != nil, !force {
             return
         }
+        stopMonitoringLoop()
+        monitorSessionToken = UUID()
+        let sessionToken = monitorSessionToken
+        monitoringEnabled = true
+        monitoringPollIntervalSeconds = 1.0
+        monitoringConsecutiveFailures = 0
+        monitoringNextPollAt = nil
+        monitoringLastFailureMessage = nil
+        hasEmittedMonitoringFailureWarning = false
+
         monitorTask = Task { [weak self] in
             guard let self else { return }
-            await self.refreshLiveData(silent: true)
+            let firstPass = await self.refreshLiveDataInternal(
+                silent: true,
+                source: .monitor,
+                expectedSessionToken: sessionToken
+            )
+            if !firstPass {
+                return
+            }
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                await self.refreshLiveData(silent: true)
+                if sessionToken != self.monitorSessionToken {
+                    break
+                }
+                let interval = max(0.5, self.monitoringPollIntervalSeconds)
+                self.monitoringNextPollAt = Date().addingTimeInterval(interval)
+                let nanos = UInt64(interval * 1_000_000_000.0)
+                do {
+                    try await Task.sleep(nanoseconds: nanos)
+                } catch {
+                    break
+                }
+                if Task.isCancelled || sessionToken != self.monitorSessionToken {
+                    break
+                }
+                let shouldContinue = await self.refreshLiveDataInternal(
+                    silent: true,
+                    source: .monitor,
+                    expectedSessionToken: sessionToken
+                )
+                if !shouldContinue {
+                    break
+                }
             }
         }
         statusMessage = "Live monitoring enabled"
@@ -393,6 +655,10 @@ final class AppState: ObservableObject {
     private func stopMonitoringLoop() {
         monitorTask?.cancel()
         monitorTask = nil
+        monitorSessionToken = UUID()
+        monitoringEnabled = false
+        monitoringPollInFlight = false
+        monitoringNextPollAt = nil
     }
 
     private func applyLiveSnapshots(watchState: WatchServiceState, shots: ShotsSummarySnapshot?) {
@@ -896,8 +1162,12 @@ final class AppState: ObservableObject {
 
     private func showToastNotification(_ notification: NotificationRecord) {
         toastDismissTask?.cancel()
-        withAnimation(.easeOut(duration: 0.2)) {
+        if reduceMotionEnabled {
             activeToast = notification
+        } else {
+            withAnimation(.easeOut(duration: 0.2)) {
+                activeToast = notification
+            }
         }
         toastDismissTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 4_000_000_000)
@@ -906,8 +1176,12 @@ final class AppState: ObservableObject {
                 guard self.activeToast?.id == notification.id else {
                     return
                 }
-                withAnimation(.easeIn(duration: 0.2)) {
+                if self.reduceMotionEnabled {
                     self.activeToast = nil
+                } else {
+                    withAnimation(.easeIn(duration: 0.2)) {
+                        self.activeToast = nil
+                    }
                 }
                 self.toastDismissTask = nil
             }

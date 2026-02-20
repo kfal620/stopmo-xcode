@@ -18,6 +18,10 @@ private enum DiagnosticSeverityFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+private enum LogsFocusField: Hashable {
+    case search
+}
+
 private struct DiagnosticHint {
     let likelyCause: String
     let suggestedAction: String
@@ -32,6 +36,11 @@ struct LogsDiagnosticsView: View {
     @State private var loggerFilter: String = ""
     @State private var messageSearch: String = ""
     @State private var warningCodeFilter: String = ""
+    @State private var warningsPageSize: Int = 25
+    @State private var warningsPageIndex: Int = 0
+    @State private var logsPageSize: Int = 100
+    @State private var logsPageIndex: Int = 0
+    @FocusState private var focusedField: LogsFocusField?
 
     var body: some View {
         ScrollView {
@@ -71,6 +80,33 @@ struct LogsDiagnosticsView: View {
             if state.logsDiagnostics == nil {
                 Task { await state.refreshLogsDiagnostics() }
             }
+            focusedField = .search
+        }
+        .onChange(of: logSeverityFilter) { _, _ in
+            logsPageIndex = 0
+        }
+        .onChange(of: diagnosticSeverityFilter) { _, _ in
+            warningsPageIndex = 0
+        }
+        .onChange(of: loggerFilter) { _, _ in
+            logsPageIndex = 0
+        }
+        .onChange(of: messageSearch) { _, _ in
+            logsPageIndex = 0
+            warningsPageIndex = 0
+        }
+        .onChange(of: warningCodeFilter) { _, _ in
+            warningsPageIndex = 0
+        }
+        .onChange(of: state.logsDiagnostics?.entries.count ?? -1) { _, _ in
+            logsPageIndex = 0
+            warningsPageIndex = 0
+        }
+        .onChange(of: warningsPageSize) { _, _ in
+            warningsPageIndex = 0
+        }
+        .onChange(of: logsPageSize) { _, _ in
+            logsPageIndex = 0
         }
     }
 
@@ -103,6 +139,7 @@ struct LogsDiagnosticsView: View {
                     TextField("Search message/timestamp", text: $messageSearch)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 280)
+                        .focused($focusedField, equals: .search)
                     TextField("Warning code filter", text: $warningCodeFilter)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 200)
@@ -122,6 +159,8 @@ struct LogsDiagnosticsView: View {
                         messageSearch = ""
                         warningCodeFilter = ""
                         refreshSeverityCSV = ""
+                        warningsPageIndex = 0
+                        logsPageIndex = 0
                     }
                 }
             }
@@ -182,12 +221,44 @@ struct LogsDiagnosticsView: View {
     }
 
     private func diagnosticsIssuesCard(_ snapshot: LogsDiagnosticsSnapshot) -> some View {
-        SectionCard("Diagnostics Issues", subtitle: "Detected warning/error signatures with remediation guidance.") {
-            if filteredWarnings(from: snapshot).isEmpty {
+        let warnings = filteredWarnings(from: snapshot)
+        let warningPageCount = max(1, (max(1, warnings.count) + warningsPageSize - 1) / warningsPageSize)
+        let warningSafePage = min(max(0, warningsPageIndex), warningPageCount - 1)
+        let warningStart = warningSafePage * warningsPageSize
+        let warningEnd = min(warnings.count, warningStart + warningsPageSize)
+        let pagedWarnings = warningStart < warningEnd ? Array(warnings[warningStart..<warningEnd]) : []
+
+        return SectionCard("Diagnostics Issues", subtitle: "Detected warning/error signatures with remediation guidance.") {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                Picker("Issue Page", selection: $warningsPageSize) {
+                    Text("15").tag(15)
+                    Text("25").tag(25)
+                    Text("40").tag(40)
+                }
+                .pickerStyle(.menu)
+                .frame(width: 110)
+
+                Button("Previous") {
+                    warningsPageIndex = max(0, warningSafePage - 1)
+                }
+                .disabled(warningSafePage == 0 || warnings.isEmpty)
+
+                Button("Next") {
+                    warningsPageIndex = min(warningPageCount - 1, warningSafePage + 1)
+                }
+                .disabled(warningSafePage >= warningPageCount - 1 || warnings.isEmpty)
+
+                Spacer()
+
+                StatusChip(label: "Page \(warningSafePage + 1)/\(warningPageCount)", tone: .neutral)
+                StatusChip(label: warningsRangeLabel(start: warningStart, count: pagedWarnings.count), tone: .neutral)
+            }
+
+            if warnings.isEmpty {
                 EmptyStateCard(message: "No diagnostic issues match the current filters.")
             } else {
                 VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                    ForEach(filteredWarnings(from: snapshot)) { warning in
+                    ForEach(pagedWarnings) { warning in
                         let hint = hintForWarning(warning)
                         VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                             HStack(spacing: StopmoUI.Spacing.xs) {
@@ -228,6 +299,37 @@ struct LogsDiagnosticsView: View {
     private func structuredLogsCard(_ snapshot: LogsDiagnosticsSnapshot) -> some View {
         SectionCard("Structured Logs", subtitle: "Field-filterable log records (timestamp, severity, logger, message).") {
             let entries = filteredEntries(from: snapshot)
+            let logsPageCount = max(1, (max(1, entries.count) + logsPageSize - 1) / logsPageSize)
+            let logsSafePage = min(max(0, logsPageIndex), logsPageCount - 1)
+            let logsStart = logsSafePage * logsPageSize
+            let logsEnd = min(entries.count, logsStart + logsPageSize)
+            let pagedEntries = logsStart < logsEnd ? Array(entries[logsStart..<logsEnd]) : []
+
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                Picker("Log Page", selection: $logsPageSize) {
+                    Text("50").tag(50)
+                    Text("100").tag(100)
+                    Text("200").tag(200)
+                }
+                .pickerStyle(.menu)
+                .frame(width: 110)
+
+                Button("Previous") {
+                    logsPageIndex = max(0, logsSafePage - 1)
+                }
+                .disabled(logsSafePage == 0 || entries.isEmpty)
+
+                Button("Next") {
+                    logsPageIndex = min(logsPageCount - 1, logsSafePage + 1)
+                }
+                .disabled(logsSafePage >= logsPageCount - 1 || entries.isEmpty)
+
+                Spacer()
+
+                StatusChip(label: "Page \(logsSafePage + 1)/\(logsPageCount)", tone: .neutral)
+                StatusChip(label: logsRangeLabel(start: logsStart, count: pagedEntries.count), tone: .neutral)
+            }
+
             if entries.isEmpty {
                 EmptyStateCard(message: "No log records match current filters.")
             } else {
@@ -235,7 +337,7 @@ struct LogsDiagnosticsView: View {
                     LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                         logsHeader
                         Divider()
-                        ForEach(entries) { entry in
+                        ForEach(pagedEntries) { entry in
                             logsRow(entry)
                         }
                     }
@@ -265,12 +367,13 @@ struct LogsDiagnosticsView: View {
             }
             logsCol(entry.logger, width: 180)
             logsCol(entry.message, width: 700)
-            Button {
+            IconActionButton(
+                systemName: "doc.on.doc",
+                accessibilityLabel: "Copy log row",
+                accessibilityHint: "Copies the raw log line."
+            ) {
                 state.copyTextToPasteboard(entry.raw, label: "log line")
-            } label: {
-                Image(systemName: "doc.on.doc")
             }
-            .buttonStyle(.plain)
             .frame(width: 80, alignment: .leading)
         }
         .font(.system(.caption, design: .monospaced))
@@ -353,6 +456,18 @@ struct LogsDiagnosticsView: View {
     private func refreshLogsFromToolbar() async {
         let value = refreshSeverityCSV.trimmingCharacters(in: .whitespacesAndNewlines)
         await state.refreshLogsDiagnostics(severity: value.isEmpty ? nil : value)
+        logsPageIndex = 0
+        warningsPageIndex = 0
+    }
+
+    private func warningsRangeLabel(start: Int, count: Int) -> String {
+        guard count > 0 else { return "Rows 0-0" }
+        return "Rows \(start + 1)-\(start + count)"
+    }
+
+    private func logsRangeLabel(start: Int, count: Int) -> String {
+        guard count > 0 else { return "Rows 0-0" }
+        return "Rows \(start + 1)-\(start + count)"
     }
 
     private func hintForWarning(_ warning: DiagnosticWarningRecord) -> DiagnosticHint {

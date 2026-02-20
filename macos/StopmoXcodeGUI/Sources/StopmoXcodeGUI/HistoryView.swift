@@ -9,6 +9,10 @@ private enum HistorySortOption: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+private enum HistoryFocusField: Hashable {
+    case search
+}
+
 private struct CompareRowModel: Identifiable {
     let id = UUID()
     let label: String
@@ -25,6 +29,9 @@ struct HistoryView: View {
     @State private var showOnlyFailures: Bool = false
     @State private var compareSelectionOrder: [String] = []
     @State private var showOnlySelected: Bool = false
+    @State private var pageSize: Int = 20
+    @State private var pageIndex: Int = 0
+    @FocusState private var focusedField: HistoryFocusField?
 
     var body: some View {
         ScrollView {
@@ -58,9 +65,17 @@ struct HistoryView: View {
             if state.historySummary == nil {
                 Task { await state.refreshHistory() }
             }
+            focusedField = .search
         }
         .onChange(of: state.historySummary?.count ?? -1) { _, _ in
+            clampPageIndex()
             pruneCompareSelection()
+        }
+        .onChange(of: filteredRuns.map(\.id)) { _, _ in
+            clampPageIndex()
+        }
+        .onChange(of: pageSize) { _, _ in
+            clampPageIndex()
         }
     }
 
@@ -72,6 +87,7 @@ struct HistoryView: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(minWidth: 280, idealWidth: 420, maxWidth: 520)
                         .layoutPriority(1)
+                        .focused($focusedField, equals: .search)
 
                     Picker("Sort", selection: $sortOption) {
                         ForEach(HistorySortOption.allCases) { option in
@@ -108,6 +124,32 @@ struct HistoryView: View {
                     .disabled(compareSelectionOrder.isEmpty)
 
                     Spacer(minLength: 0)
+                }
+
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Picker("Page Size", selection: $pageSize) {
+                        Text("10").tag(10)
+                        Text("20").tag(20)
+                        Text("30").tag(30)
+                        Text("50").tag(50)
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 110)
+
+                    Button("Previous") {
+                        pageIndex = max(0, pageIndex - 1)
+                    }
+                    .disabled(pageIndex == 0 || filteredRuns.isEmpty)
+
+                    Button("Next") {
+                        pageIndex = min(pageCount - 1, pageIndex + 1)
+                    }
+                    .disabled(pageIndex >= pageCount - 1 || filteredRuns.isEmpty)
+
+                    Spacer()
+
+                    StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
+                    StatusChip(label: pageRangeLabel, tone: .neutral)
                 }
             }
         }
@@ -173,7 +215,7 @@ struct HistoryView: View {
                 EmptyStateCard(message: "No run cards match the current filters.")
             } else {
                 VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                    ForEach(filteredRuns) { run in
+                    ForEach(pagedRuns) { run in
                         runCard(run)
                     }
                 }
@@ -184,12 +226,16 @@ struct HistoryView: View {
     private func runCard(_ run: HistoryRunRecord) -> some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             HStack(spacing: StopmoUI.Spacing.sm) {
-                Button {
+                IconActionButton(
+                    systemName: selectedRunIds.contains(run.id) ? "checkmark.circle.fill" : "circle",
+                    accessibilityLabel: selectedRunIds.contains(run.id)
+                        ? "Deselect run \(run.runId) from comparison"
+                        : "Select run \(run.runId) for comparison",
+                    accessibilityHint: "Select up to two runs for compare mode."
+                ) {
                     toggleCompareSelection(run.id)
-                } label: {
-                    Image(systemName: selectedRunIds.contains(run.id) ? "checkmark.circle.fill" : "circle")
                 }
-                .buttonStyle(.plain)
+                .foregroundStyle(selectedRunIds.contains(run.id) ? Color.accentColor : .secondary)
                 .help("Select for compare mode")
 
                 Text(run.runId)
@@ -295,6 +341,37 @@ struct HistoryView: View {
             out.sort { $0.runId.localizedCaseInsensitiveCompare($1.runId) == .orderedAscending }
         }
         return out
+    }
+
+    private var safePageIndex: Int {
+        guard !filteredRuns.isEmpty else { return 0 }
+        return min(max(0, pageIndex), pageCount - 1)
+    }
+
+    private var pageCount: Int {
+        guard !filteredRuns.isEmpty else { return 1 }
+        return max(1, (filteredRuns.count + pageSize - 1) / pageSize)
+    }
+
+    private var pagedRuns: [HistoryRunRecord] {
+        guard !filteredRuns.isEmpty else { return [] }
+        let start = safePageIndex * pageSize
+        let end = min(filteredRuns.count, start + pageSize)
+        if start >= end {
+            return []
+        }
+        return Array(filteredRuns[start..<end])
+    }
+
+    private var pageRangeLabel: String {
+        guard !pagedRuns.isEmpty else { return "Runs 0-0" }
+        let start = safePageIndex * pageSize + 1
+        let end = start + pagedRuns.count - 1
+        return "Runs \(start)-\(end)"
+    }
+
+    private func clampPageIndex() {
+        pageIndex = safePageIndex
     }
 
     private func selectNewestTwo() {

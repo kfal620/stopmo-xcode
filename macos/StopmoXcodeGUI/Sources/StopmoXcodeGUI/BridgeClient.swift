@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 enum BridgeError: Error, LocalizedError {
     case missingRepoRoot(String)
@@ -14,6 +15,24 @@ enum BridgeError: Error, LocalizedError {
         case .decodeFailed(let message):
             return message
         }
+    }
+}
+
+private final class BridgeOutputAccumulator: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage = Data()
+
+    func append(_ chunk: Data) {
+        lock.lock()
+        storage.append(chunk)
+        lock.unlock()
+    }
+
+    func snapshot() -> Data {
+        lock.lock()
+        let copy = storage
+        lock.unlock()
+        return copy
     }
 }
 
@@ -84,7 +103,8 @@ struct BridgeClient: Sendable {
     private func runBridge(
         repoRoot: String,
         arguments: [String],
-        stdin: Data? = nil
+        stdin: Data? = nil,
+        timeoutSeconds: TimeInterval = 20.0
     ) throws -> Data {
         let resolvedRoot = resolveRepoRoot(repoRoot)
         let rootURL = URL(fileURLWithPath: resolvedRoot)
@@ -110,9 +130,18 @@ struct BridgeClient: Sendable {
         process.environment = env
 
         let outPipe = Pipe()
-        // Use a single pipe for stdout/stderr to avoid deadlock on large outputs.
+        // Use a single stream and incremental reads to avoid pipe saturation on larger outputs.
         process.standardOutput = outPipe
         process.standardError = outPipe
+        let accumulator = BridgeOutputAccumulator()
+        outPipe.fileHandleForReading.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            guard !chunk.isEmpty else {
+                handle.readabilityHandler = nil
+                return
+            }
+            accumulator.append(chunk)
+        }
 
         if let stdin {
             let inPipe = Pipe()
@@ -124,14 +153,38 @@ struct BridgeClient: Sendable {
             try process.run()
         }
 
-        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
+        let deadline = Date().addingTimeInterval(max(1.0, timeoutSeconds))
+        while process.isRunning, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+
+        if process.isRunning {
+            process.terminate()
+            Thread.sleep(forTimeInterval: 0.2)
+            if process.isRunning {
+                _ = kill(process.processIdentifier, SIGKILL)
+            }
+            outPipe.fileHandleForReading.readabilityHandler = nil
+            var partial = accumulator.snapshot()
+            partial.append(outPipe.fileHandleForReading.readDataToEndOfFile())
+            let partialText = String(data: partial, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let details = partialText.isEmpty ? "" : "\n\(partialText)"
+            throw BridgeError.processFailed(
+                "Bridge command timed out after \(Int(timeoutSeconds.rounded()))s: \(arguments.joined(separator: " "))\(details)"
+            )
+        }
+
         process.waitUntilExit()
+        outPipe.fileHandleForReading.readabilityHandler = nil
+        var finalData = accumulator.snapshot()
+        finalData.append(outPipe.fileHandleForReading.readDataToEndOfFile())
 
         guard process.terminationStatus == 0 else {
-            let stderrText = String(data: outData, encoding: .utf8) ?? ""
+            let stderrText = String(data: finalData, encoding: .utf8) ?? ""
             throw BridgeError.processFailed(stderrText.isEmpty ? "Bridge process failed" : stderrText)
         }
-        return outData
+        return finalData
     }
 
     func health(repoRoot: String, configPath: String?) throws -> BridgeHealth {
@@ -139,12 +192,16 @@ struct BridgeClient: Sendable {
         if let configPath, !configPath.isEmpty {
             args += ["--config", configPath]
         }
-        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 15.0)
         return try decodeJSON(BridgeHealth.self, from: data)
     }
 
     func readConfig(repoRoot: String, configPath: String) throws -> StopmoConfigDocument {
-        let data = try runBridge(repoRoot: repoRoot, arguments: ["config-read", "--config", configPath])
+        let data = try runBridge(
+            repoRoot: repoRoot,
+            arguments: ["config-read", "--config", configPath],
+            timeoutSeconds: 20.0
+        )
         return try decodeJSON(StopmoConfigDocument.self, from: data)
     }
 
@@ -153,7 +210,8 @@ struct BridgeClient: Sendable {
         _ = try runBridge(
             repoRoot: repoRoot,
             arguments: ["config-write", "--config", configPath],
-            stdin: payload
+            stdin: payload,
+            timeoutSeconds: 20.0
         )
         return try readConfig(repoRoot: repoRoot, configPath: configPath)
     }
@@ -161,7 +219,8 @@ struct BridgeClient: Sendable {
     func queueStatus(repoRoot: String, configPath: String, limit: Int = 200) throws -> QueueSnapshot {
         let data = try runBridge(
             repoRoot: repoRoot,
-            arguments: ["queue-status", "--config", configPath, "--limit", "\(max(1, limit))"]
+            arguments: ["queue-status", "--config", configPath, "--limit", "\(max(1, limit))"],
+            timeoutSeconds: 12.0
         )
         return try decodeJSON(QueueSnapshot.self, from: data)
     }
@@ -173,14 +232,15 @@ struct BridgeClient: Sendable {
             args.append("--ids")
             args += ids.map(String.init)
         }
-        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 20.0)
         return try decodeJSON(QueueRetryResult.self, from: data)
     }
 
     func shotsSummary(repoRoot: String, configPath: String, limit: Int = 500) throws -> ShotsSummarySnapshot {
         let data = try runBridge(
             repoRoot: repoRoot,
-            arguments: ["shots-summary", "--config", configPath, "--limit", "\(max(1, limit))"]
+            arguments: ["shots-summary", "--config", configPath, "--limit", "\(max(1, limit))"],
+            timeoutSeconds: 18.0
         )
         return try decodeJSON(ShotsSummarySnapshot.self, from: data)
     }
@@ -188,7 +248,8 @@ struct BridgeClient: Sendable {
     func watchStart(repoRoot: String, configPath: String) throws -> WatchServiceState {
         let data = try runBridge(
             repoRoot: repoRoot,
-            arguments: ["watch-start", "--config", configPath]
+            arguments: ["watch-start", "--config", configPath],
+            timeoutSeconds: 14.0
         )
         return try decodeJSON(WatchServiceState.self, from: data)
     }
@@ -196,7 +257,8 @@ struct BridgeClient: Sendable {
     func watchStop(repoRoot: String, configPath: String, timeoutSeconds: Double = 5.0) throws -> WatchServiceState {
         let data = try runBridge(
             repoRoot: repoRoot,
-            arguments: ["watch-stop", "--config", configPath, "--timeout", "\(max(0.5, timeoutSeconds))"]
+            arguments: ["watch-stop", "--config", configPath, "--timeout", "\(max(0.5, timeoutSeconds))"],
+            timeoutSeconds: max(10.0, timeoutSeconds + 5.0)
         )
         return try decodeJSON(WatchServiceState.self, from: data)
     }
@@ -212,7 +274,8 @@ struct BridgeClient: Sendable {
                 "\(max(1, limit))",
                 "--tail",
                 "\(max(0, tailLines))"
-            ]
+            ],
+            timeoutSeconds: 8.0
         )
         return try decodeJSON(WatchServiceState.self, from: data)
     }
@@ -220,7 +283,8 @@ struct BridgeClient: Sendable {
     func configValidate(repoRoot: String, configPath: String) throws -> ConfigValidationSnapshot {
         let data = try runBridge(
             repoRoot: repoRoot,
-            arguments: ["config-validate", "--config", configPath]
+            arguments: ["config-validate", "--config", configPath],
+            timeoutSeconds: 15.0
         )
         return try decodeJSON(ConfigValidationSnapshot.self, from: data)
     }
@@ -228,7 +292,8 @@ struct BridgeClient: Sendable {
     func watchPreflight(repoRoot: String, configPath: String) throws -> WatchPreflight {
         let data = try runBridge(
             repoRoot: repoRoot,
-            arguments: ["watch-preflight", "--config", configPath]
+            arguments: ["watch-preflight", "--config", configPath],
+            timeoutSeconds: 20.0
         )
         return try decodeJSON(WatchPreflight.self, from: data)
     }
@@ -243,7 +308,7 @@ struct BridgeClient: Sendable {
         if let outputDir, !outputDir.isEmpty {
             args += ["--output-dir", outputDir]
         }
-        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 1_800.0)
         return try decodeJSON(ToolOperationEnvelope.self, from: data)
     }
 
@@ -264,7 +329,7 @@ struct BridgeClient: Sendable {
         if let writeJson, !writeJson.isEmpty {
             args += ["--write-json", writeJson]
         }
-        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 180.0)
         return try decodeJSON(ToolOperationEnvelope.self, from: data)
     }
 
@@ -280,7 +345,7 @@ struct BridgeClient: Sendable {
             args += ["--out-dir", outputDir]
         }
         args += [overwrite ? "--overwrite" : "--no-overwrite"]
-        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 7_200.0)
         return try decodeJSON(ToolOperationEnvelope.self, from: data)
     }
 
@@ -294,7 +359,7 @@ struct BridgeClient: Sendable {
         if let severity, !severity.isEmpty {
             args += ["--severity", severity]
         }
-        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 16.0)
         return try decodeJSON(LogsDiagnosticsSnapshot.self, from: data)
     }
 
@@ -314,7 +379,8 @@ struct BridgeClient: Sendable {
                 "\(max(1, limit))",
                 "--gap-minutes",
                 "\(max(1, gapMinutes))",
-            ]
+            ],
+            timeoutSeconds: 20.0
         )
         return try decodeJSON(HistorySummarySnapshot.self, from: data)
     }
@@ -328,7 +394,7 @@ struct BridgeClient: Sendable {
         if let outDir, !outDir.isEmpty {
             args += ["--out-dir", outDir]
         }
-        let data = try runBridge(repoRoot: repoRoot, arguments: args)
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 60.0)
         return try decodeJSON(DiagnosticsBundleResult.self, from: data)
     }
 }

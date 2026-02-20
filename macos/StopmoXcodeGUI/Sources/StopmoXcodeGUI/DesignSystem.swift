@@ -17,6 +17,7 @@ enum StopmoUI {
     enum Width {
         static let keyColumn: CGFloat = 150
         static let formLabel: CGFloat = 220
+        static let iconTapTarget: CGFloat = 30
     }
 }
 
@@ -29,7 +30,7 @@ enum StatusTone {
     var foreground: Color {
         switch self {
         case .neutral:
-            return .secondary
+            return .primary
         case .success:
             return .green
         case .warning:
@@ -191,7 +192,14 @@ struct LabeledPathField: View {
                 Button(action: browseAction) {
                     Image(systemName: icon)
                 }
+                .frame(
+                    width: StopmoUI.Width.iconTapTarget,
+                    height: StopmoUI.Width.iconTapTarget
+                )
+                .contentShape(Rectangle())
                 .help(browseHelp)
+                .accessibilityLabel(Text(browseHelp))
+                .accessibilityAddTraits(.isButton)
                 .disabled(isDisabled)
             }
         }
@@ -211,5 +219,43 @@ struct EmptyStateCard: View {
                 RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
                     .fill(Color.secondary.opacity(0.08))
             )
+    }
+}
+
+struct IconActionButton: View {
+    let systemName: String
+    let accessibilityLabel: String
+    let accessibilityHint: String?
+    let isDisabled: Bool
+    let action: () -> Void
+
+    init(
+        systemName: String,
+        accessibilityLabel: String,
+        accessibilityHint: String? = nil,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.systemName = systemName
+        self.accessibilityLabel = accessibilityLabel
+        self.accessibilityHint = accessibilityHint
+        self.isDisabled = isDisabled
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .frame(
+                    width: StopmoUI.Width.iconTapTarget,
+                    height: StopmoUI.Width.iconTapTarget
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .accessibilityLabel(Text(accessibilityLabel))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint(Text(accessibilityHint ?? ""))
     }
 }
