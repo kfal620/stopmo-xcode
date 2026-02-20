@@ -600,6 +600,11 @@ def start_dpx_to_prores_operation(
         sequences = discover_dpx_sequences(resolved_input)
         total_sequences = len(sequences)
         _OPERATIONS.emit(runtime.id, "dpx_sequences_discovered", payload={"total_sequences": total_sequences})
+        if total_sequences == 0:
+            raise AssemblyError(
+                "No DPX sequences were discovered under the selected input directory. "
+                "Select a folder that contains `.dpx` frames (directly or in shot subfolders)."
+            )
 
         completed_sequences = 0
         total_scale = max(1, total_sequences)

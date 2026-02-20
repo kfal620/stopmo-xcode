@@ -94,66 +94,79 @@ struct RootView: View {
     }
 
     private var commandBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                projectContextChip
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            projectContextChip
 
-                if state.watchServiceState?.running == true {
-                    StatusChip(label: "Watch Running", tone: .success)
-                } else {
-                    StatusChip(label: "Watch Stopped", tone: .warning)
-                }
+            if state.watchServiceState?.running == true {
+                StatusChip(label: "Watch Running", tone: .success)
+            } else {
+                StatusChip(label: "Watch Stopped", tone: .warning)
+            }
 
-                Divider()
-                    .frame(height: 16)
+            Spacer(minLength: 0)
 
-                Button("Start Watch") {
+            HStack(spacing: 3) {
+                ToolbarIconButton(
+                    systemImage: "play.fill",
+                    tooltip: "Start watch service",
+                    accessibilityLabel: "Start Watch",
+                    isDisabled: state.isBusy || (state.watchServiceState?.running ?? false)
+                ) {
                     Task { await state.startWatchService() }
                 }
-                .disabled(state.isBusy || (state.watchServiceState?.running ?? false))
 
-                Button("Stop Watch") {
+                ToolbarIconButton(
+                    systemImage: "stop.fill",
+                    tooltip: "Stop watch service",
+                    accessibilityLabel: "Stop Watch",
+                    isDisabled: state.isBusy || !(state.watchServiceState?.running ?? false)
+                ) {
                     Task { await state.stopWatchService() }
                 }
-                .disabled(state.isBusy || !(state.watchServiceState?.running ?? false))
 
-                Button("Refresh") {
+                ToolbarIconButton(
+                    systemImage: "arrow.clockwise",
+                    tooltip: "Refresh current section",
+                    accessibilityLabel: "Refresh",
+                    isDisabled: state.isBusy
+                ) {
                     Task { await refreshSelectedSection() }
                 }
-                .disabled(state.isBusy)
 
-                Button("Validate Config") {
-                    Task { await state.validateConfig() }
-                }
-                .disabled(state.isBusy)
-
-                Button("Check Runtime Health") {
-                    Task { await state.refreshHealth() }
-                }
-                .disabled(state.isBusy)
-
-                Button {
+                ToolbarIconButton(
+                    systemImage: "bell",
+                    tooltip: "Notifications",
+                    accessibilityLabel: "Notifications",
+                    badgeText: state.notifications.isEmpty ? nil : notificationsBadgeText,
+                    badgeTone: state.notifications.contains { $0.kind == .error } ? .danger : .warning
+                ) {
                     isNotificationsCenterPresented.toggle()
-                } label: {
-                    Label("Notifications", systemImage: "bell")
                 }
                 .popover(isPresented: $isNotificationsCenterPresented, arrowEdge: .top) {
                     NotificationsCenterPanel()
                         .environmentObject(state)
                 }
-
-                if !state.notifications.isEmpty {
-                    StatusChip(
-                        label: "\(state.notifications.count)",
-                        tone: state.notifications.contains { $0.kind == .error } ? .danger : .warning
-                    )
-                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(4)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(Color.primary.opacity(0.09), lineWidth: 0.75)
+            )
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(.bar)
+        .zIndex(20)
+    }
+
+    private var notificationsBadgeText: String {
+        let count = state.notifications.count
+        if count > 99 {
+            return "99+"
+        }
+        return "\(count)"
     }
 
     private var projectContextChip: some View {
@@ -187,12 +200,7 @@ struct RootView: View {
                 .frame(width: 18, alignment: .leading)
                 .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(section.rawValue)
-                Text(section.subtitle)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
+            Text(section.rawValue)
 
             Spacer(minLength: 0)
 
@@ -291,6 +299,102 @@ struct RootView: View {
 private struct SidebarBadge {
     let label: String
     let tone: StatusTone
+}
+
+private struct ToolbarIconButton: View {
+    let systemImage: String
+    let tooltip: String
+    let accessibilityLabel: String
+    var isDisabled: Bool = false
+    var badgeText: String? = nil
+    var badgeTone: StatusTone = .warning
+    let action: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered: Bool = false
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(iconColor)
+                    .frame(
+                        width: 28,
+                        height: 28
+                    )
+                    .contentShape(Rectangle())
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(hoverBackground)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(hoverBorder, lineWidth: 0.75)
+                    )
+                if let badgeText {
+                    Text(badgeText)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1.5)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(badgeTone == .danger ? Color.red : Color.orange)
+                        )
+                        .offset(x: 9, y: -8)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .overlay(alignment: .top) {
+            if isHovered && !isDisabled {
+                tooltipBubble
+                    .offset(y: -30)
+            }
+        }
+        .zIndex(isHovered ? 120 : 0)
+        .help(tooltip)
+        .accessibilityLabel(Text(accessibilityLabel))
+        .accessibilityHint(Text(tooltip))
+    }
+
+    private var iconColor: Color {
+        isDisabled ? Color.secondary.opacity(0.6) : Color.primary
+    }
+
+    private var hoverBackground: Color {
+        guard !isDisabled else { return .clear }
+        return isHovered ? Color.primary.opacity(0.12) : .clear
+    }
+
+    private var hoverBorder: Color {
+        guard !isDisabled else { return .clear }
+        return isHovered ? Color.primary.opacity(0.16) : .clear
+    }
+
+    private var tooltipBubble: some View {
+        Text(tooltip)
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(.regularMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(Color.primary.opacity(0.12), lineWidth: 0.75)
+            )
+            .fixedSize(horizontal: true, vertical: true)
+            .shadow(color: Color.black.opacity(0.16), radius: 6, x: 0, y: 2)
+            .allowsHitTesting(false)
+    }
 }
 
 private struct NotificationToastView: View {

@@ -17,6 +17,7 @@ struct ProjectView: View {
     @State private var selectedEditorSection: ProjectEditorSection = .watch
     @State private var baselineConfig: StopmoConfigDocument = .empty
     @State private var baselineInitialized: Bool = false
+    @State private var initialLoadRequested: Bool = false
 
     @State private var presets: [String: StopmoConfigDocument] = [:]
     @State private var selectedPresetName: String = ""
@@ -87,10 +88,13 @@ struct ProjectView: View {
             .padding(StopmoUI.Spacing.lg)
         }
         .onAppear {
-            if !baselineInitialized {
+            loadPresets()
+            if !initialLoadRequested {
+                initialLoadRequested = true
+                Task { await reloadFromDisk() }
+            } else if !baselineInitialized {
                 captureBaselineFromCurrentConfig()
             }
-            loadPresets()
         }
         .onChange(of: state.statusMessage) { _, status in
             if status == "Loaded config" || status == "Saved config" {
@@ -394,12 +398,16 @@ struct ProjectView: View {
 
     private func reloadFromDisk() async {
         await state.loadConfig()
-        captureBaselineFromCurrentConfig()
+        if state.errorMessage == nil {
+            captureBaselineFromCurrentConfig()
+        }
     }
 
     private func saveToDisk() async {
         await state.saveConfig()
-        captureBaselineFromCurrentConfig()
+        if state.errorMessage == nil {
+            captureBaselineFromCurrentConfig()
+        }
     }
 
     private func discardLocalChanges() {

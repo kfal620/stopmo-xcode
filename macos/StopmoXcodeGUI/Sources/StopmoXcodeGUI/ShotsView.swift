@@ -35,34 +35,37 @@ struct ShotsView: View {
     @FocusState private var focusedField: ShotsFocusField?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-            ScreenHeader(
-                title: "Shots",
-                subtitle: "Shot-level progress, assembly triage, and output navigation."
-            ) {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    if let count = state.shotsSnapshot?.count {
-                        StatusChip(label: "Shots \(count)", tone: .neutral)
+        ScrollView {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                ScreenHeader(
+                    title: "Shots",
+                    subtitle: "Shot-level progress, assembly triage, and output navigation."
+                ) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        if let count = state.shotsSnapshot?.count {
+                            StatusChip(label: "Shots \(count)", tone: .neutral)
+                        }
+                        if issuesCount > 0 {
+                            StatusChip(label: "Issues \(issuesCount)", tone: .danger)
+                        }
+                        if processingCount > 0 {
+                            StatusChip(label: "Processing \(processingCount)", tone: .warning)
+                        }
+                        Button("Refresh") {
+                            Task { await state.refreshLiveData() }
+                        }
+                        .disabled(state.isBusy)
                     }
-                    if issuesCount > 0 {
-                        StatusChip(label: "Issues \(issuesCount)", tone: .danger)
-                    }
-                    if processingCount > 0 {
-                        StatusChip(label: "Processing \(processingCount)", tone: .warning)
-                    }
-                    Button("Refresh") {
-                        Task { await state.refreshLiveData() }
-                    }
-                    .disabled(state.isBusy)
                 }
-            }
 
-            controlsCard
-            shotsTableCard
-            selectedShotDetailCard
-            Spacer()
+                controlsCard
+                shotsTableCard
+                selectedShotDetailCard
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(StopmoUI.Spacing.lg)
         }
-        .padding(StopmoUI.Spacing.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             if state.shotsSnapshot == nil {
                 Task { await state.refreshLiveData() }

@@ -144,10 +144,17 @@ def _sequence_parts_from_stem(stem: str) -> tuple[str, str] | None:
 
 def discover_dpx_sequences(root_dir: Path) -> list[DpxSequence]:
     sequences: list[DpxSequence] = []
+    grouped_dirs: dict[Path, list[Path]] = {}
 
-    for dpx_dir in sorted(p for p in root_dir.rglob("dpx") if p.is_dir()):
+    # Group all DPX files by their parent directory rather than requiring
+    # a lowercase `dpx` folder, so inputs like `DPX/` or direct frame folders
+    # are discoverable in the GUI workflow.
+    for dpx_file in sorted(p for p in root_dir.rglob("*.dpx") if p.is_file()):
+        grouped_dirs.setdefault(dpx_file.parent, []).append(dpx_file)
+
+    for dpx_dir in sorted(grouped_dirs):
         groups: dict[str, Tuple[int, str]] = {}
-        for dpx_file in dpx_dir.glob("*.dpx"):
+        for dpx_file in grouped_dirs[dpx_dir]:
             parts = _sequence_parts_from_stem(dpx_file.stem)
             if parts is None:
                 continue
@@ -156,7 +163,8 @@ def discover_dpx_sequences(root_dir: Path) -> list[DpxSequence]:
             groups[raw_prefix] = (count + 1, sequence_name)
 
         for raw_prefix, (frame_count, sequence_name) in sorted(groups.items()):
-            shot_name = dpx_dir.parent.name or "default_shot"
+            shot_name = dpx_dir.parent.name if dpx_dir.name.lower() == "dpx" else dpx_dir.name
+            shot_name = shot_name or "default_shot"
             sequences.append(
                 DpxSequence(
                     shot_name=shot_name,
