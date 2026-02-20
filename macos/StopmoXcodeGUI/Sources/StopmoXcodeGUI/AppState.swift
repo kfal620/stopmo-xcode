@@ -55,6 +55,9 @@ final class AppState: ObservableObject {
     @Published var historySummary: HistorySummarySnapshot?
     @Published var lastDiagnosticsBundlePath: String?
     @Published var liveEvents: [String] = []
+    @Published var queueDepthTrend: [Int] = []
+    @Published var throughputFramesPerMinute: Double = 0.0
+    @Published var lastFrameAt: Date?
     @Published var statusMessage: String = "Ready"
     @Published var errorMessage: String?
     @Published var presentedError: PresentedError?
@@ -67,6 +70,8 @@ final class AppState: ObservableObject {
     private var toastDismissTask: Task<Void, Never>?
     private var lastQueueCounts: [String: Int] = [:]
     private var lastWatchRunning: Bool?
+    private var lastDoneFrameCountSample: Int?
+    private var lastRateSampleAt: Date?
     private var seenDiagnosticWarningKeys: Set<String> = []
     private static let repoRootDefaultsKey = "stopmo_repo_root"
     private static let workspaceBookmarkDefaultsKey = "stopmo_workspace_bookmark"
@@ -324,6 +329,9 @@ final class AppState: ObservableObject {
             shotsSnapshot = shots
         }
         let counts = watchState.queue.counts
+
+        updateLiveTelemetry(with: watchState, counts: counts)
+
         let previousFailed = lastQueueCounts["failed", default: 0]
         let currentFailed = counts["failed", default: 0]
         if currentFailed > previousFailed {
@@ -342,6 +350,38 @@ final class AppState: ObservableObject {
         if lastWatchRunning != watchState.running {
             recordLiveEvent(watchState.running ? "Watch process is running" : "Watch process is stopped")
             lastWatchRunning = watchState.running
+        }
+    }
+
+    private func updateLiveTelemetry(with watchState: WatchServiceState, counts: [String: Int]) {
+        let now = Date()
+        let doneCount = counts["done", default: watchState.completedFrames]
+        if let prevDone = lastDoneFrameCountSample,
+           let prevAt = lastRateSampleAt
+        {
+            let deltaDone = max(0, doneCount - prevDone)
+            let deltaSeconds = now.timeIntervalSince(prevAt)
+            if deltaSeconds > 0.05 {
+                throughputFramesPerMinute = (Double(deltaDone) / deltaSeconds) * 60.0
+            }
+            if deltaDone > 0 {
+                lastFrameAt = now
+            }
+        } else if doneCount > 0 {
+            lastFrameAt = now
+            throughputFramesPerMinute = 0.0
+        }
+
+        lastDoneFrameCountSample = doneCount
+        lastRateSampleAt = now
+
+        let depth = counts["detected", default: 0]
+            + counts["decoding", default: 0]
+            + counts["xform", default: 0]
+            + counts["dpx_write", default: 0]
+        queueDepthTrend.append(depth)
+        if queueDepthTrend.count > 180 {
+            queueDepthTrend = Array(queueDepthTrend.suffix(180))
         }
     }
 
