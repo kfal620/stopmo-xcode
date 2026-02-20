@@ -82,74 +82,79 @@ struct HistoryView: View {
     private var controlsCard: some View {
         SectionCard("History Filters & Compare Controls") {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    TextField("Search run/shots/outputs/pipeline/tool version", text: $searchText)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(minWidth: 280, idealWidth: 420, maxWidth: 520)
-                        .layoutPriority(1)
-                        .focused($focusedField, equals: .search)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        TextField("Search run/shots/outputs/pipeline/tool version", text: $searchText)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 280, idealWidth: 420, maxWidth: 520)
+                            .layoutPriority(1)
+                            .focused($focusedField, equals: .search)
 
-                    Picker("Sort", selection: $sortOption) {
-                        ForEach(HistorySortOption.allCases) { option in
-                            Text(option.rawValue).tag(option)
+                        Picker("Sort", selection: $sortOption) {
+                            ForEach(HistorySortOption.allCases) { option in
+                                Text(option.rawValue).tag(option)
+                            }
                         }
+                        .pickerStyle(.menu)
+                        .frame(width: 190)
                     }
-                    .pickerStyle(.menu)
-                    .frame(width: 190)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                HStack(spacing: StopmoUI.Spacing.md) {
-                    Toggle(isOn: $showOnlyFailures) {
-                        Text("Only Failures")
-                            .lineLimit(1)
-                    }
-                    .toggleStyle(.switch)
-                    .fixedSize(horizontal: true, vertical: false)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: StopmoUI.Spacing.md) {
+                        Toggle(isOn: $showOnlyFailures) {
+                            Text("Only Failures")
+                                .lineLimit(1)
+                        }
+                        .toggleStyle(.switch)
+                        .fixedSize(horizontal: true, vertical: false)
 
-                    Toggle(isOn: $showOnlySelected) {
-                        Text("Only Selected")
-                            .lineLimit(1)
-                    }
-                    .toggleStyle(.switch)
-                    .fixedSize(horizontal: true, vertical: false)
+                        Toggle(isOn: $showOnlySelected) {
+                            Text("Only Selected")
+                                .lineLimit(1)
+                        }
+                        .toggleStyle(.switch)
+                        .fixedSize(horizontal: true, vertical: false)
 
-                    Button("Select Newest Two") {
-                        selectNewestTwo()
-                    }
-                    .disabled(filteredRuns.count < 2)
+                        Button("Select Newest Two") {
+                            selectNewestTwo()
+                        }
+                        .disabled(filteredRuns.count < 2)
 
-                    Button("Clear Selection") {
-                        compareSelectionOrder = []
+                        Button("Clear Selection") {
+                            compareSelectionOrder = []
+                        }
+                        .disabled(compareSelectionOrder.isEmpty)
                     }
-                    .disabled(compareSelectionOrder.isEmpty)
-
-                    Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    Picker("Page Size", selection: $pageSize) {
-                        Text("10").tag(10)
-                        Text("20").tag(20)
-                        Text("30").tag(30)
-                        Text("50").tag(50)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        Picker("Page Size", selection: $pageSize) {
+                            Text("10").tag(10)
+                            Text("20").tag(20)
+                            Text("30").tag(30)
+                            Text("50").tag(50)
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 110)
+
+                        Button("Previous") {
+                            pageIndex = max(0, pageIndex - 1)
+                        }
+                        .disabled(pageIndex == 0 || filteredRuns.isEmpty)
+
+                        Button("Next") {
+                            pageIndex = min(pageCount - 1, pageIndex + 1)
+                        }
+                        .disabled(pageIndex >= pageCount - 1 || filteredRuns.isEmpty)
+
+                        StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
+                        StatusChip(label: pageRangeLabel, tone: .neutral)
                     }
-                    .pickerStyle(.menu)
-                    .frame(width: 110)
-
-                    Button("Previous") {
-                        pageIndex = max(0, pageIndex - 1)
-                    }
-                    .disabled(pageIndex == 0 || filteredRuns.isEmpty)
-
-                    Button("Next") {
-                        pageIndex = min(pageCount - 1, pageIndex + 1)
-                    }
-                    .disabled(pageIndex >= pageCount - 1 || filteredRuns.isEmpty)
-
-                    Spacer()
-
-                    StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
-                    StatusChip(label: pageRangeLabel, tone: .neutral)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }

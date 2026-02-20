@@ -113,55 +113,61 @@ struct LogsDiagnosticsView: View {
     private var controlsCard: some View {
         SectionCard("Log Filters", subtitle: "Filter by severity, logger field, warning code, and free-text search.") {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    Picker("Log Severity", selection: $logSeverityFilter) {
-                        ForEach(LogSeverityFilter.allCases) { filter in
-                            Text(filter.rawValue).tag(filter)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        Picker("Log Severity", selection: $logSeverityFilter) {
+                            ForEach(LogSeverityFilter.allCases) { filter in
+                                Text(filter.rawValue).tag(filter)
+                            }
                         }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 360)
+                        .pickerStyle(.segmented)
+                        .frame(width: 360)
 
-                    Picker("Issue Severity", selection: $diagnosticSeverityFilter) {
-                        ForEach(DiagnosticSeverityFilter.allCases) { filter in
-                            Text(filter.rawValue).tag(filter)
+                        Picker("Issue Severity", selection: $diagnosticSeverityFilter) {
+                            ForEach(DiagnosticSeverityFilter.allCases) { filter in
+                                Text(filter.rawValue).tag(filter)
+                            }
                         }
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 280)
+                        .pickerStyle(.segmented)
+                        .frame(width: 280)
 
-                    TextField("Logger filter", text: $loggerFilter)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 180)
+                        TextField("Logger filter", text: $loggerFilter)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 180)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    TextField("Search message/timestamp", text: $messageSearch)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 280)
-                        .focused($focusedField, equals: .search)
-                    TextField("Warning code filter", text: $warningCodeFilter)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 200)
-                    TextField("Refresh severity (CSV, optional)", text: $refreshSeverityCSV)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 230)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        TextField("Search message/timestamp", text: $messageSearch)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 280)
+                            .focused($focusedField, equals: .search)
+                        TextField("Warning code filter", text: $warningCodeFilter)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 200)
+                        TextField("Refresh severity (CSV, optional)", text: $refreshSeverityCSV)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 230)
 
-                    Button("Refresh With Server Filter") {
-                        Task { await refreshLogsFromToolbar() }
-                    }
-                    .disabled(state.isBusy)
+                        Button("Refresh With Server Filter") {
+                            Task { await refreshLogsFromToolbar() }
+                        }
+                        .disabled(state.isBusy)
 
-                    Button("Clear Filters") {
-                        logSeverityFilter = .all
-                        diagnosticSeverityFilter = .all
-                        loggerFilter = ""
-                        messageSearch = ""
-                        warningCodeFilter = ""
-                        refreshSeverityCSV = ""
-                        warningsPageIndex = 0
-                        logsPageIndex = 0
+                        Button("Clear Filters") {
+                            logSeverityFilter = .all
+                            diagnosticSeverityFilter = .all
+                            loggerFilter = ""
+                            messageSearch = ""
+                            warningCodeFilter = ""
+                            refreshSeverityCSV = ""
+                            warningsPageIndex = 0
+                            logsPageIndex = 0
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }

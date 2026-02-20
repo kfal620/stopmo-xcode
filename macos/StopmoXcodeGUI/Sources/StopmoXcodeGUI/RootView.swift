@@ -16,15 +16,19 @@ struct RootView: View {
             }
             .listStyle(.sidebar)
             .navigationTitle("stopmo-xcode")
+            .navigationSplitViewColumnWidth(min: 220, ideal: 250, max: 320)
         } detail: {
-            VStack(spacing: 0) {
-                Color.clear
-                    .frame(height: 6)
-                commandBar
-                Divider()
-                detailView
-            }
+            detailView
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    VStack(spacing: 0) {
+                        commandBar
+                        Divider()
+                    }
+                }
+                .navigationSplitViewColumnWidth(min: 760, ideal: 980)
         }
+        .navigationSplitViewStyle(.balanced)
         .onAppear {
             state.setMonitoringEnabled(for: state.selectedSection)
             state.reduceMotionEnabled = reduceMotion
@@ -90,61 +94,65 @@ struct RootView: View {
     }
 
     private var commandBar: some View {
-        HStack(spacing: StopmoUI.Spacing.sm) {
-            projectContextChip
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                projectContextChip
 
-            if state.watchServiceState?.running == true {
-                StatusChip(label: "Watch Running", tone: .success)
-            } else {
-                StatusChip(label: "Watch Stopped", tone: .warning)
-            }
+                if state.watchServiceState?.running == true {
+                    StatusChip(label: "Watch Running", tone: .success)
+                } else {
+                    StatusChip(label: "Watch Stopped", tone: .warning)
+                }
 
-            Spacer(minLength: 0)
+                Divider()
+                    .frame(height: 16)
 
-            Button("Start Watch") {
-                Task { await state.startWatchService() }
-            }
-            .disabled(state.isBusy || (state.watchServiceState?.running ?? false))
+                Button("Start Watch") {
+                    Task { await state.startWatchService() }
+                }
+                .disabled(state.isBusy || (state.watchServiceState?.running ?? false))
 
-            Button("Stop Watch") {
-                Task { await state.stopWatchService() }
-            }
-            .disabled(state.isBusy || !(state.watchServiceState?.running ?? false))
+                Button("Stop Watch") {
+                    Task { await state.stopWatchService() }
+                }
+                .disabled(state.isBusy || !(state.watchServiceState?.running ?? false))
 
-            Button("Refresh") {
-                Task { await refreshSelectedSection() }
-            }
-            .disabled(state.isBusy)
+                Button("Refresh") {
+                    Task { await refreshSelectedSection() }
+                }
+                .disabled(state.isBusy)
 
-            Button("Validate Config") {
-                Task { await state.validateConfig() }
-            }
-            .disabled(state.isBusy)
+                Button("Validate Config") {
+                    Task { await state.validateConfig() }
+                }
+                .disabled(state.isBusy)
 
-            Button("Check Runtime Health") {
-                Task { await state.refreshHealth() }
-            }
-            .disabled(state.isBusy)
+                Button("Check Runtime Health") {
+                    Task { await state.refreshHealth() }
+                }
+                .disabled(state.isBusy)
 
-            Button {
-                isNotificationsCenterPresented.toggle()
-            } label: {
-                Label("Notifications", systemImage: "bell")
-            }
-            .popover(isPresented: $isNotificationsCenterPresented, arrowEdge: .top) {
-                NotificationsCenterPanel()
-                    .environmentObject(state)
-            }
+                Button {
+                    isNotificationsCenterPresented.toggle()
+                } label: {
+                    Label("Notifications", systemImage: "bell")
+                }
+                .popover(isPresented: $isNotificationsCenterPresented, arrowEdge: .top) {
+                    NotificationsCenterPanel()
+                        .environmentObject(state)
+                }
 
-            if !state.notifications.isEmpty {
-                StatusChip(
-                    label: "\(state.notifications.count)",
-                    tone: state.notifications.contains { $0.kind == .error } ? .danger : .warning
-                )
+                if !state.notifications.isEmpty {
+                    StatusChip(
+                        label: "\(state.notifications.count)",
+                        tone: state.notifications.contains { $0.kind == .error } ? .danger : .warning
+                    )
+                }
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
         .background(.bar)
     }
 

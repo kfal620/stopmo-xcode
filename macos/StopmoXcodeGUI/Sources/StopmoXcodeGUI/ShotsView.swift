@@ -87,57 +87,59 @@ struct ShotsView: View {
 
     private var controlsCard: some View {
         SectionCard("Filters") {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                TextField("Search shot/output/review path", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 290)
-                    .focused($focusedField, equals: .search)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    TextField("Search shot/output/review path", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 290)
+                        .focused($focusedField, equals: .search)
 
-                Picker("State", selection: $selectedFilter) {
-                    ForEach(ShotStateFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+                    Picker("State", selection: $selectedFilter) {
+                        ForEach(ShotStateFilter.allCases) { filter in
+                            Text(filter.rawValue).tag(filter)
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 420)
+                    .pickerStyle(.segmented)
+                    .frame(width: 420)
 
-                Picker("Sort", selection: $selectedSort) {
-                    ForEach(ShotSortOption.allCases) { sort in
-                        Text(sort.rawValue).tag(sort)
+                    Picker("Sort", selection: $selectedSort) {
+                        ForEach(ShotSortOption.allCases) { sort in
+                            Text(sort.rawValue).tag(sort)
+                        }
                     }
+                    .pickerStyle(.menu)
+                    .frame(width: 180)
+
+                    StatusChip(label: "Visible \(filteredShots.count)", tone: .neutral)
                 }
-                .pickerStyle(.menu)
-                .frame(width: 180)
-
-                Spacer()
-
-                StatusChip(label: "Visible \(filteredShots.count)", tone: .neutral)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                Picker("Page Size", selection: $pageSize) {
-                    Text("50").tag(50)
-                    Text("75").tag(75)
-                    Text("100").tag(100)
-                    Text("150").tag(150)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Picker("Page Size", selection: $pageSize) {
+                        Text("50").tag(50)
+                        Text("75").tag(75)
+                        Text("100").tag(100)
+                        Text("150").tag(150)
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 110)
+
+                    Button("Previous") {
+                        pageIndex = max(0, pageIndex - 1)
+                    }
+                    .disabled(pageIndex == 0 || filteredShots.isEmpty)
+
+                    Button("Next") {
+                        pageIndex = min(pageCount - 1, pageIndex + 1)
+                    }
+                    .disabled(pageIndex >= pageCount - 1 || filteredShots.isEmpty)
+
+                    StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
+                    StatusChip(label: pageRangeLabel, tone: .neutral)
                 }
-                .pickerStyle(.menu)
-                .frame(width: 110)
-
-                Button("Previous") {
-                    pageIndex = max(0, pageIndex - 1)
-                }
-                .disabled(pageIndex == 0 || filteredShots.isEmpty)
-
-                Button("Next") {
-                    pageIndex = min(pageCount - 1, pageIndex + 1)
-                }
-                .disabled(pageIndex >= pageCount - 1 || filteredShots.isEmpty)
-
-                Spacer()
-
-                StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
-                StatusChip(label: pageRangeLabel, tone: .neutral)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

@@ -38,34 +38,37 @@ struct QueueView: View {
     @FocusState private var focusedField: QueueFocusField?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
-            ScreenHeader(
-                title: "Queue",
-                subtitle: "Triage jobs, retry failures, and export queue state for diagnostics."
-            ) {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    if let total = state.queueSnapshot?.total {
-                        StatusChip(label: "Jobs \(total)", tone: .neutral)
+        ScrollView {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                ScreenHeader(
+                    title: "Queue",
+                    subtitle: "Triage jobs, retry failures, and export queue state for diagnostics."
+                ) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        if let total = state.queueSnapshot?.total {
+                            StatusChip(label: "Jobs \(total)", tone: .neutral)
+                        }
+                        if failedCount > 0 {
+                            StatusChip(label: "Failed \(failedCount)", tone: .danger)
+                        }
+                        if inflightCount > 0 {
+                            StatusChip(label: "Inflight \(inflightCount)", tone: .warning)
+                        }
+                        Button("Refresh") {
+                            Task { await state.refreshLiveData() }
+                        }
+                        .disabled(state.isBusy)
                     }
-                    if failedCount > 0 {
-                        StatusChip(label: "Failed \(failedCount)", tone: .danger)
-                    }
-                    if inflightCount > 0 {
-                        StatusChip(label: "Inflight \(inflightCount)", tone: .warning)
-                    }
-                    Button("Refresh") {
-                        Task { await state.refreshLiveData() }
-                    }
-                    .disabled(state.isBusy)
                 }
-            }
 
-            controlsCard
-            jobsTableCard
-            selectedJobDetailCard
-            Spacer()
+                controlsCard
+                jobsTableCard
+                selectedJobDetailCard
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(StopmoUI.Spacing.lg)
         }
-        .padding(StopmoUI.Spacing.lg)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             if state.queueSnapshot == nil {
                 Task { await state.refreshLiveData() }
@@ -92,83 +95,88 @@ struct QueueView: View {
 
     private var controlsCard: some View {
         SectionCard("Filters & Actions") {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                TextField("Search id/shot/source/error", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 280)
-                    .focused($focusedField, equals: .search)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    TextField("Search id/shot/source/error", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 280)
+                        .focused($focusedField, equals: .search)
 
-                Picker("State", selection: $selectedFilter) {
-                    ForEach(QueueStateFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+                    Picker("State", selection: $selectedFilter) {
+                        ForEach(QueueStateFilter.allCases) { filter in
+                            Text(filter.rawValue).tag(filter)
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 360)
+                    .pickerStyle(.segmented)
+                    .frame(width: 360)
 
-                Picker("Sort", selection: $selectedSort) {
-                    ForEach(QueueSortOption.allCases) { sort in
-                        Text(sort.rawValue).tag(sort)
+                    Picker("Sort", selection: $selectedSort) {
+                        ForEach(QueueSortOption.allCases) { sort in
+                            Text(sort.rawValue).tag(sort)
+                        }
                     }
-                }
-                .pickerStyle(.menu)
-                .frame(width: 180)
+                    .pickerStyle(.menu)
+                    .frame(width: 180)
 
-                Toggle("Selected Only", isOn: $showOnlySelected)
-                    .toggleStyle(.switch)
+                    Toggle("Selected Only", isOn: $showOnlySelected)
+                        .toggleStyle(.switch)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                Button("Retry Failed") {
-                    Task { await state.retryFailedQueueJobs() }
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Button("Retry Failed") {
+                        Task { await state.retryFailedQueueJobs() }
+                    }
+                    .disabled(state.isBusy || failedCount == 0)
+
+                    Button("Retry Selected Failed") {
+                        Task { await state.retryFailedQueueJobs(jobIds: selectedFailedIds) }
+                    }
+                    .disabled(state.isBusy || selectedFailedIds.isEmpty)
+
+                    Button("Export Queue Snapshot") {
+                        state.exportQueueSnapshot()
+                    }
+                    .disabled(state.isBusy || state.queueSnapshot == nil)
+
+                    Button("Clear Selection") {
+                        selectedJobIDs.removeAll()
+                    }
+                    .disabled(selectedJobIDs.isEmpty)
+
+                    StatusChip(label: "Visible \(filteredJobs.count)", tone: .neutral)
+                    StatusChip(label: "Selected \(selectedJobIDs.count)", tone: selectedJobIDs.isEmpty ? .neutral : .warning)
                 }
-                .disabled(state.isBusy || failedCount == 0)
-
-                Button("Retry Selected Failed") {
-                    Task { await state.retryFailedQueueJobs(jobIds: selectedFailedIds) }
-                }
-                .disabled(state.isBusy || selectedFailedIds.isEmpty)
-
-                Button("Export Queue Snapshot") {
-                    state.exportQueueSnapshot()
-                }
-                .disabled(state.isBusy || state.queueSnapshot == nil)
-
-                Button("Clear Selection") {
-                    selectedJobIDs.removeAll()
-                }
-                .disabled(selectedJobIDs.isEmpty)
-
-                Spacer()
-
-                StatusChip(label: "Visible \(filteredJobs.count)", tone: .neutral)
-                StatusChip(label: "Selected \(selectedJobIDs.count)", tone: selectedJobIDs.isEmpty ? .neutral : .warning)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                Picker("Page Size", selection: $pageSize) {
-                    Text("50").tag(50)
-                    Text("75").tag(75)
-                    Text("100").tag(100)
-                    Text("150").tag(150)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Picker("Page Size", selection: $pageSize) {
+                        Text("50").tag(50)
+                        Text("75").tag(75)
+                        Text("100").tag(100)
+                        Text("150").tag(150)
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 110)
+
+                    Button("Previous") {
+                        pageIndex = max(0, pageIndex - 1)
+                    }
+                    .disabled(pageIndex == 0 || filteredJobs.isEmpty)
+
+                    Button("Next") {
+                        pageIndex = min(pageCount - 1, pageIndex + 1)
+                    }
+                    .disabled(pageIndex >= pageCount - 1 || filteredJobs.isEmpty)
+
+                    StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
+                    StatusChip(label: pageRangeLabel, tone: .neutral)
                 }
-                .pickerStyle(.menu)
-                .frame(width: 110)
-
-                Button("Previous") {
-                    pageIndex = max(0, pageIndex - 1)
-                }
-                .disabled(pageIndex == 0 || filteredJobs.isEmpty)
-
-                Button("Next") {
-                    pageIndex = min(pageCount - 1, pageIndex + 1)
-                }
-                .disabled(pageIndex >= pageCount - 1 || filteredJobs.isEmpty)
-
-                Spacer()
-
-                StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
-                StatusChip(label: pageRangeLabel, tone: .neutral)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
