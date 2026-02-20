@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		138B33E71F475178D989AC78 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 675733F70C6A47729E2C036B /* AppState.swift */; };
 		D05F1F2D05E366399124CECE /* BridgeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */; };
+		4EE8C8C0ADCAE07F67608551 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624D6464AFF1F9AF0857113A /* DesignSystem.swift */; };
 		A5DC539A64BD86625DC80324 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AB5C1CB812516A120B00D2C /* HistoryView.swift */; };
 		157A5419C022C0B3ABD5CDD2 /* LiveMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */; };
 		64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */; };
@@ -29,6 +30,7 @@
 		204E97482B5682072413C183 /* entitlements.debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.debug.plist; sourceTree = "<group>"; };
 		675733F70C6A47729E2C036B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
+		624D6464AFF1F9AF0857113A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		9AB5C1CB812516A120B00D2C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitorView.swift; sourceTree = "<group>"; };
 		502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsDiagnosticsView.swift; sourceTree = "<group>"; };
@@ -83,6 +85,7 @@
 			children = (
 				675733F70C6A47729E2C036B /* AppState.swift */,
 				D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */,
+				624D6464AFF1F9AF0857113A /* DesignSystem.swift */,
 				9AB5C1CB812516A120B00D2C /* HistoryView.swift */,
 				2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */,
 				502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */,
@@ -178,6 +181,7 @@
 			files = (
 				138B33E71F475178D989AC78 /* AppState.swift in Sources */,
 				D05F1F2D05E366399124CECE /* BridgeClient.swift in Sources */,
+				4EE8C8C0ADCAE07F67608551 /* DesignSystem.swift in Sources */,
 				A5DC539A64BD86625DC80324 /* HistoryView.swift in Sources */,
 				157A5419C022C0B3ABD5CDD2 /* LiveMonitorView.swift in Sources */,
 				64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */,

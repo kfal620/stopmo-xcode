@@ -11,6 +11,48 @@ enum AppSection: String, CaseIterable, Identifiable {
     case history = "History"
 
     var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .setup:
+            return "wrench.and.screwdriver"
+        case .project:
+            return "slider.horizontal.3"
+        case .liveMonitor:
+            return "dot.radiowaves.left.and.right"
+        case .shots:
+            return "film.stack"
+        case .queue:
+            return "list.bullet.rectangle"
+        case .tools:
+            return "hammer"
+        case .logs:
+            return "doc.text.magnifyingglass"
+        case .history:
+            return "clock.arrow.circlepath"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .setup:
+            return "Runtime, paths, and safety checks"
+        case .project:
+            return "Watch, pipeline, and output config"
+        case .liveMonitor:
+            return "Watch controls and live telemetry"
+        case .shots:
+            return "Shot-level progress and assembly"
+        case .queue:
+            return "Recent jobs and retry context"
+        case .tools:
+            return "One-off transcode and matrix tools"
+        case .logs:
+            return "Warnings, logs, diagnostics bundle"
+        case .history:
+            return "Past runs and reproducibility data"
+        }
+    }
 }
 
 struct BridgeHealth: Codable, Sendable {

@@ -6,75 +6,82 @@ struct LogsDiagnosticsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text("Logs & Diagnostics")
-                        .font(.title2)
-                        .bold()
-                    Spacer()
-                    TextField("Severity filter (e.g. ERROR,WARNING)", text: $severityFilter)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 280)
-                    Button("Refresh") {
-                        Task {
-                            await state.refreshLogsDiagnostics(
-                                severity: severityFilter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                    ? nil
-                                    : severityFilter
-                            )
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                ScreenHeader(
+                    title: "Logs & Diagnostics",
+                    subtitle: "Inspect structured logs, warning signatures, and diagnostics bundles."
+                ) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        TextField("Severity filter (e.g. ERROR,WARNING)", text: $severityFilter)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 280)
+                        Button("Refresh") {
+                            Task {
+                                await state.refreshLogsDiagnostics(
+                                    severity: severityFilter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                        ? nil
+                                        : severityFilter
+                                )
+                            }
                         }
+                        .disabled(state.isBusy)
+                        Button("Copy Diagnostics Bundle") {
+                            Task { await state.copyDiagnosticsBundle() }
+                        }
+                        .disabled(state.isBusy)
                     }
-                    .disabled(state.isBusy)
-                    Button("Copy Diagnostics Bundle") {
-                        Task { await state.copyDiagnosticsBundle() }
-                    }
-                    .disabled(state.isBusy)
                 }
 
                 if let bundlePath = state.lastDiagnosticsBundlePath, !bundlePath.isEmpty {
-                    Text("Latest bundle: \(bundlePath)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
+                    SectionCard("Latest Bundle") {
+                        KeyValueRow(key: "Path", value: bundlePath)
+                    }
                 }
 
                 if let snapshot = state.logsDiagnostics {
-                    GroupBox("Warnings") {
+                    SectionCard("Warnings") {
                         if snapshot.warnings.isEmpty {
-                            Text("No warning signatures found in current log window.")
-                                .foregroundStyle(.secondary)
+                            EmptyStateCard(message: "No warning signatures found in current log window.")
                         } else {
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                                 ForEach(snapshot.warnings) { row in
-                                    Text("[\(row.severity)] \(row.code): \(row.message)")
-                                        .font(.system(.caption, design: .monospaced))
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.xs) {
+                                        StatusChip(label: row.severity, tone: severityTone(row.severity))
+                                        Text("\(row.code): \(row.message)")
+                                            .font(.system(.caption, design: .monospaced))
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
                                 }
                             }
                         }
                     }
 
-                    GroupBox("Queue Counts") {
+                    SectionCard("Queue Counts") {
                         let ordered = ["detected", "decoding", "xform", "dpx_write", "done", "failed"]
-                        HStack(spacing: 12) {
+                        HStack(spacing: StopmoUI.Spacing.sm) {
                             ForEach(ordered, id: \.self) { key in
-                                Text("\(key): \(snapshot.queueCounts[key, default: 0])")
-                                    .font(.caption)
+                                let count = snapshot.queueCounts[key, default: 0]
+                                StatusChip(
+                                    label: "\(key): \(count)",
+                                    tone: queueTone(for: key, count: count)
+                                )
                             }
                         }
                     }
 
-                    GroupBox("Structured Logs") {
+                    SectionCard("Structured Logs") {
                         if snapshot.entries.isEmpty {
-                            Text("No log entries.")
-                                .foregroundStyle(.secondary)
+                            EmptyStateCard(message: "No log entries.")
                         } else {
                             ScrollView {
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
                                     ForEach(snapshot.entries) { entry in
-                                        Text("[\(entry.severity)] \(entry.timestamp ?? "-") \(entry.logger) \(entry.message)")
-                                            .font(.system(.caption, design: .monospaced))
-                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.xs) {
+                                            StatusChip(label: entry.severity, tone: severityTone(entry.severity))
+                                            Text("[\(entry.timestamp ?? "-")] \(entry.logger) \(entry.message)")
+                                                .font(.system(.caption, design: .monospaced))
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
                                     }
                                 }
                             }
@@ -82,16 +89,42 @@ struct LogsDiagnosticsView: View {
                         }
                     }
                 } else {
-                    Text("No diagnostics loaded yet.")
-                        .foregroundStyle(.secondary)
+                    EmptyStateCard(message: "No diagnostics loaded yet.")
                 }
             }
-            .padding(20)
+            .padding(StopmoUI.Spacing.lg)
         }
         .onAppear {
             if state.logsDiagnostics == nil {
                 Task { await state.refreshLogsDiagnostics() }
             }
         }
+    }
+
+    private func severityTone(_ severity: String) -> StatusTone {
+        let normalized = severity.uppercased()
+        if normalized == "ERROR" || normalized == "CRITICAL" {
+            return .danger
+        }
+        if normalized == "WARNING" || normalized == "WARN" {
+            return .warning
+        }
+        if normalized == "INFO" {
+            return .success
+        }
+        return .neutral
+    }
+
+    private func queueTone(for state: String, count: Int) -> StatusTone {
+        if state == "failed", count > 0 {
+            return .danger
+        }
+        if state == "done", count > 0 {
+            return .success
+        }
+        if count > 0 {
+            return .warning
+        }
+        return .neutral
     }
 }

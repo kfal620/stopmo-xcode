@@ -26,74 +26,75 @@ struct ToolsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Tools")
-                    .font(.title2)
-                    .bold()
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                ScreenHeader(
+                    title: "Tools",
+                    subtitle: "Run one-off operations and inspect operation activity."
+                ) {
+                    if isRunningTool {
+                        StatusChip(label: "Running", tone: .warning)
+                    }
+                }
 
                 transcodeSection
                 matrixSection
                 dpxSection
                 eventsSection
             }
-            .padding(20)
+            .padding(StopmoUI.Spacing.lg)
         }
     }
 
     private var transcodeSection: some View {
-        GroupBox("Transcode One") {
-            VStack(alignment: .leading, spacing: 10) {
-                TextField("Input RAW frame path", text: $transcodeInputPath)
-                    .textFieldStyle(.roundedBorder)
-                TextField("Output directory override (optional)", text: $transcodeOutputDir)
-                    .textFieldStyle(.roundedBorder)
-                HStack {
+        SectionCard("Transcode One", subtitle: "Single-frame transcode with optional output override.") {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                toolTextField("Input RAW frame path", text: $transcodeInputPath)
+                toolTextField("Output directory override (optional)", text: $transcodeOutputDir)
+                HStack(spacing: StopmoUI.Spacing.sm) {
                     Button("Run Transcode One") {
                         Task { await runTranscodeOne() }
                     }
                     .disabled(isRunningTool)
                     if !transcodeResultPath.isEmpty {
-                        Text("Output: \(transcodeResultPath)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
+                        StatusChip(label: "Output Ready", tone: .success)
                     }
                 }
+                if !transcodeResultPath.isEmpty {
+                    Text(transcodeResultPath)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
             }
-            .padding(.top, 6)
         }
     }
 
     private var matrixSection: some View {
-        GroupBox("Suggest Matrix") {
-            VStack(alignment: .leading, spacing: 10) {
-                TextField("Input RAW frame path", text: $matrixInputPath)
-                    .textFieldStyle(.roundedBorder)
-                HStack {
-                    TextField("Camera make override (optional)", text: $matrixCameraMake)
-                        .textFieldStyle(.roundedBorder)
-                    TextField("Camera model override (optional)", text: $matrixCameraModel)
-                        .textFieldStyle(.roundedBorder)
+        SectionCard("Suggest Matrix", subtitle: "Estimate camera-to-reference matrix and apply to project.") {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                toolTextField("Input RAW frame path", text: $matrixInputPath)
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    toolTextField("Camera make override (optional)", text: $matrixCameraMake)
+                    toolTextField("Camera model override (optional)", text: $matrixCameraModel)
                 }
-                TextField("Write JSON report path (optional)", text: $matrixWriteJsonPath)
-                    .textFieldStyle(.roundedBorder)
-                HStack {
+                toolTextField("Write JSON report path (optional)", text: $matrixWriteJsonPath)
+                HStack(spacing: StopmoUI.Spacing.sm) {
                     Button("Run Suggest Matrix") {
                         Task { await runSuggestMatrix() }
                     }
                     .disabled(isRunningTool)
+
                     Button("Apply Matrix To Project") {
                         applySuggestedMatrixToProject()
                     }
                     .disabled(isRunningTool || matrixSummary.isEmpty)
+
                     if !matrixConfidence.isEmpty {
-                        Text("Confidence: \(matrixConfidence)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        StatusChip(label: "Confidence \(matrixConfidence)", tone: .neutral)
                     }
                 }
                 if !matrixSummary.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
                         ForEach(matrixSummary.indices, id: \.self) { idx in
                             Text(matrixSummary[idx])
                                 .font(.caption)
@@ -102,34 +103,29 @@ struct ToolsView: View {
                     }
                 }
             }
-            .padding(.top, 6)
         }
     }
 
     private var dpxSection: some View {
-        GroupBox("DPX To ProRes") {
-            VStack(alignment: .leading, spacing: 10) {
-                TextField("Input directory", text: $dpxInputDir)
-                    .textFieldStyle(.roundedBorder)
-                TextField("Output directory (optional)", text: $dpxOutputDir)
-                    .textFieldStyle(.roundedBorder)
-                HStack {
+        SectionCard("DPX To ProRes", subtitle: "Batch transcode DPX sequences into ProRes outputs.") {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                toolTextField("Input directory", text: $dpxInputDir)
+                toolTextField("Output directory (optional)", text: $dpxOutputDir)
+                HStack(spacing: StopmoUI.Spacing.md) {
                     Stepper("Framerate: \(dpxFramerate)", value: $dpxFramerate, in: 1 ... 120)
                     Toggle("Overwrite", isOn: $dpxOverwrite)
                 }
-                HStack {
+                HStack(spacing: StopmoUI.Spacing.sm) {
                     Button("Run DPX To ProRes") {
                         Task { await runDpxToProres() }
                     }
                     .disabled(isRunningTool)
                     if !dpxProgressText.isEmpty {
-                        Text(dpxProgressText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        StatusChip(label: dpxProgressText, tone: .neutral)
                     }
                 }
                 if !dpxOutputs.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
                         Text("Outputs")
                             .font(.caption.bold())
                         ForEach(dpxOutputs, id: \.self) { output in
@@ -140,18 +136,16 @@ struct ToolsView: View {
                     }
                 }
             }
-            .padding(.top, 6)
         }
     }
 
     private var eventsSection: some View {
-        GroupBox("Tool Activity") {
+        SectionCard("Tool Activity", subtitle: "Latest operation events from backend event history.") {
             if latestEvents.isEmpty {
-                Text("No tool events yet.")
-                    .foregroundStyle(.secondary)
+                EmptyStateCard(message: "No tool events yet.")
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
                         ForEach(latestEvents) { ev in
                             Text("[\(ev.timestampUtc)] \(ev.eventType) \(ev.message ?? "")")
                                 .font(.system(.caption, design: .monospaced))
@@ -162,6 +156,12 @@ struct ToolsView: View {
                 .frame(minHeight: 120, maxHeight: 240)
             }
         }
+    }
+
+    private func toolTextField(_ placeholder: String, text: Binding<String>) -> some View {
+        TextField(placeholder, text: text)
+            .textFieldStyle(.roundedBorder)
+            .frame(maxWidth: 760, alignment: .leading)
     }
 
     private func runTranscodeOne() async {

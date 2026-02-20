@@ -5,192 +5,237 @@ struct SetupView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Setup")
-                    .font(.title2)
-                    .bold()
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                ScreenHeader(
+                    title: "Setup",
+                    subtitle: "Workspace access, runtime checks, and startup safety."
+                )
 
-                GroupBox("Workspace") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Repo Root")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            HStack(spacing: 8) {
-                                TextField("Repo root", text: $state.repoRoot)
-                                    .textFieldStyle(.roundedBorder)
-                                Button {
-                                    state.chooseRepoRootDirectory()
-                                } label: {
-                                    Image(systemName: "folder")
-                                }
-                                .help("Browse for repo root")
-                                .disabled(state.isBusy)
-                            }
-                        }
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Config Path")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            HStack(spacing: 8) {
-                                TextField("Config path", text: $state.configPath)
-                                    .textFieldStyle(.roundedBorder)
-                                Button {
-                                    state.chooseConfigFile()
-                                } label: {
-                                    Image(systemName: "doc")
-                                }
-                                .help("Browse for config file")
-                                .disabled(state.isBusy)
-                            }
-                        }
-                        HStack(spacing: 10) {
-                            Button("Choose Workspace…") {
-                                state.chooseWorkspaceDirectory()
-                            }
-                            .disabled(state.isBusy)
-
-                            Button("Check Runtime Health") {
-                                Task { await state.refreshHealth() }
-                            }
-                            .disabled(state.isBusy)
-
-                            Button("Load Config") {
-                                Task { await state.loadConfig() }
-                            }
-                            .disabled(state.isBusy)
-
-                            Button("Save Config") {
-                                Task { await state.saveConfig() }
-                            }
-                            .disabled(state.isBusy)
-
-                            Button("Validate Config") {
-                                Task { await state.validateConfig() }
-                            }
-                            .disabled(state.isBusy)
-
-                            Button("Watch Preflight") {
-                                Task { await state.refreshWatchPreflight() }
-                            }
-                            .disabled(state.isBusy)
-                        }
-                        HStack {
-                            Text("Workspace Access")
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(state.workspaceAccessActive ? "granted" : "not granted")
-                                .foregroundStyle(state.workspaceAccessActive ? .green : .orange)
-                                .font(.caption)
-                        }
+                SectionCard("Workspace", subtitle: "Select repo/config paths and run setup checks.") {
+                    LabeledPathField(
+                        label: "Repo Root",
+                        placeholder: "Repo root",
+                        text: $state.repoRoot,
+                        icon: "folder",
+                        browseHelp: "Browse for repo root",
+                        isDisabled: state.isBusy
+                    ) {
+                        state.chooseRepoRootDirectory()
                     }
-                    .padding(.top, 6)
+
+                    LabeledPathField(
+                        label: "Config Path",
+                        placeholder: "Config path",
+                        text: $state.configPath,
+                        icon: "doc",
+                        browseHelp: "Browse for config file",
+                        isDisabled: state.isBusy
+                    ) {
+                        state.chooseConfigFile()
+                    }
+
+                    actionRows
+
+                    HStack {
+                        Text("Workspace Access")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        StatusChip(
+                            label: state.workspaceAccessActive ? "Granted" : "Not Granted",
+                            tone: state.workspaceAccessActive ? .success : .warning
+                        )
+                    }
                 }
 
                 if let health = state.health {
-                    GroupBox("Runtime Health") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            kv("Python", health.pythonExecutable)
-                            kv("Python Version", health.pythonVersion)
-                            kv("Venv Python", health.venvPython)
-                            kv("Venv Exists", health.venvPythonExists ? "yes" : "no")
-                            kv("stopmo Version", health.stopmoVersion ?? "unknown")
-                            if let ffmpeg = health.ffmpegPath {
-                                kv("FFmpeg", ffmpeg)
-                            } else {
-                                kv("FFmpeg", "not found")
-                            }
-                            if let configLoadOk = health.configLoadOk {
-                                kv("Config Load", configLoadOk ? "ok" : "failed")
-                            }
-                            if let configError = health.configError, !configError.isEmpty {
-                                kv("Config Error", configError)
-                            }
+                    SectionCard("Runtime Health") {
+                        KeyValueRow(key: "Python", value: health.pythonExecutable)
+                        KeyValueRow(key: "Python Version", value: health.pythonVersion)
+                        KeyValueRow(key: "Venv Python", value: health.venvPython)
+                        KeyValueRow(
+                            key: "Venv Exists",
+                            value: health.venvPythonExists ? "yes" : "no",
+                            tone: health.venvPythonExists ? .success : .danger
+                        )
+                        KeyValueRow(key: "stopmo Version", value: health.stopmoVersion ?? "unknown")
+                        KeyValueRow(
+                            key: "FFmpeg",
+                            value: health.ffmpegPath ?? "not found",
+                            tone: health.ffmpegPath == nil ? .warning : .success
+                        )
+                        if let configLoadOk = health.configLoadOk {
+                            KeyValueRow(
+                                key: "Config Load",
+                                value: configLoadOk ? "ok" : "failed",
+                                tone: configLoadOk ? .success : .danger
+                            )
                         }
-                        .padding(.top, 6)
+                        if let configError = health.configError, !configError.isEmpty {
+                            KeyValueRow(key: "Config Error", value: configError, tone: .danger)
+                        }
                     }
 
-                    GroupBox("Dependency Checks") {
+                    SectionCard("Dependency Checks") {
                         let keys = health.checks.keys.sorted()
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(keys, id: \.self) { key in
-                                HStack {
-                                    Text(key)
-                                    Spacer()
-                                    let ok = health.checks[key] ?? false
-                                    Text(ok ? "available" : "missing")
-                                        .foregroundStyle(ok ? .green : .red)
-                                }
+                        ForEach(keys, id: \.self) { key in
+                            HStack {
+                                Text(key)
+                                Spacer()
+                                let ok = health.checks[key] ?? false
+                                StatusChip(label: ok ? "Available" : "Missing", tone: ok ? .success : .danger)
                             }
+                            .font(.callout)
                         }
-                        .padding(.top, 6)
                     }
+                } else {
+                    EmptyStateCard(message: "Runtime health not loaded yet. Click Check Runtime Health.")
                 }
 
                 if let validation = state.configValidation {
-                    GroupBox("Config Validation") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            kv("Status", validation.ok ? "ok" : "failed")
-                            if !validation.errors.isEmpty {
-                                Text("Errors")
-                                    .font(.subheadline)
-                                ForEach(validation.errors) { item in
-                                    Text("[\(item.field)] \(item.message)")
-                                        .font(.caption)
-                                        .foregroundStyle(.red)
-                                }
-                            }
-                            if !validation.warnings.isEmpty {
-                                Text("Warnings")
-                                    .font(.subheadline)
-                                ForEach(validation.warnings) { item in
-                                    Text("[\(item.field)] \(item.message)")
-                                        .font(.caption)
-                                        .foregroundStyle(.orange)
-                                }
+                    SectionCard("Config Validation") {
+                        HStack {
+                            Text("Status")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            StatusChip(
+                                label: validation.ok ? "OK" : "Failed",
+                                tone: validation.ok ? .success : .danger
+                            )
+                        }
+                        if !validation.errors.isEmpty {
+                            Text("Errors")
+                                .font(.subheadline)
+                            ForEach(validation.errors) { item in
+                                Text("[\(item.field)] \(item.message)")
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
                             }
                         }
-                        .padding(.top, 6)
+                        if !validation.warnings.isEmpty {
+                            Text("Warnings")
+                                .font(.subheadline)
+                            ForEach(validation.warnings) { item in
+                                Text("[\(item.field)] \(item.message)")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
+                        }
                     }
                 }
 
                 if let preflight = state.watchPreflight {
-                    GroupBox("Watch Start Safety") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            kv("Ready", preflight.ok ? "yes" : "no")
-                            if !preflight.blockers.isEmpty {
-                                kv("Blockers", preflight.blockers.joined(separator: ", "))
-                            }
-                            let checks = preflight.healthChecks.keys.sorted()
-                            if !checks.isEmpty {
-                                Text("Health Checks")
-                                    .font(.subheadline)
-                                ForEach(checks, id: \.self) { key in
-                                    HStack {
-                                        Text(key)
-                                        Spacer()
-                                        Text((preflight.healthChecks[key] ?? false) ? "ok" : "missing")
-                                            .foregroundStyle((preflight.healthChecks[key] ?? false) ? .green : .red)
-                                    }
-                                    .font(.caption)
+                    SectionCard("Watch Start Safety") {
+                        HStack {
+                            Text("Ready")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            StatusChip(
+                                label: preflight.ok ? "Yes" : "No",
+                                tone: preflight.ok ? .success : .danger
+                            )
+                        }
+                        if !preflight.blockers.isEmpty {
+                            KeyValueRow(
+                                key: "Blockers",
+                                value: preflight.blockers.joined(separator: ", "),
+                                tone: .danger
+                            )
+                        }
+                        let checks = preflight.healthChecks.keys.sorted()
+                        if !checks.isEmpty {
+                            Text("Health Checks")
+                                .font(.subheadline)
+                            ForEach(checks, id: \.self) { key in
+                                HStack {
+                                    Text(key)
+                                    Spacer()
+                                    let ok = preflight.healthChecks[key] ?? false
+                                    StatusChip(label: ok ? "OK" : "Missing", tone: ok ? .success : .danger)
                                 }
+                                .font(.caption)
                             }
                         }
-                        .padding(.top, 6)
                     }
                 }
             }
-            .padding(20)
+            .padding(StopmoUI.Spacing.lg)
         }
     }
 
-    private func kv(_ key: String, _ value: String) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(key)
-                .frame(width: 140, alignment: .leading)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .textSelection(.enabled)
+    @ViewBuilder
+    private var actionRows: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                workspaceActionButtons
+            }
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Button("Choose Workspace…") {
+                        state.chooseWorkspaceDirectory()
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Check Runtime Health") {
+                        Task { await state.refreshHealth() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Load Config") {
+                        Task { await state.loadConfig() }
+                    }
+                    .disabled(state.isBusy)
+                }
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Button("Save Config") {
+                        Task { await state.saveConfig() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Validate Config") {
+                        Task { await state.validateConfig() }
+                    }
+                    .disabled(state.isBusy)
+
+                    Button("Watch Preflight") {
+                        Task { await state.refreshWatchPreflight() }
+                    }
+                    .disabled(state.isBusy)
+                }
+            }
+        }
+    }
+
+    private var workspaceActionButtons: some View {
+        Group {
+            Button("Choose Workspace…") {
+                state.chooseWorkspaceDirectory()
+            }
+            .disabled(state.isBusy)
+
+            Button("Check Runtime Health") {
+                Task { await state.refreshHealth() }
+            }
+            .disabled(state.isBusy)
+
+            Button("Load Config") {
+                Task { await state.loadConfig() }
+            }
+            .disabled(state.isBusy)
+
+            Button("Save Config") {
+                Task { await state.saveConfig() }
+            }
+            .disabled(state.isBusy)
+
+            Button("Validate Config") {
+                Task { await state.validateConfig() }
+            }
+            .disabled(state.isBusy)
+
+            Button("Watch Preflight") {
+                Task { await state.refreshWatchPreflight() }
+            }
+            .disabled(state.isBusy)
         }
     }
 }

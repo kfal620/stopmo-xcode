@@ -23,6 +23,13 @@ final class Phase0SmokeTests: XCTestCase {
         XCTAssertEqual(Set(ids).count, ids.count)
     }
 
+    func testSidebarMetadataIsPresent() {
+        for section in AppSection.allCases {
+            XCTAssertFalse(section.iconName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            XCTAssertFalse(section.subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
     func testInterpretationContractDefaultsRemainStable() {
         let cfg = StopmoConfigDocument.empty
         XCTAssertEqual(cfg.pipeline.targetEi, 800)

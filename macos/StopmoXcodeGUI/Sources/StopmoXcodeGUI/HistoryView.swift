@@ -5,37 +5,40 @@ struct HistoryView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("History")
-                        .font(.title2)
-                        .bold()
-                    Spacer()
-                    Button("Refresh") {
-                        Task { await state.refreshHistory() }
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                ScreenHeader(
+                    title: "History",
+                    subtitle: "Past run summaries with reproducibility metadata."
+                ) {
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        if let count = state.historySummary?.count {
+                            StatusChip(label: "Runs \(count)", tone: .neutral)
+                        }
+                        Button("Refresh") {
+                            Task { await state.refreshHistory() }
+                        }
+                        .disabled(state.isBusy)
                     }
-                    .disabled(state.isBusy)
                 }
 
-                if let snapshot = state.historySummary {
-                    Text("Runs: \(snapshot.count)")
-                        .font(.subheadline)
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 6) {
-                            headerRow
-                            Divider()
-                            ForEach(snapshot.runs) { run in
-                                row(run)
+                SectionCard("Run History") {
+                    if let snapshot = state.historySummary {
+                        ScrollView([.horizontal, .vertical]) {
+                            LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                                headerRow
+                                Divider()
+                                ForEach(snapshot.runs) { run in
+                                    row(run)
+                                }
                             }
                         }
-                        .padding(.vertical, 4)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    } else {
+                        EmptyStateCard(message: "No history loaded yet.")
                     }
-                } else {
-                    Text("No history loaded yet.")
-                        .foregroundStyle(.secondary)
                 }
             }
-            .padding(20)
+            .padding(StopmoUI.Spacing.lg)
         }
         .onAppear {
             if state.historySummary == nil {
@@ -63,8 +66,8 @@ struct HistoryView: View {
             col(run.runId, width: 90)
             col(run.startUtc, width: 220)
             col(run.endUtc, width: 220)
-            col("\(run.totalJobs)", width: 70)
-            col("\(run.failedJobs)", width: 70)
+            jobsCell(run.totalJobs)
+            failedCell(run.failedJobs)
             col(run.shots.joined(separator: ", "), width: 200)
             col(run.pipelineHashes.joined(separator: ", "), width: 220)
             col(run.toolVersions.joined(separator: ", "), width: 160)
@@ -78,5 +81,19 @@ struct HistoryView: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .frame(width: width, alignment: .leading)
+    }
+
+    private func jobsCell(_ total: Int) -> some View {
+        HStack {
+            StatusChip(label: "\(total)", tone: total > 0 ? .neutral : .warning)
+                .frame(width: 70, alignment: .leading)
+        }
+    }
+
+    private func failedCell(_ failed: Int) -> some View {
+        HStack {
+            StatusChip(label: "\(failed)", tone: failed > 0 ? .danger : .success)
+                .frame(width: 70, alignment: .leading)
+        }
     }
 }

@@ -4,38 +4,41 @@ struct ShotsView: View {
     @EnvironmentObject private var state: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Shots")
-                    .font(.title2)
-                    .bold()
-                Spacer()
-                Button("Refresh") {
-                    Task { await state.refreshLiveData() }
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+            ScreenHeader(
+                title: "Shots",
+                subtitle: "Shot-level frame progress and assembly status."
+            ) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    if let count = state.shotsSnapshot?.count {
+                        StatusChip(label: "Shots \(count)", tone: .neutral)
+                    }
+                    Button("Refresh") {
+                        Task { await state.refreshLiveData() }
+                    }
+                    .disabled(state.isBusy)
                 }
-                .disabled(state.isBusy)
             }
 
-            if let snapshot = state.shotsSnapshot {
-                Text("Shots: \(snapshot.count)")
-                    .font(.subheadline)
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
-                        headerRow
-                        Divider()
-                        ForEach(snapshot.shots) { row in
-                            shotRow(row)
+            SectionCard("Shot Summary") {
+                if let snapshot = state.shotsSnapshot {
+                    ScrollView([.horizontal, .vertical]) {
+                        LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                            headerRow
+                            Divider()
+                            ForEach(snapshot.shots) { row in
+                                shotRow(row)
+                            }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else {
+                    EmptyStateCard(message: "No shot summary yet.")
                 }
-            } else {
-                Text("No shot summary yet.")
-                    .foregroundStyle(.secondary)
             }
             Spacer()
         }
-        .padding(20)
+        .padding(StopmoUI.Spacing.lg)
     }
 
     private var headerRow: some View {
@@ -57,13 +60,13 @@ struct ShotsView: View {
     private func shotRow(_ shot: ShotSummaryRow) -> some View {
         HStack(spacing: 10) {
             col(shot.shotName, width: 160)
-            col(shot.state, width: 90)
+            shotStateCell(shot.state)
             col("\(shot.totalFrames)", width: 120)
             col("\(shot.doneFrames)", width: 80)
             col("\(shot.failedFrames)", width: 80)
             col("\(shot.inflightFrames)", width: 80)
-            col("\(Int((shot.progressRatio * 100.0).rounded()))%", width: 90)
-            col(shot.assemblyState ?? "-", width: 110)
+            progressCell(shot.progressRatio)
+            assemblyCell(shot.assemblyState)
             col(shot.lastUpdatedAt ?? "-", width: 220)
             col(shot.outputMovPath ?? "-", width: 280)
         }
@@ -76,5 +79,63 @@ struct ShotsView: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .frame(width: width, alignment: .leading)
+    }
+
+    private func shotStateCell(_ state: String) -> some View {
+        HStack {
+            StatusChip(label: state, tone: stateTone(state))
+                .frame(width: 90, alignment: .leading)
+        }
+    }
+
+    private func progressCell(_ ratio: Double) -> some View {
+        let pct = Int((ratio * 100.0).rounded())
+        return HStack {
+            StatusChip(label: "\(pct)%", tone: progressTone(ratio))
+                .frame(width: 90, alignment: .leading)
+        }
+    }
+
+    private func assemblyCell(_ assemblyState: String?) -> some View {
+        let text = assemblyState ?? "-"
+        return HStack {
+            StatusChip(label: text, tone: assemblyTone(text))
+                .frame(width: 110, alignment: .leading)
+        }
+    }
+
+    private func stateTone(_ value: String) -> StatusTone {
+        let v = value.lowercased()
+        if v.contains("failed") {
+            return .danger
+        }
+        if v.contains("done") {
+            return .success
+        }
+        return .warning
+    }
+
+    private func progressTone(_ ratio: Double) -> StatusTone {
+        if ratio >= 1.0 {
+            return .success
+        }
+        if ratio <= 0.0 {
+            return .neutral
+        }
+        return .warning
+    }
+
+    private func assemblyTone(_ value: String) -> StatusTone {
+        let v = value.lowercased()
+        if v.contains("done") {
+            return .success
+        }
+        if v.contains("pending") || v.contains("dirty") {
+            return .warning
+        }
+        if v == "-" {
+            return .neutral
+        }
+        return .danger
     }
 }

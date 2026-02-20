@@ -4,44 +4,44 @@ struct QueueView: View {
     @EnvironmentObject private var state: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Queue")
-                    .font(.title2)
-                    .bold()
-                Spacer()
-                Button("Refresh") {
-                    Task { await state.refreshLiveData() }
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+            ScreenHeader(
+                title: "Queue",
+                subtitle: "Recent queue jobs, attempts, and failure reasons."
+            ) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    if let total = state.queueSnapshot?.total {
+                        StatusChip(label: "Jobs \(total)", tone: .neutral)
+                    }
+                    Button("Refresh") {
+                        Task { await state.refreshLiveData() }
+                    }
+                    .disabled(state.isBusy)
                 }
-                .disabled(state.isBusy)
             }
 
-            if let queue = state.queueSnapshot {
-                Text("DB: \(queue.dbPath)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
+            SectionCard("Queue Snapshot") {
+                if let queue = state.queueSnapshot {
+                    KeyValueRow(key: "DB", value: queue.dbPath)
+                    KeyValueRow(key: "Total Jobs", value: "\(queue.total)")
 
-                Text("Total Jobs: \(queue.total)")
-                    .font(.subheadline)
-
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 6) {
-                        headerRow
-                        Divider()
-                        ForEach(queue.recent) { job in
-                            row(job)
+                    ScrollView([.horizontal, .vertical]) {
+                        LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                            headerRow
+                            Divider()
+                            ForEach(queue.recent) { job in
+                                row(job)
+                            }
                         }
                     }
-                    .padding(.vertical, 4)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else {
+                    EmptyStateCard(message: "No queue data yet.")
                 }
-            } else {
-                Text("No queue data yet.")
-                    .foregroundStyle(.secondary)
             }
             Spacer()
         }
-        .padding(20)
+        .padding(StopmoUI.Spacing.lg)
     }
 
     private var headerRow: some View {
@@ -62,7 +62,7 @@ struct QueueView: View {
     private func row(_ job: QueueJobRecord) -> some View {
         HStack(spacing: 10) {
             col("\(job.id)", width: 60)
-            col(job.state, width: 90)
+            stateCell(job.state)
             col(job.shot, width: 140)
             col("\(job.frame)", width: 70)
             col("\(job.attempts)", width: 80)
@@ -80,5 +80,30 @@ struct QueueView: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .frame(width: width, alignment: .leading)
+    }
+
+    private func stateCell(_ state: String) -> some View {
+        HStack {
+            StatusChip(label: state, tone: stateTone(state))
+                .frame(width: 90, alignment: .leading)
+        }
+    }
+
+    private func stateTone(_ value: String) -> StatusTone {
+        let normalized = value.lowercased()
+        if normalized.contains("failed") {
+            return .danger
+        }
+        if normalized.contains("done") {
+            return .success
+        }
+        if normalized.contains("detected")
+            || normalized.contains("decoding")
+            || normalized.contains("xform")
+            || normalized.contains("dpx_write")
+        {
+            return .warning
+        }
+        return .neutral
     }
 }
