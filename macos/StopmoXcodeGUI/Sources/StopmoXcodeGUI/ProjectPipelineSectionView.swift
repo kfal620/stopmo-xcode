@@ -6,22 +6,17 @@ struct ProjectPipelineSectionView: View {
     let onResetIdentity: () -> Void
     let onPasteMatrix: () -> Void
     let onCopyMatrix: () -> Void
+    @State private var showMatrixControls: Bool = false
+    @State private var showAutoExposureControls: Bool = false
+    @State private var showColorManagementControls: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            matrixEditor
-
+            Text("Primary Look Controls")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
             fieldRow("Exposure Offset Stops") {
                 numberField("Exposure offset", value: $pipeline.exposureOffsetStops)
-            }
-            toggleRow("Auto Exposure From ISO", isOn: $pipeline.autoExposureFromIso)
-            toggleRow("Auto Exposure From Shutter", isOn: $pipeline.autoExposureFromShutter)
-            fieldRow("Target Shutter Seconds") {
-                textField("Optional shutter seconds", text: targetShutterBinding)
-            }
-            toggleRow("Auto Exposure From Aperture", isOn: $pipeline.autoExposureFromAperture)
-            fieldRow("Target Aperture F") {
-                textField("Optional aperture", text: targetApertureBinding)
             }
             fieldRow("Contrast") {
                 numberField("Contrast", value: $pipeline.contrast)
@@ -33,22 +28,65 @@ struct ProjectPipelineSectionView: View {
             fieldRow("Target EI") {
                 integerField("Target EI", value: $pipeline.targetEi)
             }
-            toggleRow("Apply Match LUT", isOn: $pipeline.applyMatchLut)
-            fieldRow("Match LUT Path") {
-                textField("Optional match LUT path", text: matchLutPathBinding)
+
+            DisclosureGroup(isExpanded: $showMatrixControls) {
+                matrixEditor
+                    .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                Text("Camera Matrix (Advanced)")
+                    .font(.subheadline.weight(.semibold))
             }
-            toggleRow("Use OCIO", isOn: $pipeline.useOcio)
-            fieldRow("OCIO Config Path") {
-                textField("Optional OCIO config path", text: ocioConfigPathBinding)
+
+            DisclosureGroup(isExpanded: $showAutoExposureControls) {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    toggleRow("Auto Exposure From ISO", isOn: $pipeline.autoExposureFromIso)
+                    toggleRow("Auto Exposure From Shutter", isOn: $pipeline.autoExposureFromShutter)
+                    if pipeline.autoExposureFromShutter {
+                        fieldRow("Target Shutter Seconds") {
+                            textField("Optional shutter seconds", text: targetShutterBinding)
+                        }
+                    }
+                    toggleRow("Auto Exposure From Aperture", isOn: $pipeline.autoExposureFromAperture)
+                    if pipeline.autoExposureFromAperture {
+                        fieldRow("Target Aperture F") {
+                            textField("Optional aperture", text: targetApertureBinding)
+                        }
+                    }
+                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                Text("Auto-Exposure Controls (Advanced)")
+                    .font(.subheadline.weight(.semibold))
             }
-            fieldRow("OCIO Input Space") {
-                textField("OCIO input space", text: $pipeline.ocioInputSpace)
-            }
-            fieldRow("OCIO Reference Space") {
-                textField("OCIO reference space", text: $pipeline.ocioReferenceSpace)
-            }
-            fieldRow("OCIO Output Space") {
-                textField("OCIO output space", text: $pipeline.ocioOutputSpace)
+
+            DisclosureGroup(isExpanded: $showColorManagementControls) {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    toggleRow("Apply Match LUT", isOn: $pipeline.applyMatchLut)
+                    if pipeline.applyMatchLut {
+                        fieldRow("Match LUT Path") {
+                            textField("Optional match LUT path", text: matchLutPathBinding)
+                        }
+                    }
+                    toggleRow("Use OCIO", isOn: $pipeline.useOcio)
+                    if pipeline.useOcio {
+                        fieldRow("OCIO Config Path") {
+                            textField("Optional OCIO config path", text: ocioConfigPathBinding)
+                        }
+                        fieldRow("OCIO Input Space") {
+                            textField("OCIO input space", text: $pipeline.ocioInputSpace)
+                        }
+                        fieldRow("OCIO Reference Space") {
+                            textField("OCIO reference space", text: $pipeline.ocioReferenceSpace)
+                        }
+                        fieldRow("OCIO Output Space") {
+                            textField("OCIO output space", text: $pipeline.ocioOutputSpace)
+                        }
+                    }
+                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                Text("Color Management (Advanced)")
+                    .font(.subheadline.weight(.semibold))
             }
         }
     }

@@ -2,21 +2,46 @@ import SwiftUI
 
 struct ProjectOutputSectionView: View {
     @Binding var output: StopmoConfigDocument.Output
+    @State private var showAdvancedFramePackaging: Bool = false
+    @State private var showReviewLutOverride: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            toggleRow("Emit Per Frame JSON", isOn: $output.emitPerFrameJson)
-            toggleRow("Emit Truth Frame Pack", isOn: $output.emitTruthFramePack)
-            fieldRow("Truth Frame Index") {
-                integerField("Truth frame index", value: $output.truthFrameIndex)
-            }
-            toggleRow("Write Debug TIFF", isOn: $output.writeDebugTiff)
+            Text("Day Wrap Defaults")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
             toggleRow("Write ProRes On Shot Complete", isOn: $output.writeProresOnShotComplete)
             fieldRow("Framerate") {
                 integerField("Framerate", value: $output.framerate)
             }
-            fieldRow("Show LUT Rec709 Path") {
-                textField("Optional show LUT path", text: showLutPathBinding)
+
+            DisclosureGroup(isExpanded: $showAdvancedFramePackaging) {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    toggleRow("Emit Per Frame JSON", isOn: $output.emitPerFrameJson)
+                    toggleRow("Emit Truth Frame Pack", isOn: $output.emitTruthFramePack)
+                    if output.emitTruthFramePack {
+                        fieldRow("Truth Frame Index") {
+                            integerField("Truth frame index", value: $output.truthFrameIndex)
+                        }
+                    }
+                    toggleRow("Write Debug TIFF", isOn: $output.writeDebugTiff)
+                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                Text("Frame Packaging & Debug Outputs (Advanced)")
+                    .font(.subheadline.weight(.semibold))
+            }
+
+            DisclosureGroup(isExpanded: $showReviewLutOverride) {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    fieldRow("Show LUT Rec709 Path") {
+                        textField("Optional show LUT path", text: showLutPathBinding)
+                    }
+                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                Text("Review LUT Override (Optional)")
+                    .font(.subheadline.weight(.semibold))
             }
         }
     }

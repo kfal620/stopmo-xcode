@@ -38,7 +38,7 @@ struct NotificationRecord: Identifiable, Sendable {
 @MainActor
 final class AppState: ObservableObject {
     @Published var selectedHub: LifecycleHub = .configure
-    @Published var selectedConfigurePanel: ConfigurePanel = .workspaceHealth
+    @Published var selectedConfigurePanel: ConfigurePanel = .projectSettings
     @Published var selectedTriagePanel: TriagePanel = .shots
     @Published var selectedDeliverPanel: DeliverPanel = .dayWrap
     @Published var repoRoot: String {

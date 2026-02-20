@@ -2,9 +2,14 @@ import SwiftUI
 
 struct ProjectWatchSectionView: View {
     @Binding var watch: StopmoConfigDocument.Watch
+    @State private var showAdvancedTiming: Bool = false
+    @State private var showAdvancedMatching: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+            Text("Core Paths")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
             fieldRow("Source Directory") {
                 textField("Source directory", text: $watch.sourceDir)
             }
@@ -17,26 +22,44 @@ struct ProjectWatchSectionView: View {
             fieldRow("Database Path") {
                 textField("DB path", text: $watch.dbPath)
             }
-            fieldRow("Include Extensions") {
-                textField("Comma separated extensions", text: includeExtensionsBinding)
+
+            DisclosureGroup(isExpanded: $showAdvancedTiming) {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    fieldRow("Stable Seconds") {
+                        numberField("Stable seconds", value: $watch.stableSeconds)
+                    }
+                    fieldRow("Poll Interval Seconds") {
+                        numberField("Poll interval seconds", value: $watch.pollIntervalSeconds)
+                    }
+                    fieldRow("Scan Interval Seconds") {
+                        numberField("Scan interval seconds", value: $watch.scanIntervalSeconds)
+                    }
+                    fieldRow("Max Workers") {
+                        integerField("Max workers", value: $watch.maxWorkers)
+                    }
+                    fieldRow("Shot Complete Seconds") {
+                        numberField("Shot complete seconds", value: $watch.shotCompleteSeconds)
+                    }
+                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                Text("Advanced Timing & Throughput")
+                    .font(.subheadline.weight(.semibold))
             }
-            fieldRow("Stable Seconds") {
-                numberField("Stable seconds", value: $watch.stableSeconds)
-            }
-            fieldRow("Poll Interval Seconds") {
-                numberField("Poll interval seconds", value: $watch.pollIntervalSeconds)
-            }
-            fieldRow("Scan Interval Seconds") {
-                numberField("Scan interval seconds", value: $watch.scanIntervalSeconds)
-            }
-            fieldRow("Max Workers") {
-                integerField("Max workers", value: $watch.maxWorkers)
-            }
-            fieldRow("Shot Complete Seconds") {
-                numberField("Shot complete seconds", value: $watch.shotCompleteSeconds)
-            }
-            fieldRow("Shot Regex") {
-                textField("Optional shot regex", text: shotRegexBinding)
+
+            DisclosureGroup(isExpanded: $showAdvancedMatching) {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    fieldRow("Include Extensions") {
+                        textField("Comma separated extensions", text: includeExtensionsBinding)
+                    }
+                    fieldRow("Shot Regex") {
+                        textField("Optional shot regex", text: shotRegexBinding)
+                    }
+                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                Text("Advanced File Matching")
+                    .font(.subheadline.weight(.semibold))
             }
         }
     }

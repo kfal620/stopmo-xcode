@@ -53,13 +53,13 @@ struct StopmoXcodeGUIApp: App {
                 Divider()
 
                 Menu("Configure Panels") {
-                    Button("Workspace & Health") {
-                        state.selectedHub = .configure
-                        state.selectedConfigurePanel = .workspaceHealth
-                    }
                     Button("Project Settings") {
                         state.selectedHub = .configure
                         state.selectedConfigurePanel = .projectSettings
+                    }
+                    Button("Workspace & Health") {
+                        state.selectedHub = .configure
+                        state.selectedConfigurePanel = .workspaceHealth
                     }
                     Button("Calibration") {
                         state.selectedHub = .configure

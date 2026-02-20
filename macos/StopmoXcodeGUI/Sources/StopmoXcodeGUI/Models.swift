@@ -36,18 +36,18 @@ enum LifecycleHub: String, CaseIterable, Identifiable {
 }
 
 enum ConfigurePanel: String, CaseIterable, Identifiable {
-    case workspaceHealth = "Workspace & Health"
     case projectSettings = "Project Settings"
+    case workspaceHealth = "Workspace & Health"
     case calibration = "Calibration"
 
     var id: String { rawValue }
 
     var iconName: String {
         switch self {
-        case .workspaceHealth:
-            return "wrench.and.screwdriver"
         case .projectSettings:
             return "slider.horizontal.3"
+        case .workspaceHealth:
+            return "wrench.and.screwdriver"
         case .calibration:
             return "camera.filters"
         }

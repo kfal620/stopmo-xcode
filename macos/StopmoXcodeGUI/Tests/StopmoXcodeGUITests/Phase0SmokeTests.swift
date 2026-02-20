@@ -27,7 +27,7 @@ final class Phase0SmokeTests: XCTestCase {
     }
 
     func testLifecyclePanelsArePresent() {
-        XCTAssertEqual(ConfigurePanel.allCases.map(\.rawValue), ["Workspace & Health", "Project Settings", "Calibration"])
+        XCTAssertEqual(ConfigurePanel.allCases.map(\.rawValue), ["Project Settings", "Workspace & Health", "Calibration"])
         XCTAssertEqual(TriagePanel.allCases.map(\.rawValue), ["Shots", "Queue", "Diagnostics"])
         XCTAssertEqual(DeliverPanel.allCases.map(\.rawValue), ["Day Wrap", "Run History"])
     }
