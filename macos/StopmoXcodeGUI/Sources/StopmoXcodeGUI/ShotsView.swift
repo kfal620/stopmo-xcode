@@ -31,8 +31,12 @@ struct ShotsView: View {
     @State private var selectedFilter: ShotStateFilter = .all
     @State private var selectedSort: ShotSortOption = .updatedDesc
     @State private var selectedShotName: String?
+    @State private var selectedDeliverShotNames: Set<String> = []
     @State private var pageSize: Int = 75
     @State private var pageIndex: Int = 0
+    @State private var lastDeliveredOutputs: [String] = []
+    @AppStorage("tools.dpx.framerate") private var deliveryFramerate: Int = 24
+    @AppStorage("tools.dpx.overwrite") private var deliveryOverwrite: Bool = true
     @FocusState private var focusedField: ShotsFocusField?
 
     var body: some View {
@@ -50,6 +54,7 @@ struct ShotsView: View {
                 }
 
                 controlsCard
+                quickDeliverCard
                 shotsTableCard
                 selectedShotDetailCard
             }
@@ -63,15 +68,20 @@ struct ShotsView: View {
             } else {
                 syncSelectedShot()
             }
+            if state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Task { await state.loadConfig() }
+            }
             focusedField = .search
         }
         .onChange(of: state.shotsSnapshot?.count ?? -1) { _, _ in
             clampPageIndex()
             syncSelectedShot()
+            pruneDeliverSelection()
         }
         .onChange(of: filteredShots.map(\.shotName)) { _, _ in
             clampPageIndex()
             syncSelectedShot()
+            pruneDeliverSelection()
         }
         .onChange(of: pageSize) { _, _ in
             clampPageIndex()
@@ -156,6 +166,103 @@ struct ShotsView: View {
         }
     }
 
+    private var quickDeliverCard: some View {
+        SectionCard("Quick Deliver", subtitle: "Select completed shots and build ProRes clips from their DPX folders.") {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                StatusChip(label: "Completed \(completedShots.count)", tone: .success)
+                StatusChip(label: "Selected \(selectedDeliverableShots.count)", tone: selectedDeliverableShots.isEmpty ? .neutral : .warning)
+                if !state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    StatusChip(label: "DPX Root Ready", tone: .success)
+                } else {
+                    StatusChip(label: "DPX Root Missing", tone: .danger)
+                }
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Button("Select Visible Completed") {
+                        selectedDeliverShotNames.formUnion(visibleDeliverableShotNames)
+                    }
+                    .disabled(visibleDeliverableShotNames.isEmpty || state.isBusy)
+
+                    Button("Select All Completed") {
+                        selectedDeliverShotNames = Set(completedShots.map(\.shotName))
+                    }
+                    .disabled(completedShots.isEmpty || state.isBusy)
+
+                    Button("Clear Selection") {
+                        selectedDeliverShotNames.removeAll()
+                    }
+                    .disabled(selectedDeliverShotNames.isEmpty || state.isBusy)
+
+                    Button("Deliver Selected") {
+                        Task { await deliverSelectedShots() }
+                    }
+                    .disabled(!canRunDelivery)
+
+                    Button("Open Deliver Day Wrap") {
+                        state.selectedHub = .deliver
+                        state.selectedDeliverPanel = .dayWrap
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    Button("Select Visible Completed") {
+                        selectedDeliverShotNames.formUnion(visibleDeliverableShotNames)
+                    }
+                    .disabled(visibleDeliverableShotNames.isEmpty || state.isBusy)
+
+                    Button("Select All Completed") {
+                        selectedDeliverShotNames = Set(completedShots.map(\.shotName))
+                    }
+                    .disabled(completedShots.isEmpty || state.isBusy)
+
+                    Button("Clear Selection") {
+                        selectedDeliverShotNames.removeAll()
+                    }
+                    .disabled(selectedDeliverShotNames.isEmpty || state.isBusy)
+
+                    Button("Deliver Selected") {
+                        Task { await deliverSelectedShots() }
+                    }
+                    .disabled(!canRunDelivery)
+
+                    Button("Open Deliver Day Wrap") {
+                        state.selectedHub = .deliver
+                        state.selectedDeliverPanel = .dayWrap
+                    }
+                }
+            }
+
+            HStack(spacing: StopmoUI.Spacing.md) {
+                Stepper("Framerate: \(deliveryFramerate)", value: $deliveryFramerate, in: 1 ... 120)
+                Toggle("Overwrite Existing", isOn: $deliveryOverwrite)
+            }
+
+            if !lastDeliveredOutputs.isEmpty {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                    Text("Last Delivered Outputs")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ForEach(lastDeliveredOutputs.prefix(6), id: \.self) { output in
+                        HStack(spacing: StopmoUI.Spacing.sm) {
+                            Text(output)
+                                .font(.system(.caption, design: .monospaced))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Button("Open") {
+                                state.openPathInFinder(output)
+                            }
+                            Button("Copy") {
+                                state.copyTextToPasteboard(output, label: "output path")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var shotsTableCard: some View {
         SectionCard("Shot Summary Table") {
             if state.shotsSnapshot != nil {
@@ -181,7 +288,17 @@ struct ShotsView: View {
 
     private var headerRow: some View {
         HStack(spacing: 10) {
-            col("Select", width: 58)
+            Button {
+                togglePageSelection()
+            } label: {
+                HStack(spacing: StopmoUI.Spacing.xs) {
+                    Image(systemName: pageSelectionIconName)
+                    Text("Deliver")
+                }
+                .frame(width: 58, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .help("Toggle selection for completed shots on this page")
             col("Shot", width: 160)
             col("State", width: 90)
             col("Frames", width: 120)
@@ -200,18 +317,7 @@ struct ShotsView: View {
 
     private func shotRow(_ shot: ShotSummaryRow) -> some View {
         HStack(spacing: 10) {
-            IconActionButton(
-                systemName: selectedShotName == shot.shotName ? "checkmark.circle.fill" : "circle",
-                accessibilityLabel: selectedShotName == shot.shotName
-                    ? "Deselect shot \(shot.shotName)"
-                    : "Select shot \(shot.shotName)",
-                accessibilityHint: "Selects this shot for detail inspection."
-            ) {
-                selectedShotName = shot.shotName
-            }
-            .foregroundStyle(selectedShotName == shot.shotName ? Color.accentColor : .secondary)
-            .help("Select shot")
-            .frame(width: 58, alignment: .leading)
+            deliverSelectionCell(for: shot)
 
             col(shot.shotName, width: 160)
             shotStateCell(shot.state)
@@ -330,6 +436,33 @@ struct ShotsView: View {
                 EmptyStateCard(message: "Select a shot row to inspect details and output actions.")
             }
         }
+    }
+
+    private func deliverSelectionCell(for shot: ShotSummaryRow) -> some View {
+        Group {
+            if isDeliverableShot(shot) {
+                IconActionButton(
+                    systemName: selectedDeliverShotNames.contains(shot.shotName) ? "checkmark.square.fill" : "square",
+                    accessibilityLabel: selectedDeliverShotNames.contains(shot.shotName)
+                        ? "Unselect \(shot.shotName) for delivery"
+                        : "Select \(shot.shotName) for delivery",
+                    accessibilityHint: "Adds or removes this completed shot from quick delivery."
+                ) {
+                    toggleShotSelection(shot.shotName)
+                }
+                .foregroundStyle(selectedDeliverShotNames.contains(shot.shotName) ? LifecycleHub.deliver.accentColor : .secondary)
+                .help("Select shot for quick delivery")
+            } else {
+                Image(systemName: "minus.square")
+                    .foregroundStyle(.secondary.opacity(0.6))
+                    .frame(
+                        width: StopmoUI.Width.iconTapTarget,
+                        height: StopmoUI.Width.iconTapTarget
+                    )
+                    .help("Only completed shots can be selected for delivery")
+            }
+        }
+        .frame(width: 58, alignment: .leading)
     }
 
     private func col(_ text: String, width: CGFloat) -> some View {
@@ -459,6 +592,42 @@ struct ShotsView: View {
         state.shotsSnapshot?.shots.filter(isProcessingShot).count ?? 0
     }
 
+    private var completedShots: [ShotSummaryRow] {
+        (state.shotsSnapshot?.shots ?? []).filter(isDeliverableShot)
+    }
+
+    private var selectedDeliverableShots: [ShotSummaryRow] {
+        completedShots.filter { selectedDeliverShotNames.contains($0.shotName) }
+    }
+
+    private var visibleDeliverableShotNames: Set<String> {
+        Set(filteredShots.filter(isDeliverableShot).map(\.shotName))
+    }
+
+    private var pageDeliverableShotNames: Set<String> {
+        Set(pagedShots.filter(isDeliverableShot).map(\.shotName))
+    }
+
+    private var pageSelectionIconName: String {
+        let eligible = pageDeliverableShotNames
+        if eligible.isEmpty {
+            return "minus.square"
+        }
+        if eligible.isSubset(of: selectedDeliverShotNames) {
+            return "checkmark.square.fill"
+        }
+        if selectedDeliverShotNames.intersection(eligible).isEmpty {
+            return "square"
+        }
+        return "minus.square.fill"
+    }
+
+    private var canRunDelivery: Bool {
+        !state.isBusy
+            && !selectedDeliverableShots.isEmpty
+            && !state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private var filteredShots: [ShotSummaryRow] {
         guard let shots = state.shotsSnapshot?.shots else { return [] }
         let term = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -554,6 +723,67 @@ struct ShotsView: View {
         pageIndex = safePageIndex
     }
 
+    private func toggleShotSelection(_ shotName: String) {
+        if selectedDeliverShotNames.contains(shotName) {
+            selectedDeliverShotNames.remove(shotName)
+        } else {
+            selectedDeliverShotNames.insert(shotName)
+        }
+    }
+
+    private func togglePageSelection() {
+        let eligible = pageDeliverableShotNames
+        guard !eligible.isEmpty else {
+            return
+        }
+        if eligible.isSubset(of: selectedDeliverShotNames) {
+            selectedDeliverShotNames.subtract(eligible)
+        } else {
+            selectedDeliverShotNames.formUnion(eligible)
+        }
+    }
+
+    private func pruneDeliverSelection() {
+        let valid = Set((state.shotsSnapshot?.shots ?? []).map(\.shotName))
+        selectedDeliverShotNames = selectedDeliverShotNames.intersection(valid)
+    }
+
+    private func deliverSelectedShots() async {
+        let shots = selectedDeliverableShots
+        guard !shots.isEmpty else {
+            state.presentWarning(
+                title: "No Completed Shots Selected",
+                message: "Select one or more completed shots before running quick delivery.",
+                likelyCause: "Current selection is empty or includes non-completed shots only.",
+                suggestedAction: "Use Select Visible Completed or Select All Completed, then run delivery."
+            )
+            return
+        }
+
+        let outputRoot = state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !outputRoot.isEmpty else {
+            state.presentWarning(
+                title: "Output Root Not Configured",
+                message: "Cannot resolve shot folders because watch.outputDir is empty.",
+                likelyCause: "Project config has not been loaded or output path is not set.",
+                suggestedAction: "Set watch/output paths in Configure > Project Settings > Watch, then retry."
+            )
+            return
+        }
+
+        let shotRoots = shots.map(shotRootPath(for:))
+        let outputs = await state.deliverShotsToProres(
+            shotInputRoots: shotRoots,
+            framerate: deliveryFramerate,
+            overwrite: deliveryOverwrite
+        )
+        if !outputs.isEmpty {
+            lastDeliveredOutputs = outputs
+            await state.refreshLiveData(silent: true)
+            await state.refreshHistory()
+        }
+    }
+
     private func isIssuesShot(_ shot: ShotSummaryRow) -> Bool {
         if shot.failedFrames > 0 {
             return true
@@ -580,6 +810,10 @@ struct ShotsView: View {
             return true
         }
         return shot.totalFrames > 0 && (shot.doneFrames + shot.failedFrames) >= shot.totalFrames && shot.failedFrames == 0
+    }
+
+    private func isDeliverableShot(_ shot: ShotSummaryRow) -> Bool {
+        isDoneShot(shot)
     }
 
     private func isQueuedShot(_ shot: ShotSummaryRow) -> Bool {

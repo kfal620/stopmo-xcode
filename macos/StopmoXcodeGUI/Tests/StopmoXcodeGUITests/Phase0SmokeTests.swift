@@ -146,6 +146,8 @@ final class Phase0SmokeTests: XCTestCase {
         let _: () async -> Void = state.validateConfig
         let _: () async -> Void = state.refreshWatchPreflight
         let _: () async -> Void = state.refreshHistory
+        let _: (ToolOperationEnvelope) -> Void = state.publishDeliveryOperation
+        let _: ([String], Int, Bool, String?) async -> [String] = state.deliverShotsToProres
         let _: (String?) async -> Void = state.copyDiagnosticsBundle
         let _: ([Int]?) async -> Void = state.retryFailedQueueJobs
         let _: () -> Void = state.exportQueueSnapshot

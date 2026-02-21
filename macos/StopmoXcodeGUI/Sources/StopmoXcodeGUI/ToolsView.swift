@@ -135,6 +135,7 @@ struct ToolsView: View {
     @State private var showCalibrationDiagnostics: Bool = false
     @State private var showTimelineDetails: Bool = false
     @State private var showEventDetails: Bool = false
+    @State private var lastAppliedSharedDeliveryOperationId: String?
 
     var body: some View {
         ScrollView {
@@ -168,6 +169,10 @@ struct ToolsView: View {
         }
         .onAppear {
             initializeModeDefaultsIfNeeded()
+            applySharedDeliveryOperationIfAvailable()
+        }
+        .onChange(of: state.deliveryOperationRevision) { _, _ in
+            applySharedDeliveryOperationIfAvailable()
         }
     }
 
@@ -787,6 +792,7 @@ struct ToolsView: View {
             }.value
 
             ingestToolEnvelope(result)
+            state.publishDeliveryOperation(result)
             let completed = result.operation.result?["count"]?.intValue ?? 0
             let total = result.operation.result?["total_sequences"]?.intValue ?? completed
             dpxProgressText = "Completed \(completed) / \(total) sequences"
@@ -1037,6 +1043,42 @@ struct ToolsView: View {
         if resolved != dpxInputDir, !resolved.isEmpty {
             dpxInputDir = resolved
         }
+    }
+
+    private func applySharedDeliveryOperationIfAvailable() {
+        guard mode == .deliveryOnly else {
+            return
+        }
+        guard let envelope = state.deliveryOperationEnvelope else {
+            return
+        }
+        guard envelope.operationId != lastAppliedSharedDeliveryOperationId else {
+            return
+        }
+        ingestToolEnvelope(envelope)
+        lastAppliedSharedDeliveryOperationId = envelope.operationId
+        activeTool = nil
+        isRunningTool = false
+        lastToolStatus = runStatus(from: envelope.operation.status)
+        lastToolCompletedLabel = timeNowLabel()
+        let completed = envelope.operation.result?["count"]?.intValue ?? 0
+        let total = envelope.operation.result?["total_sequences"]?.intValue ?? completed
+        dpxProgressText = "Completed \(completed) / \(total) sequences"
+        dpxOutputs = envelope.operation.result?["outputs"]?.arrayValue?.compactMap(\.stringValue) ?? []
+    }
+
+    private func runStatus(from operationStatus: String) -> ToolRunStatus {
+        let status = operationStatus.lowercased()
+        if status.contains("fail") || status.contains("error") {
+            return .failed
+        }
+        if status.contains("done") || status.contains("succeed") || status.contains("complete") {
+            return .succeeded
+        }
+        if status.contains("running") || status.contains("pending") {
+            return .running
+        }
+        return .idle
     }
 
     private func chooseFilePath(allowedExtensions: [String] = []) -> String? {

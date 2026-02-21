@@ -57,6 +57,8 @@ final class AppState: ObservableObject {
     @Published var logsDiagnostics: LogsDiagnosticsSnapshot?
     @Published var historySummary: HistorySummarySnapshot?
     @Published var lastDiagnosticsBundlePath: String?
+    @Published var deliveryOperationEnvelope: ToolOperationEnvelope?
+    @Published var deliveryOperationRevision: Int = 0
     @Published var liveEvents: [String] = []
     @Published var queueDepthTrend: [Int] = []
     @Published var throughputFramesPerMinute: Double = 0.0
@@ -578,6 +580,85 @@ final class AppState: ObservableObject {
         }
     }
 
+    func publishDeliveryOperation(_ envelope: ToolOperationEnvelope) {
+        deliveryOperationEnvelope = envelope
+        deliveryOperationRevision += 1
+    }
+
+    func deliverShotsToProres(
+        shotInputRoots: [String],
+        framerate: Int,
+        overwrite: Bool,
+        outputDir: String? = nil
+    ) async -> [String] {
+        var deliveredOutputs: [String] = []
+        await runBlockingTask(label: "Delivering selected shots") {
+            let roots = shotInputRoots
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            let uniqueRoots = Array(NSOrderedSet(array: roots)) as? [String] ?? roots
+            guard !uniqueRoots.isEmpty else {
+                throw BridgeError.processFailed("No completed shots were selected for delivery.")
+            }
+
+            let repoRoot = self.repoRoot
+            let resolvedOutput = outputDir?.trimmingCharacters(in: .whitespacesAndNewlines)
+            var failedShots: [String] = []
+
+            for (index, inputRoot) in uniqueRoots.enumerated() {
+                let shotLabel = URL(fileURLWithPath: inputRoot).lastPathComponent
+                self.statusMessage = "Delivering \(index + 1) / \(uniqueRoots.count): \(shotLabel)"
+                do {
+                    let envelope = try await Task.detached(priority: .userInitiated) {
+                        try BridgeClient().dpxToProres(
+                            repoRoot: repoRoot,
+                            inputDir: inputRoot,
+                            outputDir: resolvedOutput?.isEmpty == false ? resolvedOutput : nil,
+                            framerate: max(1, framerate),
+                            overwrite: overwrite
+                        )
+                    }.value
+                    self.publishDeliveryOperation(envelope)
+                    let outputs = Self.outputPaths(from: envelope)
+                    if outputs.isEmpty {
+                        failedShots.append("\(shotLabel): no ProRes outputs were generated")
+                    } else {
+                        deliveredOutputs.append(contentsOf: outputs)
+                    }
+                } catch {
+                    failedShots.append("\(shotLabel): \(error.localizedDescription)")
+                }
+            }
+
+            if deliveredOutputs.isEmpty {
+                let detail = failedShots.joined(separator: "\n")
+                throw BridgeError.processFailed(
+                    detail.isEmpty
+                        ? "No ProRes outputs were generated from the selected shots."
+                        : detail
+                )
+            }
+
+            if !failedShots.isEmpty {
+                self.presentWarning(
+                    title: "Partial Shot Delivery",
+                    message: "Delivered \(deliveredOutputs.count) ProRes clip(s); \(failedShots.count) shot(s) failed.",
+                    likelyCause: "Some selected shots are missing DPX frames or have output naming/path conflicts.",
+                    suggestedAction: "Inspect failed shot folders in Triage > Shots, then retry failed shots or run Deliver > Day Wrap."
+                )
+            } else {
+                self.presentInfo(
+                    title: "Shot Delivery Complete",
+                    message: "Delivered \(deliveredOutputs.count) ProRes clip(s) from \(uniqueRoots.count) shot(s).",
+                    likelyCause: nil,
+                    suggestedAction: "Open outputs from Triage > Shots or review runs in Deliver > Run History."
+                )
+            }
+            self.statusMessage = "Shot delivery complete"
+        }
+        return deliveredOutputs
+    }
+
     func copyDiagnosticsBundle(outDir: String? = nil) async {
         await runBlockingTask(label: "Creating diagnostics bundle") {
             let repoRoot = self.repoRoot
@@ -676,6 +757,10 @@ final class AppState: ObservableObject {
     private enum LiveRefreshSource {
         case manual
         case monitor
+    }
+
+    private static func outputPaths(from envelope: ToolOperationEnvelope) -> [String] {
+        envelope.operation.result?["outputs"]?.arrayValue?.compactMap(\.stringValue) ?? []
     }
 
     func shouldMonitorCurrentSelection() -> Bool {
