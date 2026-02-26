@@ -33,7 +33,7 @@ struct ProjectPipelineSectionView: View {
                 matrixEditor
                     .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(title: "Camera Matrix (Advanced)", isExpanded: $showMatrixControls)
+                DisclosureRowLabel(title: "Camera Matrix (Advanced)", isExpanded: $showMatrixControls)
             }
 
             DisclosureGroup(isExpanded: $showAutoExposureControls) {
@@ -54,7 +54,7 @@ struct ProjectPipelineSectionView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(
+                DisclosureRowLabel(
                     title: "Auto-Exposure Controls (Advanced)",
                     isExpanded: $showAutoExposureControls
                 )
@@ -86,7 +86,7 @@ struct ProjectPipelineSectionView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(title: "Color Management (Advanced)", isExpanded: $showColorManagementControls)
+                DisclosureRowLabel(title: "Color Management (Advanced)", isExpanded: $showColorManagementControls)
             }
         }
     }

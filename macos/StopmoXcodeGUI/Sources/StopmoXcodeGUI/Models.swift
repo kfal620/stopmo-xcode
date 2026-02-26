@@ -305,6 +305,7 @@ struct ShotSummaryRow: Codable, Sendable, Identifiable {
     var failedFrames: Int
     var inflightFrames: Int
     var progressRatio: Double
+    var firstShotAt: String?
     var lastUpdatedAt: String?
     var assemblyState: String?
     var outputMovPath: String?

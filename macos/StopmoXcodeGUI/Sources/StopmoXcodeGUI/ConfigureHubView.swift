@@ -5,12 +5,6 @@ struct ConfigureHubView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            LifecycleStageHeader(
-                hub: .configure,
-                title: "Configure",
-                subtitle: "Workspace health, project settings, and calibration utilities."
-            )
-
             panelPicker
 
             Group {
@@ -26,7 +20,7 @@ struct ConfigureHubView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.horizontal, StopmoUI.Spacing.md)
-        .padding(.top, StopmoUI.Spacing.sm)
+        .padding(.top, StopmoUI.Spacing.xs)
         .padding(.bottom, StopmoUI.Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }

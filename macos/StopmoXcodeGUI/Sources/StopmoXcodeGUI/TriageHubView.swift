@@ -5,21 +5,6 @@ struct TriageHubView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            LifecycleStageHeader(
-                hub: .triage,
-                title: "Triage",
-                subtitle: "Review shots, recover queue failures, and inspect diagnostics.",
-                style: .compact,
-                showSubtitle: false
-            ) {
-                Button("Open Deliver (Day Wrap)") {
-                    state.selectedHub = .deliver
-                    state.selectedDeliverPanel = .dayWrap
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            }
-
             Group {
                 switch state.selectedTriagePanel {
                 case .shots:
@@ -39,7 +24,7 @@ struct TriageHubView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.horizontal, StopmoUI.Spacing.md)
-        .padding(.top, StopmoUI.Spacing.sm)
+        .padding(.top, StopmoUI.Spacing.xs)
         .padding(.bottom, StopmoUI.Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }

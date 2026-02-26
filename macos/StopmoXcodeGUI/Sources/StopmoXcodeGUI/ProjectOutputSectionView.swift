@@ -28,7 +28,7 @@ struct ProjectOutputSectionView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(
+                DisclosureRowLabel(
                     title: "Frame Packaging & Debug Outputs (Advanced)",
                     isExpanded: $showAdvancedFramePackaging
                 )
@@ -42,7 +42,7 @@ struct ProjectOutputSectionView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(title: "Review LUT Override (Optional)", isExpanded: $showReviewLutOverride)
+                DisclosureRowLabel(title: "Review LUT Override (Optional)", isExpanded: $showReviewLutOverride)
             }
         }
     }

@@ -7,16 +7,16 @@ struct RootCommandBarView: View {
 
     var body: some View {
         SurfaceContainer(level: .raised, chrome: .quiet, emphasized: true) {
-            HStack(spacing: StopmoUI.Spacing.xs) {
-                projectContextChip
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                currentContextBanner
+
+                Spacer(minLength: 0)
 
                 if state.watchServiceState?.running == true {
                     StatusChip(label: "Watch Running", tone: .success, density: .compact)
                 } else {
                     StatusChip(label: "Watch Stopped", tone: .warning, density: .compact)
                 }
-
-                Spacer(minLength: 0)
 
                 ToolbarActionCluster {
                     CommandIconButton(
@@ -49,67 +49,55 @@ struct RootCommandBarView: View {
                     NotificationBellButton()
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            state.selectedHub.accentColor.opacity(0.26),
+                            state.selectedHub.accentColor.opacity(0.13),
+                            state.selectedHub.accentColor.opacity(0.05),
+                            .clear,
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(maxWidth: 560)
+                .mask(
+                    RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                )
+                .allowsHitTesting(false)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .zIndex(20)
     }
 
-    private var projectContextChip: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: StopmoUI.Spacing.xs) {
-                CommandContextChip(
-                    icon: "map",
-                    value: state.hubPanelContextLabel,
-                    tooltip: "Current Hub / Panel",
-                    isPrimary: true,
-                    accentColor: state.selectedHub.accentColor
-                )
-                CommandContextChip(
-                    icon: "doc.text",
-                    value: configName,
-                    tooltip: "Config Path"
-                )
-                CommandContextChip(
-                    icon: "folder",
-                    value: repoRootName,
-                    tooltip: "Repo Root"
-                )
-            }
-
-            HStack(spacing: StopmoUI.Spacing.xs) {
-                CommandContextChip(
-                    icon: "map",
-                    value: state.hubPanelContextLabel,
-                    tooltip: "Current Hub / Panel",
-                    isPrimary: true,
-                    accentColor: state.selectedHub.accentColor
-                )
-                CommandContextChip(
-                    icon: "doc.text",
-                    value: configName,
-                    tooltip: "Config Path"
-                )
-            }
-
-            CommandContextChip(
-                icon: "map",
-                value: state.hubPanelContextLabel,
-                tooltip: "Current Hub / Panel",
-                isPrimary: true,
-                accentColor: state.selectedHub.accentColor
-            )
+    private var currentContextBanner: some View {
+        HStack(spacing: StopmoUI.Spacing.xs) {
+            Image(systemName: state.selectedHub.iconName)
+                .foregroundStyle(state.selectedHub.accentColor)
+            Text(state.selectedHub.rawValue)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .foregroundStyle(AppVisualTokens.textPrimary)
         }
-        .frame(maxWidth: 560, alignment: .leading)
-    }
-
-    private var repoRootName: String {
-        URL(fileURLWithPath: state.repoRoot).lastPathComponent
-    }
-
-    private var configName: String {
-        URL(fileURLWithPath: state.configPath).lastPathComponent
+        .font(.title3.weight(.semibold))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(state.selectedHub.accentColor.opacity(0.18))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .stroke(state.selectedHub.accentColor.opacity(0.4), lineWidth: 0.9)
+        )
+        .frame(maxWidth: 320, alignment: .leading)
+        .accessibilityLabel(Text("Current section \(state.selectedHub.rawValue)"))
     }
 }

@@ -5,14 +5,6 @@ struct CaptureHubView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            LifecycleStageHeader(
-                hub: .capture,
-                title: "Capture",
-                subtitle: "Run watch service and monitor ingest throughput in real time.",
-                style: .compact,
-                showSubtitle: false
-            )
-
             ToolbarStrip(title: "Capture Actions") {
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     LiveStateChip(
@@ -40,7 +32,7 @@ struct CaptureHubView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.horizontal, StopmoUI.Spacing.md)
-        .padding(.top, StopmoUI.Spacing.sm)
+        .padding(.top, StopmoUI.Spacing.xs)
         .padding(.bottom, StopmoUI.Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }

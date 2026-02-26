@@ -178,7 +178,8 @@ struct TriageShotHealthBoardView: View {
                 key: "Frames",
                 value: "\(shot.doneFrames) done / \(shot.failedFrames) failed / \(shot.inflightFrames) inflight / \(shot.totalFrames) total"
             )
-            KeyValueRow(key: "Last Updated", value: shot.lastUpdatedAt ?? "-")
+            KeyValueRow(key: "First Shot", value: displayShotTimestamp(shot.firstShotAt))
+            KeyValueRow(key: "Last Shot", value: displayShotTimestamp(shot.lastUpdatedAt))
 
             if let exposure = shot.exposureOffsetStops {
                 KeyValueRow(key: "Effective Exposure Offset", value: String(format: "%.3f stops", exposure))
@@ -193,17 +194,6 @@ struct TriageShotHealthBoardView: View {
                 KeyValueRow(key: "Locked WB Multipliers", value: "-")
             }
 
-            KeyValueRow(
-                key: "Output MOV",
-                value: shot.outputMovPath ?? "-",
-                tone: pathExists(shot.outputMovPath) ? .success : .neutral
-            )
-            KeyValueRow(
-                key: "Review MOV",
-                value: shot.reviewMovPath ?? "-",
-                tone: pathExists(shot.reviewMovPath) ? .success : .neutral
-            )
-
             HStack(spacing: StopmoUI.Spacing.sm) {
                 Button("Open DPX") {
                     state.openPathInFinder(dpxPath(for: shot))
@@ -213,11 +203,6 @@ struct TriageShotHealthBoardView: View {
                 }
                 Button("Open Truth Frame") {
                     state.openPathInFinder(truthFramePath(for: shot))
-                }
-                if let output = shot.outputMovPath, !output.isEmpty {
-                    Button("Open Output MOV") {
-                        state.openPathInFinder(output)
-                    }
                 }
             }
             .padding(.top, StopmoUI.Spacing.xs)
@@ -252,10 +237,7 @@ struct TriageShotHealthBoardView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    Text("Show Recovery Tools")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer(minLength: 0)
+                DisclosureRowLabel(title: "Show Recovery Tools", isExpanded: $showRecoveryDrawer) {
                     StatusChip(label: "Queue + Diagnostics", tone: .neutral, density: .compact)
                 }
             }
@@ -501,11 +483,25 @@ struct TriageShotHealthBoardView: View {
         (shotRootPath(for: shot) as NSString).appendingPathComponent("manifest.json")
     }
 
-    private func pathExists(_ path: String?) -> Bool {
-        guard let path, !path.isEmpty else {
-            return false
+    private func displayShotTimestamp(_ raw: String?) -> String {
+        guard let raw = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty
+        else {
+            return "-"
         }
-        return FileManager.default.fileExists(atPath: path)
+
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        guard let date = fractional.date(from: raw) ?? plain.date(from: raw) else {
+            return raw
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.dateFormat = "M/d/yyyy h:mm:ss a"
+        return formatter.string(from: date)
     }
 
     private func assemblyTone(_ value: String) -> StatusTone {

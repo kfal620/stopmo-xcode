@@ -334,7 +334,7 @@ struct ToolsView: View {
                     }
                     .padding(.top, StopmoUI.Spacing.xs)
                 } label: {
-                    DisclosureToggleLabel(title: "Output Override (Advanced)", isExpanded: $showTranscodeAdvanced)
+                    DisclosureRowLabel(title: "Output Override (Advanced)", isExpanded: $showTranscodeAdvanced)
                 }
 
                 HStack(spacing: StopmoUI.Spacing.sm) {
@@ -423,7 +423,7 @@ struct ToolsView: View {
                     }
                     .padding(.top, StopmoUI.Spacing.xs)
                 } label: {
-                    DisclosureToggleLabel(
+                    DisclosureRowLabel(
                         title: "Camera Overrides & JSON Report (Advanced)",
                         isExpanded: $showMatrixAdvanced
                     )
@@ -578,19 +578,19 @@ struct ToolsView: View {
                         timelineContent
                             .padding(.top, StopmoUI.Spacing.xs)
                     } label: {
-                        DisclosureToggleLabel(title: "Progress Timeline", isExpanded: $showTimelineDetails)
+                        DisclosureRowLabel(title: "Progress Timeline", isExpanded: $showTimelineDetails)
                     }
 
                     DisclosureGroup(isExpanded: $showEventDetails) {
                         eventsContent
                             .padding(.top, StopmoUI.Spacing.xs)
                     } label: {
-                        DisclosureToggleLabel(title: "Operation Events", isExpanded: $showEventDetails)
+                        DisclosureRowLabel(title: "Operation Events", isExpanded: $showEventDetails)
                     }
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(title: "Show Diagnostics", isExpanded: $showCalibrationDiagnostics)
+                DisclosureRowLabel(title: "Show Diagnostics", isExpanded: $showCalibrationDiagnostics)
             }
         }
     }

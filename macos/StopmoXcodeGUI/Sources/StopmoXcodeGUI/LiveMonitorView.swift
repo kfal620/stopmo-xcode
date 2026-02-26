@@ -286,7 +286,7 @@ struct LiveMonitorView: View {
                     }
                 }
             } label: {
-                DisclosureToggleLabel(
+                DisclosureRowLabel(
                     title: "Show Queue Trend",
                     isExpanded: $showQueueTrend
                 )
@@ -414,7 +414,7 @@ struct LiveMonitorView: View {
                     }
                     .padding(.top, StopmoUI.Spacing.xs)
                 } label: {
-                    DisclosureToggleLabel(
+                    DisclosureRowLabel(
                         title: "Show Runtime Details",
                         isExpanded: $showWatchRuntimeDetails
                     )
@@ -458,7 +458,7 @@ struct LiveMonitorView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(
+                DisclosureRowLabel(
                     title: "Log Tail (\(visibleTail.count) lines)",
                     isExpanded: $showWatchLogTail
                 )
@@ -535,7 +535,7 @@ struct LiveMonitorView: View {
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
                 HStack(spacing: StopmoUI.Spacing.sm) {
-                    DisclosureToggleLabel(
+                    DisclosureRowLabel(
                         title: "Activity (\(sourceActivityEvents.count) recent events)",
                         isExpanded: $showActivityFeed
                     )

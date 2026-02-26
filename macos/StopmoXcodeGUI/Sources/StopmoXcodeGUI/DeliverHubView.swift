@@ -5,20 +5,6 @@ struct DeliverHubView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            LifecycleStageHeader(
-                hub: .deliver,
-                title: "Deliver",
-                subtitle: "Select ready shots, run ProRes delivery, and monitor run status.",
-                style: .compact,
-                showSubtitle: false
-            ) {
-                Button("Back to Capture") {
-                    state.selectedHub = .capture
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            }
-
             panelPicker
 
             Group {
@@ -32,7 +18,7 @@ struct DeliverHubView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.horizontal, StopmoUI.Spacing.md)
-        .padding(.top, StopmoUI.Spacing.sm)
+        .padding(.top, StopmoUI.Spacing.xs)
         .padding(.bottom, StopmoUI.Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {

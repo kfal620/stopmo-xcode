@@ -135,7 +135,7 @@ struct SetupView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(title: "Config Bootstrap Actions", isExpanded: $showPathBootstrapActions)
+                DisclosureRowLabel(title: "Config Bootstrap Actions", isExpanded: $showPathBootstrapActions)
             }
 
             HStack {
@@ -215,7 +215,7 @@ struct SetupView: View {
                     }
                     .padding(.top, StopmoUI.Spacing.xs)
                 } label: {
-                    DisclosureToggleLabel(title: "Runtime Detail (Advanced)", isExpanded: $showRuntimeDetails)
+                    DisclosureRowLabel(title: "Runtime Detail (Advanced)", isExpanded: $showRuntimeDetails)
                 }
             } else {
                 EmptyStateCard(message: "Runtime health not loaded yet.")
@@ -259,7 +259,7 @@ struct SetupView: View {
                         }
                         .padding(.top, StopmoUI.Spacing.xs)
                     } label: {
-                        DisclosureToggleLabel(title: "Dependency Table (Advanced)", isExpanded: $showDependencyChecks)
+                        DisclosureRowLabel(title: "Dependency Table (Advanced)", isExpanded: $showDependencyChecks)
                     }
                 }
             } else {
@@ -344,7 +344,7 @@ struct SetupView: View {
                         }
                         .padding(.top, StopmoUI.Spacing.xs)
                     } label: {
-                        DisclosureToggleLabel(title: "Validation Report (Advanced)", isExpanded: $showValidationIssues)
+                        DisclosureRowLabel(title: "Validation Report (Advanced)", isExpanded: $showValidationIssues)
                     }
                 }
             } else {
@@ -399,7 +399,7 @@ struct SetupView: View {
                         }
                         .padding(.top, StopmoUI.Spacing.xs)
                     } label: {
-                        DisclosureToggleLabel(title: "Health Checks (Advanced)", isExpanded: $showPreflightChecks)
+                        DisclosureRowLabel(title: "Health Checks (Advanced)", isExpanded: $showPreflightChecks)
                     }
                 }
             } else {

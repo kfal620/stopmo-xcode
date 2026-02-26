@@ -43,7 +43,7 @@ struct ProjectWatchSectionView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(title: "Advanced Timing & Throughput", isExpanded: $showAdvancedTiming)
+                DisclosureRowLabel(title: "Advanced Timing & Throughput", isExpanded: $showAdvancedTiming)
             }
 
             DisclosureGroup(isExpanded: $showAdvancedMatching) {
@@ -57,7 +57,7 @@ struct ProjectWatchSectionView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureToggleLabel(title: "Advanced File Matching", isExpanded: $showAdvancedMatching)
+                DisclosureRowLabel(title: "Advanced File Matching", isExpanded: $showAdvancedMatching)
             }
         }
     }

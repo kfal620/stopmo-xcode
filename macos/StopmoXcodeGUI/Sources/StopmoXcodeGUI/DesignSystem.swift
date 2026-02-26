@@ -419,6 +419,71 @@ struct DisclosureToggleLabel: View {
     }
 }
 
+struct DisclosureRowLabel<Trailing: View>: View {
+    let title: String
+    @Binding var isExpanded: Bool
+    var font: Font = .subheadline.weight(.semibold)
+    @ViewBuilder let trailing: Trailing
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered: Bool = false
+
+    init(
+        title: String,
+        isExpanded: Binding<Bool>,
+        font: Font = .subheadline.weight(.semibold),
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.title = title
+        _isExpanded = isExpanded
+        self.font = font
+        self.trailing = trailing()
+    }
+
+    var body: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            Text(title)
+                .font(font)
+                .foregroundStyle(isHovered ? AppVisualTokens.textPrimary : AppVisualTokens.textSecondary)
+            Spacer(minLength: 0)
+            trailing
+        }
+        .padding(.horizontal, StopmoUI.Spacing.xs)
+        .padding(.vertical, 3)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .fill(Color.white.opacity(isHovered ? 0.08 : 0.0))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .stroke(Color.white.opacity(isHovered ? 0.12 : 0.0), lineWidth: 0.75)
+        )
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: StopmoUI.Motion.hover)) {
+                isHovered = hovering
+            }
+        }
+        .onTapGesture {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: StopmoUI.Motion.disclosure)) {
+                isExpanded.toggle()
+            }
+        }
+    }
+}
+
+extension DisclosureRowLabel where Trailing == EmptyView {
+    init(
+        title: String,
+        isExpanded: Binding<Bool>,
+        font: Font = .subheadline.weight(.semibold)
+    ) {
+        self.init(title: title, isExpanded: isExpanded, font: font) {
+            EmptyView()
+        }
+    }
+}
+
 struct MetadataTextStyle: ViewModifier {
     let tone: MetadataTone
 
@@ -689,23 +754,25 @@ struct StatusChip: View {
 }
 
 struct CurrentSectionChip: View {
-    let section: AppSection
+    let title: String
+    let iconName: String
+    var accentColor: Color = .accentColor
 
     var body: some View {
-        Label(section.rawValue, systemImage: section.iconName)
+        Label(title, systemImage: iconName)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(accentColor)
             .padding(.horizontal, StopmoUI.Spacing.sm)
             .padding(.vertical, StopmoUI.Spacing.xs)
             .background(
                 RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.14))
+                    .fill(accentColor.opacity(0.14))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                    .stroke(Color.accentColor.opacity(0.3), lineWidth: 0.75)
+                    .stroke(accentColor.opacity(0.3), lineWidth: 0.75)
             )
-            .accessibilityLabel(Text("Current page \(section.rawValue)"))
+            .accessibilityLabel(Text("Current section \(title)"))
     }
 }
 
@@ -892,7 +959,7 @@ struct CommandContextChip: View {
                     lineWidth: 0.75
                 )
         )
-        .overlay(alignment: .top) {
+        .overlay(alignment: .bottom) {
             if isHovered {
                 Text(tooltip)
                     .font(.caption2.weight(.medium))
@@ -909,7 +976,7 @@ struct CommandContextChip: View {
                     )
                     .fixedSize(horizontal: true, vertical: true)
                     .shadow(color: Color.black.opacity(0.16), radius: 6, x: 0, y: 2)
-                    .offset(y: -28)
+                    .offset(y: 28)
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.98)))
                     .allowsHitTesting(false)
             }
@@ -975,10 +1042,10 @@ struct CommandIconButton: View {
                 isHovered = hovering
             }
         }
-        .overlay(alignment: .top) {
+        .overlay(alignment: .bottom) {
             if isHovered && !isDisabled {
                 tooltipBubble
-                    .offset(y: -30)
+                    .offset(y: 30)
             }
         }
         .zIndex(isHovered ? 120 : 0)
