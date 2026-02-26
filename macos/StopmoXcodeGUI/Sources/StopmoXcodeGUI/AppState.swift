@@ -588,19 +588,11 @@ final class AppState: ObservableObject {
     }
 
     func beginDeliveryRun(kind: DeliveryRunKind, total: Int, label: String) {
-        let clampedTotal = max(0, total)
-        deliveryRunState = DeliveryRunState(
+        deliveryRunState = DeliveryRunReducer.begin(
             kind: kind,
-            status: .running,
-            total: clampedTotal,
-            completed: 0,
-            failed: 0,
-            activeLabel: label,
-            progress: 0.0,
-            latestOutputs: [],
-            events: [],
-            startedAtUtc: Self.timestampUtcNow(),
-            finishedAtUtc: nil
+            total: total,
+            label: label,
+            nowUtc: Self.timestampUtcNow()
         )
     }
 
@@ -611,35 +603,24 @@ final class AppState: ObservableObject {
         shotName: String? = nil,
         timestampUtc: String? = nil
     ) {
-        let event = DeliveryRunEvent(
-            id: UUID().uuidString,
-            timestampUtc: timestampUtc ?? Self.timestampUtcNow(),
+        DeliveryRunReducer.appendEvent(
+            state: &deliveryRunState,
             tone: tone,
             title: title,
             detail: detail,
-            shotName: shotName
+            shotName: shotName,
+            timestampUtc: timestampUtc ?? Self.timestampUtcNow(),
+            maxEvents: maxDeliveryRunEvents
         )
-        deliveryRunState.events.insert(event, at: 0)
-        if deliveryRunState.events.count > maxDeliveryRunEvents {
-            deliveryRunState.events = Array(deliveryRunState.events.prefix(maxDeliveryRunEvents))
-        }
     }
 
     func updateDeliveryRunProgress(completed: Int, failed: Int, activeLabel: String) {
-        let clampedCompleted = max(0, completed)
-        let clampedFailed = max(0, failed)
-        let processed = clampedCompleted + clampedFailed
-        let total = max(deliveryRunState.total, processed)
-
-        deliveryRunState.completed = clampedCompleted
-        deliveryRunState.failed = clampedFailed
-        deliveryRunState.total = total
-        deliveryRunState.activeLabel = activeLabel
-        if total > 0 {
-            deliveryRunState.progress = min(1.0, max(0.0, Double(processed) / Double(total)))
-        } else {
-            deliveryRunState.progress = 0.0
-        }
+        DeliveryRunReducer.updateProgress(
+            state: &deliveryRunState,
+            completed: completed,
+            failed: failed,
+            activeLabel: activeLabel
+        )
     }
 
     func finishDeliveryRun(
@@ -650,39 +631,20 @@ final class AppState: ObservableObject {
         failed: Int? = nil,
         activeLabel: String? = nil
     ) {
-        if let completed {
-            deliveryRunState.completed = max(0, completed)
-        }
-        if let failed {
-            deliveryRunState.failed = max(0, failed)
-        }
-        if let total {
-            deliveryRunState.total = max(0, total)
-        }
-        if let activeLabel {
-            deliveryRunState.activeLabel = activeLabel
-        }
-
-        let processed = deliveryRunState.completed + deliveryRunState.failed
-        if deliveryRunState.total > 0 {
-            deliveryRunState.progress = min(1.0, max(0.0, Double(processed) / Double(deliveryRunState.total)))
-        } else {
-            deliveryRunState.progress = status == .succeeded ? 1.0 : 0.0
-        }
-
-        deliveryRunState.status = status
-        deliveryRunState.latestOutputs = outputs
-        deliveryRunState.finishedAtUtc = Self.timestampUtcNow()
+        DeliveryRunReducer.finish(
+            state: &deliveryRunState,
+            status: status,
+            outputs: outputs,
+            completed: completed,
+            total: total,
+            failed: failed,
+            activeLabel: activeLabel,
+            nowUtc: Self.timestampUtcNow()
+        )
     }
 
     func pruneDeliverySelection(_ selected: Set<String>, from snapshot: ShotsSummarySnapshot?) -> Set<String> {
-        let deliverable = Set(
-            ShotHealthModel
-                .evaluate(snapshot: snapshot)
-                .filter(\.isDeliverable)
-                .map { $0.shot.shotName }
-        )
-        return selected.intersection(deliverable)
+        DeliveryRunReducer.pruneSelection(selected, snapshot: snapshot)
     }
 
     func runDayWrapBatchDelivery(
