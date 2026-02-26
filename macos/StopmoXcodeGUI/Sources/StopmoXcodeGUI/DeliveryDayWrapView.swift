@@ -254,11 +254,7 @@ struct DeliveryDayWrapView: View {
     }
 
     private func shotRootPath(for shot: ShotSummaryRow) -> String {
-        let base = state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !base.isEmpty else {
-            return shot.shotName
-        }
-        return (base as NSString).appendingPathComponent(shot.shotName)
+        PathTimestampHelpers.shotRootPath(baseOutputDir: state.config.watch.outputDir, shotName: shot.shotName)
     }
 
     private func chooseDirectoryPath() -> String? {
@@ -275,8 +271,7 @@ struct DeliveryDayWrapView: View {
     }
 
     private func emptyToNil(_ value: String) -> String? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        PathTimestampHelpers.trimmedOrNil(value)
     }
 }
 

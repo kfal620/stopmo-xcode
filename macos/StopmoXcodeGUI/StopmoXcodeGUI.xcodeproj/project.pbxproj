@@ -15,6 +15,7 @@
 		1F8D8E0B9A4C4E17B31D1002 /* ShotHealthModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8D8E0B9A4C4E17B31D2002 /* ShotHealthModel.swift */; };
 		1F8D8E0B9A4C4E17B31D1003 /* TriageShotHealthBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F8D8E0B9A4C4E17B31D2003 /* TriageShotHealthBoardView.swift */; };
 		AB0011111111111111111001 /* DeliveryRunReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0011111111111111112001 /* DeliveryRunReducer.swift */; };
+		AC0011111111111111111001 /* PathTimestampHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC0011111111111111112001 /* PathTimestampHelpers.swift */; };
 		AA0011111111111111111001 /* DeliveryShotListPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0011111111111111112001 /* DeliveryShotListPane.swift */; };
 		AA0011111111111111111002 /* DeliveryControlPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0011111111111111112002 /* DeliveryControlPane.swift */; };
 		AA0011111111111111111003 /* DeliveryLayoutMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0011111111111111112003 /* DeliveryLayoutMetrics.swift */; };
@@ -54,6 +55,7 @@
 		1F8D8E0B9A4C4E17B31D2002 /* ShotHealthModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotHealthModel.swift; sourceTree = "<group>"; };
 		1F8D8E0B9A4C4E17B31D2003 /* TriageShotHealthBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriageShotHealthBoardView.swift; sourceTree = "<group>"; };
 		AB0011111111111111112001 /* DeliveryRunReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryRunReducer.swift; sourceTree = "<group>"; };
+		AC0011111111111111112001 /* PathTimestampHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathTimestampHelpers.swift; sourceTree = "<group>"; };
 		AA0011111111111111112001 /* DeliveryShotListPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryShotListPane.swift; sourceTree = "<group>"; };
 		AA0011111111111111112002 /* DeliveryControlPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryControlPane.swift; sourceTree = "<group>"; };
 		AA0011111111111111112003 /* DeliveryLayoutMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLayoutMetrics.swift; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 				A9D1977BF837AF172307DE8C /* Models.swift */,
 				B0EBAC0E1E89F9A0C523ED77 /* NotificationViews.swift */,
 				2390058DD0F9C45F7479EC13 /* ProjectEditorViewModel.swift */,
+				AC0011111111111111112001 /* PathTimestampHelpers.swift */,
 				0B3628DE6BC31C11E3838156 /* ProjectLoggingSectionView.swift */,
 				1CFA4F39CEBC966679FABE79 /* ProjectOutputSectionView.swift */,
 				33F65CFFADB163F1046753D2 /* ProjectPipelineSectionView.swift */,
@@ -270,6 +273,7 @@
 				64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */,
 				B62DF06FD6D5FE6F04C691A3 /* Models.swift in Sources */,
 				EB013BE49848FC1BB04B588F /* NotificationViews.swift in Sources */,
+				AC0011111111111111111001 /* PathTimestampHelpers.swift in Sources */,
 				F73B7C5C2A799063856995AB /* ProjectEditorViewModel.swift in Sources */,
 				A4A078E3714F71E773078F14 /* ProjectLoggingSectionView.swift in Sources */,
 				9603A408F7DB91010992D47B /* ProjectOutputSectionView.swift in Sources */,

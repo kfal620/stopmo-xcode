@@ -1204,11 +1204,7 @@ struct ToolsView: View {
     }
 
     private func pathExists(_ value: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return false
-        }
-        return FileManager.default.fileExists(atPath: trimmed)
+        PathTimestampHelpers.pathExists(value)
     }
 
     private func stringValue(from value: JSONValue?) -> String {
@@ -1226,13 +1222,10 @@ struct ToolsView: View {
     }
 
     private func emptyToNil(_ value: String) -> String? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+        PathTimestampHelpers.trimmedOrNil(value)
     }
 
     private func timeNowLabel() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: Date())
+        PathTimestampHelpers.nowTimeLabel()
     }
 }

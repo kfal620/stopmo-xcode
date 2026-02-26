@@ -617,18 +617,11 @@ struct ShotsView: View {
     }
 
     private func pathExists(_ path: String?) -> Bool {
-        guard let path, !path.isEmpty else {
-            return false
-        }
-        return FileManager.default.fileExists(atPath: path)
+        PathTimestampHelpers.pathExists(path)
     }
 
     private func shotRootPath(for shot: ShotSummaryRow) -> String {
-        let base = state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !base.isEmpty else {
-            return shot.shotName
-        }
-        return (base as NSString).appendingPathComponent(shot.shotName)
+        PathTimestampHelpers.shotRootPath(baseOutputDir: state.config.watch.outputDir, shotName: shot.shotName)
     }
 
     private func dpxPath(for shot: ShotSummaryRow) -> String {

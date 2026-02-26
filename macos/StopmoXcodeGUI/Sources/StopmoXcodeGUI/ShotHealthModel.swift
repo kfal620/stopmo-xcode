@@ -103,33 +103,7 @@ enum ShotHealthModel {
     }
 
     static func updatedDisplayLabel(for timestamp: String?, now: Date = Date()) -> String {
-        guard let timestamp = timestamp?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !timestamp.isEmpty,
-              let date = parseTimestamp(timestamp)
-        else {
-            return "Updated -"
-        }
-
-        let delta = max(0, Int(now.timeIntervalSince(date)))
-        if delta < 5 {
-            return "Updated now"
-        }
-        if delta < 60 {
-            return "Updated \(delta)s ago"
-        }
-        if delta < 3600 {
-            return "Updated \(delta / 60)m ago"
-        }
-        if delta < 86_400 {
-            let hours = delta / 3600
-            let minutes = (delta % 3600) / 60
-            if minutes == 0 {
-                return "Updated \(hours)h ago"
-            }
-            return "Updated \(hours)h \(minutes)m ago"
-        }
-        let days = delta / 86_400
-        return "Updated \(days)d ago"
+        PathTimestampHelpers.relativeUpdatedLabel(timestamp, now: now)
     }
 
     private static func isIssuesShot(_ shot: ShotSummaryRow) -> Bool {
@@ -171,14 +145,4 @@ enum ShotHealthModel {
         return left > right
     }
 
-    private static func parseTimestamp(_ raw: String) -> Date? {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = fractional.date(from: raw) {
-            return date
-        }
-        let standard = ISO8601DateFormatter()
-        standard.formatOptions = [.withInternetDateTime]
-        return standard.date(from: raw)
-    }
 }
