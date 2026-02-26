@@ -30,7 +30,7 @@ enum LifecycleHub: String, CaseIterable, Identifiable {
         case .triage:
             return "Shots, queue recovery, and diagnostics"
         case .deliver:
-            return "Day wrap ProRes assembly and history"
+            return "End of day ProRes assembly and history"
         }
     }
 }
