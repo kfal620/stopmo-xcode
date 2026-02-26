@@ -459,7 +459,7 @@ final class AppState: ObservableObject {
     private func snapshotFetchLimitsForCurrentSelection() -> LiveSnapshotFetchLimits {
         switch selectedHub {
         case .capture:
-            return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 60, includeShots: false, shotsLimit: 0)
+            return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 60, includeShots: true, shotsLimit: 120)
         case .triage:
             switch selectedTriagePanel {
             case .queue:
@@ -583,6 +583,59 @@ final class AppState: ObservableObject {
     func publishDeliveryOperation(_ envelope: ToolOperationEnvelope) {
         deliveryOperationEnvelope = envelope
         deliveryOperationRevision += 1
+    }
+
+    func runDayWrapBatchDelivery(
+        inputDir: String,
+        outputDir: String?,
+        framerate: Int,
+        overwrite: Bool
+    ) async -> ToolOperationEnvelope? {
+        let trimmedInput = inputDir.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedInput.isEmpty else {
+            presentWarning(
+                title: "Input Directory Required",
+                message: "Select a DPX input directory before running Day Wrap delivery.",
+                likelyCause: "Day Wrap input path is empty.",
+                suggestedAction: "Set input root in Deliver > Day Wrap and retry."
+            )
+            return nil
+        }
+
+        let resolvedOutput = outputDir?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let repoRoot = self.repoRoot
+        isBusy = true
+        clearError()
+        statusMessage = "Running Day Wrap delivery"
+        defer { isBusy = false }
+
+        do {
+            let envelope = try await Task.detached(priority: .userInitiated) {
+                try BridgeClient().dpxToProres(
+                    repoRoot: repoRoot,
+                    inputDir: trimmedInput,
+                    outputDir: (resolvedOutput?.isEmpty == false) ? resolvedOutput : nil,
+                    framerate: max(1, framerate),
+                    overwrite: overwrite
+                )
+            }.value
+
+            publishDeliveryOperation(envelope)
+            let outputs = Self.outputPaths(from: envelope)
+            let completed = envelope.operation.result?["count"]?.intValue ?? outputs.count
+            let total = envelope.operation.result?["total_sequences"]?.intValue ?? max(completed, outputs.count)
+            presentInfo(
+                title: "Day Wrap Complete",
+                message: "Completed \(completed) / \(total) sequences.",
+                likelyCause: nil,
+                suggestedAction: "Open output paths below or review full run details in Advanced."
+            )
+            statusMessage = "Day wrap delivery complete"
+            return envelope
+        } catch {
+            presentError(title: "Day Wrap Delivery Failed", message: error.localizedDescription)
+            return nil
+        }
     }
 
     func deliverShotsToProres(

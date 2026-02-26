@@ -19,15 +19,34 @@ struct SetupView: View {
                     )
                 }
 
-                readinessOverviewCard
-                pathsCard
-                permissionsCard
-                runtimeHealthCard
-                dependencyChecksCard
-                configValidationCard
-                watchSafetyCard
+                setupContentLayout
             }
-            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.sm : StopmoUI.Spacing.lg)
+        }
+    }
+
+    private var setupContentLayout: some View {
+        AdaptiveColumns(breakpoint: 920) {
+            primaryColumn
+        } secondary: {
+            secondaryColumn
+        }
+    }
+
+    private var primaryColumn: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+            readinessOverviewCard
+            pathsCard
+            permissionsCard
+            runtimeHealthCard
+        }
+    }
+
+    private var secondaryColumn: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+            watchSafetyCard
+            configValidationCard
+            dependencyChecksCard
         }
     }
 

@@ -6,13 +6,13 @@ struct RootCommandBarView: View {
     let refreshAction: () async -> Void
 
     var body: some View {
-        HStack(spacing: StopmoUI.Spacing.sm) {
+        HStack(spacing: StopmoUI.Spacing.xs) {
             projectContextChip
 
             if state.watchServiceState?.running == true {
-                StatusChip(label: "Watch Running", tone: .success)
+                StatusChip(label: "Watch Running", tone: .success, density: .compact)
             } else {
-                StatusChip(label: "Watch Stopped", tone: .warning)
+                StatusChip(label: "Watch Stopped", tone: .warning, density: .compact)
             }
 
             Spacer(minLength: 0)
@@ -48,33 +48,53 @@ struct RootCommandBarView: View {
                 NotificationBellButton()
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 4)
-        .padding(.bottom, 4)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 1)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.bar)
         .zIndex(20)
     }
 
     private var projectContextChip: some View {
-        HStack(spacing: StopmoUI.Spacing.xs) {
-            CommandContextChip(
-                icon: "folder",
-                value: repoRootName,
-                tooltip: "Repo Root"
-            )
-            CommandContextChip(
-                icon: "doc.text",
-                value: configName,
-                tooltip: "Config Path"
-            )
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: StopmoUI.Spacing.xs) {
+                CommandContextChip(
+                    icon: "map",
+                    value: state.hubPanelContextLabel,
+                    tooltip: "Current Hub / Panel"
+                )
+                CommandContextChip(
+                    icon: "doc.text",
+                    value: configName,
+                    tooltip: "Config Path"
+                )
+                CommandContextChip(
+                    icon: "folder",
+                    value: repoRootName,
+                    tooltip: "Repo Root"
+                )
+            }
+
+            HStack(spacing: StopmoUI.Spacing.xs) {
+                CommandContextChip(
+                    icon: "map",
+                    value: state.hubPanelContextLabel,
+                    tooltip: "Current Hub / Panel"
+                )
+                CommandContextChip(
+                    icon: "doc.text",
+                    value: configName,
+                    tooltip: "Config Path"
+                )
+            }
+
             CommandContextChip(
                 icon: "map",
                 value: state.hubPanelContextLabel,
                 tooltip: "Current Hub / Panel"
             )
         }
-        .frame(maxWidth: 640, alignment: .leading)
+        .frame(maxWidth: 560, alignment: .leading)
     }
 
     private var repoRootName: String {

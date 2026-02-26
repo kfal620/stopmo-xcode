@@ -21,6 +21,17 @@ enum StopmoUI {
     }
 }
 
+private struct HubContentWidthEnvironmentKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    var hubContentWidth: CGFloat {
+        get { self[HubContentWidthEnvironmentKey.self] }
+        set { self[HubContentWidthEnvironmentKey.self] = newValue }
+    }
+}
+
 extension LifecycleHub {
     var accentColor: Color {
         switch self {
@@ -113,47 +124,42 @@ struct ScreenHeader<Trailing: View>: View {
     }
 }
 
+enum StageHeaderStyle {
+    case expanded
+    case compact
+}
+
 struct LifecycleStageHeader<Trailing: View>: View {
     let hub: LifecycleHub
     let title: String
     let subtitle: String?
+    let style: StageHeaderStyle
+    let showSubtitle: Bool
     @ViewBuilder let trailing: Trailing
 
     init(
         hub: LifecycleHub,
         title: String,
         subtitle: String? = nil,
+        style: StageHeaderStyle = .expanded,
+        showSubtitle: Bool = true,
         @ViewBuilder trailing: () -> Trailing = { EmptyView() }
     ) {
         self.hub = hub
         self.title = title
         self.subtitle = subtitle
+        self.style = style
+        self.showSubtitle = showSubtitle
         self.trailing = trailing()
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
-            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                HStack(spacing: StopmoUI.Spacing.xs) {
-                    Image(systemName: hub.iconName)
-                    Text(hub.rawValue.uppercased())
-                        .font(.caption.weight(.bold))
-                }
-                .foregroundStyle(hub.accentColor)
-
-                Text(title)
-                    .font(.title2.weight(.bold))
-
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 0)
-            trailing
+        ViewThatFits(in: .horizontal) {
+            fullWidthHeader
+            compactFallbackHeader
         }
-        .padding(StopmoUI.Spacing.md)
+        .padding(.horizontal, style == .compact ? 10 : 12)
+        .padding(.vertical, style == .compact ? 5 : 8)
         .background(
             RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
                 .fill(hub.accentGradient)
@@ -163,6 +169,61 @@ struct LifecycleStageHeader<Trailing: View>: View {
                 .stroke(hub.accentColor.opacity(0.35), lineWidth: 1)
         )
     }
+
+    private var fullWidthHeader: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            stageBadge
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(style == .compact ? .subheadline.weight(.semibold) : .headline.weight(.semibold))
+
+                if showSubtitle, let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 0)
+            trailing
+        }
+    }
+
+    private var compactFallbackHeader: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            stageBadge
+            Text(title)
+                .font(style == .compact ? .subheadline.weight(.semibold) : .headline.weight(.semibold))
+            Spacer(minLength: 0)
+            trailing
+        }
+    }
+
+    private var stageBadge: some View {
+        HStack(spacing: StopmoUI.Spacing.xs) {
+            Image(systemName: hub.iconName)
+            Text(hub.rawValue.uppercased())
+                .font(.caption2.weight(.bold))
+        }
+        .foregroundStyle(hub.accentColor)
+        .padding(.horizontal, style == .compact ? 6 : 8)
+        .padding(.vertical, style == .compact ? 3 : 4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(hub.accentColor.opacity(0.16))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(hub.accentColor.opacity(0.4), lineWidth: 0.75)
+        )
+    }
+}
+
+enum CardDensity {
+    case regular
+    case compact
 }
 
 struct PanelChipButton: View {
@@ -179,9 +240,9 @@ struct PanelChipButton: View {
                 Text(label)
                     .lineLimit(1)
             }
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 7)
+            .font(.callout.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
             .foregroundStyle(isSelected ? Color.white : Color.primary)
             .background(
                 Capsule(style: .continuous)
@@ -219,36 +280,164 @@ struct DisclosureToggleLabel: View {
     }
 }
 
+struct AdaptiveColumns<Primary: View, Secondary: View>: View {
+    @Environment(\.hubContentWidth) private var hubContentWidth
+
+    let breakpoint: CGFloat
+    let spacing: CGFloat
+    @ViewBuilder let primary: Primary
+    @ViewBuilder let secondary: Secondary
+
+    init(
+        breakpoint: CGFloat = 920,
+        spacing: CGFloat = StopmoUI.Spacing.md,
+        @ViewBuilder primary: () -> Primary,
+        @ViewBuilder secondary: () -> Secondary
+    ) {
+        self.breakpoint = breakpoint
+        self.spacing = spacing
+        self.primary = primary()
+        self.secondary = secondary()
+    }
+
+    var body: some View {
+        Group {
+            if hubContentWidth == 0 || hubContentWidth >= breakpoint {
+                HStack(alignment: .top, spacing: spacing) {
+                    primary
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                    secondary
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: spacing) {
+                    primary
+                    secondary
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+}
+
+struct DenseShotRowStyle {
+    static let minHeight: CGFloat = 56
+    static let horizontalPadding: CGFloat = 8
+    static let verticalPadding: CGFloat = 6
+    static let spacing: CGFloat = 6
+    static let cornerRadius: CGFloat = 10
+}
+
+struct ToolbarStrip<Content: View>: View {
+    let title: String?
+    @ViewBuilder let content: Content
+
+    init(
+        title: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+            if let title, !title.isEmpty {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, StopmoUI.Spacing.sm)
+        .padding(.vertical, StopmoUI.Spacing.xs)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(Color.secondary.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 0.75)
+        )
+    }
+}
+
+struct MetricWrap<Content: View>: View {
+    let minItemWidth: CGFloat
+    let spacing: CGFloat
+    @ViewBuilder let content: Content
+
+    init(
+        minItemWidth: CGFloat = 130,
+        spacing: CGFloat = StopmoUI.Spacing.xs,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.minItemWidth = minItemWidth
+        self.spacing = spacing
+        self.content = content()
+    }
+
+    var body: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.adaptive(minimum: minItemWidth), spacing: spacing, alignment: .leading),
+            ],
+            alignment: .leading,
+            spacing: spacing
+        ) {
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct SectionCard<Content: View>: View {
     let title: String
     let subtitle: String?
+    let density: CardDensity
+    let showTitle: Bool
+    let showSubtitle: Bool
     @ViewBuilder let content: Content
 
     init(
         _ title: String,
         subtitle: String? = nil,
+        density: CardDensity = .regular,
+        showTitle: Bool = true,
+        showSubtitle: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.density = density
+        self.showTitle = showTitle
+        self.showSubtitle = showSubtitle
         self.content = content()
     }
 
     var body: some View {
+        let rowSpacing: CGFloat = density == .compact ? StopmoUI.Spacing.sm : StopmoUI.Spacing.md
+        let headerSpacing: CGFloat = density == .compact ? 2 : StopmoUI.Spacing.xxs
+
         GroupBox {
-            VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
-                    Text(title)
-                        .font(.headline)
-                    if let subtitle, !subtitle.isEmpty {
-                        Text(subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: rowSpacing) {
+                if showTitle || (showSubtitle && subtitle != nil) {
+                    VStack(alignment: .leading, spacing: headerSpacing) {
+                        if showTitle {
+                            Text(title)
+                                .font(density == .compact ? .subheadline.weight(.semibold) : .headline)
+                        }
+                        if showSubtitle, let subtitle, !subtitle.isEmpty {
+                            Text(subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 content
             }
-            .padding(.top, StopmoUI.Spacing.xxs)
+            .padding(.top, density == .compact ? 0 : StopmoUI.Spacing.xxs)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -257,13 +446,14 @@ struct SectionCard<Content: View>: View {
 struct StatusChip: View {
     let label: String
     let tone: StatusTone
+    var density: CardDensity = .regular
 
     var body: some View {
         Text(label)
-            .font(.caption.weight(.semibold))
+            .font((density == .compact ? Font.caption2 : Font.caption).weight(.semibold))
             .foregroundStyle(tone.foreground)
             .padding(.horizontal, StopmoUI.Spacing.xs)
-            .padding(.vertical, StopmoUI.Spacing.xxs)
+            .padding(.vertical, density == .compact ? 2 : StopmoUI.Spacing.xxs)
             .background(tone.background)
             .clipShape(RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous))
     }

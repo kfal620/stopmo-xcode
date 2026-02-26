@@ -49,17 +49,12 @@ struct ShotsView: View {
                     ) {
                         headerActions
                     }
-                } else {
-                    headerActions
                 }
 
-                controlsCard
-                quickDeliverCard
-                shotsTableCard
-                selectedShotDetailCard
+                triageWorkspaceLayout
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.sm : StopmoUI.Spacing.lg)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
@@ -89,6 +84,17 @@ struct ShotsView: View {
         }
     }
 
+    private var triageWorkspaceLayout: some View {
+        AdaptiveColumns(breakpoint: 860) {
+            shotsTableCard
+        } secondary: {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                quickDeliverCard
+                selectedShotDetailCard
+            }
+        }
+    }
+
     private var headerActions: some View {
         HStack(spacing: StopmoUI.Spacing.sm) {
             if let count = state.shotsSnapshot?.count {
@@ -107,13 +113,13 @@ struct ShotsView: View {
         }
     }
 
-    private var controlsCard: some View {
-        SectionCard("Filters") {
-            ScrollView(.horizontal, showsIndicators: false) {
+    private var shotsTableToolbar: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+            ViewThatFits(in: .horizontal) {
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     TextField("Search shot/output/review path", text: $searchText)
                         .textFieldStyle(.roundedBorder)
-                        .frame(width: 290)
+                        .frame(minWidth: 220)
                         .focused($focusedField, equals: .search)
 
                     Picker("State", selection: $selectedFilter) {
@@ -121,8 +127,7 @@ struct ShotsView: View {
                             Text(filter.rawValue).tag(filter)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .frame(width: 420)
+                    .pickerStyle(.menu)
 
                     Picker("Sort", selection: $selectedSort) {
                         ForEach(ShotSortOption.allCases) { sort in
@@ -130,40 +135,119 @@ struct ShotsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 180)
 
-                    StatusChip(label: "Visible \(filteredShots.count)", tone: .neutral)
+                    Button("Reset") {
+                        resetFilters()
+                    }
+                    .disabled(!hasActiveFilters)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    TextField("Search shot/output/review path", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($focusedField, equals: .search)
+
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        Picker("State", selection: $selectedFilter) {
+                            ForEach(ShotStateFilter.allCases) { filter in
+                                Text(filter.rawValue).tag(filter)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Sort", selection: $selectedSort) {
+                            ForEach(ShotSortOption.allCases) { sort in
+                                Text(sort.rawValue).tag(sort)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Button("Reset") {
+                            resetFilters()
+                        }
+                        .disabled(!hasActiveFilters)
+                    }
+                }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
+            ViewThatFits(in: .horizontal) {
                 HStack(spacing: StopmoUI.Spacing.sm) {
-                    Picker("Page Size", selection: $pageSize) {
-                        Text("50").tag(50)
-                        Text("75").tag(75)
-                        Text("100").tag(100)
-                        Text("150").tag(150)
+                    HStack(spacing: StopmoUI.Spacing.xs) {
+                        Text("Page Size")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Picker("Page Size", selection: $pageSize) {
+                            Text("50").tag(50)
+                            Text("75").tag(75)
+                            Text("100").tag(100)
+                            Text("150").tag(150)
+                        }
+                        .pickerStyle(.menu)
                     }
-                    .pickerStyle(.menu)
-                    .frame(width: 110)
 
-                    Button("Previous") {
-                        pageIndex = max(0, pageIndex - 1)
-                    }
-                    .disabled(pageIndex == 0 || filteredShots.isEmpty)
-
-                    Button("Next") {
-                        pageIndex = min(pageCount - 1, pageIndex + 1)
-                    }
-                    .disabled(pageIndex >= pageCount - 1 || filteredShots.isEmpty)
-
-                    StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
-                    StatusChip(label: pageRangeLabel, tone: .neutral)
+                    paginationButtons
+                    Spacer(minLength: 0)
+                    paginationChips
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    HStack(spacing: StopmoUI.Spacing.xs) {
+                        Text("Page Size")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Picker("Page Size", selection: $pageSize) {
+                            Text("50").tag(50)
+                            Text("75").tag(75)
+                            Text("100").tag(100)
+                            Text("150").tag(150)
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    paginationButtons
+                    paginationChips
+                }
             }
         }
+        .padding(StopmoUI.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(Color.secondary.opacity(0.08))
+        )
+    }
+
+    private var paginationButtons: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            Button("Previous") {
+                pageIndex = max(0, pageIndex - 1)
+            }
+            .disabled(pageIndex == 0 || filteredShots.isEmpty)
+
+            Button("Next") {
+                pageIndex = min(pageCount - 1, pageIndex + 1)
+            }
+            .disabled(pageIndex >= pageCount - 1 || filteredShots.isEmpty)
+        }
+    }
+
+    private var paginationChips: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            StatusChip(label: "Visible \(filteredShots.count)", tone: .neutral)
+            StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
+            StatusChip(label: pageRangeLabel, tone: .neutral)
+        }
+    }
+
+    private var hasActiveFilters: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || selectedFilter != .all
+            || selectedSort != .updatedDesc
+    }
+
+    private func resetFilters() {
+        searchText = ""
+        selectedFilter = .all
+        selectedSort = .updatedDesc
+        pageIndex = 0
     }
 
     private var quickDeliverCard: some View {
@@ -264,7 +348,9 @@ struct ShotsView: View {
     }
 
     private var shotsTableCard: some View {
-        SectionCard("Shot Summary Table") {
+        SectionCard("Shot Summary Table", subtitle: "Filter and inspect shot rows in one workspace.") {
+            shotsTableToolbar
+
             if state.shotsSnapshot != nil {
                 if filteredShots.isEmpty {
                     EmptyStateCard(message: "No shots match the current filters.")

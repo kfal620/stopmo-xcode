@@ -4,7 +4,7 @@ struct ConfigureHubView: View {
     @EnvironmentObject private var state: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             LifecycleStageHeader(
                 hub: .configure,
                 title: "Configure",
@@ -25,7 +25,9 @@ struct ConfigureHubView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(StopmoUI.Spacing.lg)
+        .padding(.horizontal, StopmoUI.Spacing.md)
+        .padding(.top, StopmoUI.Spacing.sm)
+        .padding(.bottom, StopmoUI.Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 

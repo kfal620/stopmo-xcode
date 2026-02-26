@@ -14,6 +14,11 @@ enum ToolsMode: String, CaseIterable {
     case deliveryOnly
 }
 
+enum DeliveryPresentation: String, CaseIterable {
+    case full
+    case diagnosticsOnly
+}
+
 private enum ToolRunStatus {
     case idle
     case running
@@ -74,10 +79,16 @@ struct ToolsView: View {
     @EnvironmentObject private var state: AppState
     let mode: ToolsMode
     let embedded: Bool
+    let deliveryPresentation: DeliveryPresentation
 
-    init(mode: ToolsMode = .all, embedded: Bool = false) {
+    init(
+        mode: ToolsMode = .all,
+        embedded: Bool = false,
+        deliveryPresentation: DeliveryPresentation = .full
+    ) {
         self.mode = mode
         self.embedded = embedded
+        self.deliveryPresentation = deliveryPresentation
     }
 
     @AppStorage("tools.transcode.input_path")
@@ -147,25 +158,13 @@ struct ToolsView: View {
                     ) {
                         headerStatusChips
                     }
-                } else {
+                } else if shouldShowEmbeddedHeaderChips {
                     headerStatusChips
                 }
 
-                if showsUtilities {
-                    transcodeSection
-                    matrixSection
-                }
-                if showsDelivery {
-                    dpxSection
-                }
-                if mode == .utilitiesOnly {
-                    calibrationDiagnosticsSection
-                } else {
-                    timelineSection
-                    eventsSection
-                }
+                toolWorkspaceLayout
             }
-            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.sm : StopmoUI.Spacing.lg)
         }
         .onAppear {
             initializeModeDefaultsIfNeeded()
@@ -173,6 +172,56 @@ struct ToolsView: View {
         }
         .onChange(of: state.deliveryOperationRevision) { _, _ in
             applySharedDeliveryOperationIfAvailable()
+        }
+    }
+
+    @ViewBuilder
+    private var toolWorkspaceLayout: some View {
+        switch mode {
+        case .utilitiesOnly:
+            utilitiesWorkspaceLayout
+            calibrationDiagnosticsSection
+        case .deliveryOnly:
+            if deliveryPresentation == .diagnosticsOnly {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                    timelineSection
+                    eventsSection
+                }
+            } else {
+                deliveryWorkspaceLayout
+            }
+        case .all:
+            if showsUtilities {
+                utilitiesWorkspaceLayout
+            }
+            if showsDelivery {
+                dpxSection
+            }
+            timelineSection
+            eventsSection
+        }
+    }
+
+    private var shouldShowEmbeddedHeaderChips: Bool {
+        !(mode == .deliveryOnly && deliveryPresentation == .diagnosticsOnly)
+    }
+
+    private var utilitiesWorkspaceLayout: some View {
+        AdaptiveColumns(breakpoint: 920) {
+            transcodeSection
+        } secondary: {
+            matrixSection
+        }
+    }
+
+    private var deliveryWorkspaceLayout: some View {
+        AdaptiveColumns(breakpoint: 940) {
+            dpxSection
+        } secondary: {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                timelineSection
+                eventsSection
+            }
         }
     }
 

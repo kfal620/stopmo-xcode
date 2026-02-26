@@ -1,14 +1,35 @@
 import SwiftUI
 
+private struct RootDetailWidthPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 struct RootView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var detailContentWidth: CGFloat = 0
 
     var body: some View {
         NavigationSplitView {
             RootSidebarView()
         } detail: {
             detailView
+                .environment(\.hubContentWidth, detailContentWidth)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: RootDetailWidthPreferenceKey.self,
+                            value: proxy.size.width
+                        )
+                    }
+                )
+                .onPreferenceChange(RootDetailWidthPreferenceKey.self) { width in
+                    detailContentWidth = width
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .safeAreaInset(edge: .top, spacing: 0) {
                     VStack(spacing: 0) {
@@ -18,7 +39,7 @@ struct RootView: View {
                         Divider()
                     }
                 }
-                .navigationSplitViewColumnWidth(min: 760, ideal: 980)
+                .navigationSplitViewColumnWidth(min: 780, ideal: 1120)
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear {

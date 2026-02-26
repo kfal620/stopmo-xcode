@@ -48,13 +48,9 @@ struct QueueView: View {
                     ) {
                         headerActions
                     }
-                } else {
-                    headerActions
                 }
 
-                controlsCard
-                jobsTableCard
-                selectedJobDetailCard
+                queueWorkspaceLayout
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
@@ -102,13 +98,58 @@ struct QueueView: View {
         }
     }
 
-    private var controlsCard: some View {
-        SectionCard("Filters & Actions") {
-            ScrollView(.horizontal, showsIndicators: false) {
+    private var queueWorkspaceLayout: some View {
+        AdaptiveColumns(breakpoint: 860) {
+            jobsTableCard
+        } secondary: {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                quickActionsCard
+                selectedJobDetailCard
+            }
+        }
+    }
+
+    private var quickActionsCard: some View {
+        SectionCard("Queue Actions", subtitle: "Common triage operations and queue status at a glance.") {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                StatusChip(label: "Visible \(filteredJobs.count)", tone: .neutral)
+                StatusChip(label: "Selected \(selectedJobIDs.count)", tone: selectedJobIDs.isEmpty ? .neutral : .warning)
+                StatusChip(label: "Failed \(failedCount)", tone: failedCount > 0 ? .danger : .neutral)
+            }
+
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                Button("Retry Failed") {
+                    Task { await state.retryFailedQueueJobs() }
+                }
+                .disabled(state.isBusy || failedCount == 0)
+
+                Button("Retry Selected Failed") {
+                    Task { await state.retryFailedQueueJobs(jobIds: selectedFailedIds) }
+                }
+                .disabled(state.isBusy || selectedFailedIds.isEmpty)
+
+                Button("Export Queue Snapshot") {
+                    state.exportQueueSnapshot()
+                }
+                .disabled(state.isBusy || state.queueSnapshot == nil)
+            }
+
+            if let queue = state.queueSnapshot {
+                KeyValueRow(key: "DB", value: queue.dbPath)
+                KeyValueRow(key: "Total Jobs", value: "\(queue.total)")
+            } else {
+                EmptyStateCard(message: "No queue snapshot available yet.")
+            }
+        }
+    }
+
+    private var queueTableToolbar: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+            ViewThatFits(in: .horizontal) {
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     TextField("Search id/shot/source/error", text: $searchText)
                         .textFieldStyle(.roundedBorder)
-                        .frame(width: 280)
+                        .frame(minWidth: 220)
                         .focused($focusedField, equals: .search)
 
                     Picker("State", selection: $selectedFilter) {
@@ -116,8 +157,7 @@ struct QueueView: View {
                             Text(filter.rawValue).tag(filter)
                         }
                     }
-                    .pickerStyle(.segmented)
-                    .frame(width: 360)
+                    .pickerStyle(.menu)
 
                     Picker("Sort", selection: $selectedSort) {
                         ForEach(QueueSortOption.allCases) { sort in
@@ -125,77 +165,147 @@ struct QueueView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 180)
 
                     Toggle("Selected Only", isOn: $showOnlySelected)
                         .toggleStyle(.switch)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    Button("Retry Failed") {
-                        Task { await state.retryFailedQueueJobs() }
+                    Button("Reset") {
+                        resetQueueFilters()
                     }
-                    .disabled(state.isBusy || failedCount == 0)
-
-                    Button("Retry Selected Failed") {
-                        Task { await state.retryFailedQueueJobs(jobIds: selectedFailedIds) }
-                    }
-                    .disabled(state.isBusy || selectedFailedIds.isEmpty)
-
-                    Button("Export Queue Snapshot") {
-                        state.exportQueueSnapshot()
-                    }
-                    .disabled(state.isBusy || state.queueSnapshot == nil)
+                    .disabled(!hasActiveQueueFilters)
 
                     Button("Clear Selection") {
                         selectedJobIDs.removeAll()
                     }
                     .disabled(selectedJobIDs.isEmpty)
-
-                    StatusChip(label: "Visible \(filteredJobs.count)", tone: .neutral)
-                    StatusChip(label: "Selected \(selectedJobIDs.count)", tone: selectedJobIDs.isEmpty ? .neutral : .warning)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    TextField("Search id/shot/source/error", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($focusedField, equals: .search)
+
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        Picker("State", selection: $selectedFilter) {
+                            ForEach(QueueStateFilter.allCases) { filter in
+                                Text(filter.rawValue).tag(filter)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Sort", selection: $selectedSort) {
+                            ForEach(QueueSortOption.allCases) { sort in
+                                Text(sort.rawValue).tag(sort)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Toggle("Selected Only", isOn: $showOnlySelected)
+                            .toggleStyle(.switch)
+                    }
+
+                    HStack(spacing: StopmoUI.Spacing.sm) {
+                        Button("Reset") {
+                            resetQueueFilters()
+                        }
+                        .disabled(!hasActiveQueueFilters)
+
+                        Button("Clear Selection") {
+                            selectedJobIDs.removeAll()
+                        }
+                        .disabled(selectedJobIDs.isEmpty)
+                    }
+                }
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
+            ViewThatFits(in: .horizontal) {
                 HStack(spacing: StopmoUI.Spacing.sm) {
-                    Picker("Page Size", selection: $pageSize) {
-                        Text("50").tag(50)
-                        Text("75").tag(75)
-                        Text("100").tag(100)
-                        Text("150").tag(150)
+                    HStack(spacing: StopmoUI.Spacing.xs) {
+                        Text("Page Size")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Picker("Page Size", selection: $pageSize) {
+                            Text("50").tag(50)
+                            Text("75").tag(75)
+                            Text("100").tag(100)
+                            Text("150").tag(150)
+                        }
+                        .pickerStyle(.menu)
                     }
-                    .pickerStyle(.menu)
-                    .frame(width: 110)
 
-                    Button("Previous") {
-                        pageIndex = max(0, pageIndex - 1)
-                    }
-                    .disabled(pageIndex == 0 || filteredJobs.isEmpty)
-
-                    Button("Next") {
-                        pageIndex = min(pageCount - 1, pageIndex + 1)
-                    }
-                    .disabled(pageIndex >= pageCount - 1 || filteredJobs.isEmpty)
-
-                    StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
-                    StatusChip(label: pageRangeLabel, tone: .neutral)
+                    queuePaginationButtons
+                    Spacer(minLength: 0)
+                    queuePaginationChips
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    HStack(spacing: StopmoUI.Spacing.xs) {
+                        Text("Page Size")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Picker("Page Size", selection: $pageSize) {
+                            Text("50").tag(50)
+                            Text("75").tag(75)
+                            Text("100").tag(100)
+                            Text("150").tag(150)
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    queuePaginationButtons
+                    queuePaginationChips
+                }
             }
+        }
+        .padding(StopmoUI.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(Color.secondary.opacity(0.08))
+        )
+    }
+
+    private var queuePaginationButtons: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            Button("Previous") {
+                pageIndex = max(0, pageIndex - 1)
+            }
+            .disabled(pageIndex == 0 || filteredJobs.isEmpty)
+
+            Button("Next") {
+                pageIndex = min(pageCount - 1, pageIndex + 1)
+            }
+            .disabled(pageIndex >= pageCount - 1 || filteredJobs.isEmpty)
         }
     }
 
-    private var jobsTableCard: some View {
-        SectionCard("Jobs Table") {
-            if let queue = state.queueSnapshot {
-                KeyValueRow(key: "DB", value: queue.dbPath)
-                KeyValueRow(key: "Total Jobs", value: "\(queue.total)")
+    private var queuePaginationChips: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            StatusChip(label: "Visible \(filteredJobs.count)", tone: .neutral)
+            StatusChip(label: "Selected \(selectedJobIDs.count)", tone: selectedJobIDs.isEmpty ? .neutral : .warning)
+            StatusChip(label: "Page \(safePageIndex + 1)/\(pageCount)", tone: .neutral)
+            StatusChip(label: pageRangeLabel, tone: .neutral)
+        }
+    }
 
+    private var hasActiveQueueFilters: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || selectedFilter != .all
+            || selectedSort != .updatedDesc
+            || showOnlySelected
+    }
+
+    private func resetQueueFilters() {
+        searchText = ""
+        selectedFilter = .all
+        selectedSort = .updatedDesc
+        showOnlySelected = false
+        pageIndex = 0
+    }
+
+    private var jobsTableCard: some View {
+        SectionCard("Jobs Table", subtitle: "Filter and inspect queue jobs in one workspace.") {
+            queueTableToolbar
+
+            if state.queueSnapshot != nil {
                 if filteredJobs.isEmpty {
                     EmptyStateCard(message: "No queue rows match the current filters.")
                 } else {

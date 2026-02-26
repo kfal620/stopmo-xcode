@@ -1,5 +1,10 @@
 # GUI Phase 12 Lifecycle IA Overhaul
 
+Phase 12 established the lifecycle hub model (`Configure`, `Capture`, `Triage`, `Deliver`).
+Phase 13 refines these hubs into time-horizon-first primary surfaces. See:
+
+- `/Users/kyle/Developer/stopmo-xcode/docs/gui-phase13-pipeline-surfaces.md`
+
 Phase 12 objective: shift the macOS GUI from capability-first sections to a production lifecycle mental model while preserving all backend features and critical actions.
 
 ## Scope
@@ -91,6 +96,13 @@ Top-level navigation:
 
 No backend bridge or CLI contract changed. The overhaul is UI IA/UX + app-state routing only.
 All critical actions from baseline remain reachable.
+
+## Phase 13 Delta (Additive)
+
+1. Capture is active-shot-first with a lighter, collapsed activity/log presentation.
+2. Triage default path is a card-based shot health board with inline detail expansion.
+3. Queue/Diagnostics remain available as advanced workspaces and through the Triage recovery drawer.
+4. Deliver Day Wrap combines batch controls and per-shot deliver CTAs; run timeline/events are collapsed under Advanced.
 
 ## Validation
 

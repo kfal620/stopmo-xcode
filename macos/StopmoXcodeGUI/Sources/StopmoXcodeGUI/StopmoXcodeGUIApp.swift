@@ -67,16 +67,16 @@ struct StopmoXcodeGUIApp: App {
                     }
                 }
 
-                Menu("Triage Panels") {
-                    Button("Shots") {
+                Menu("Triage Workspaces") {
+                    Button("Shot Health Board") {
                         state.selectedHub = .triage
                         state.selectedTriagePanel = .shots
                     }
-                    Button("Queue") {
+                    Button("Queue Workspace") {
                         state.selectedHub = .triage
                         state.selectedTriagePanel = .queue
                     }
-                    Button("Diagnostics") {
+                    Button("Diagnostics Workspace") {
                         state.selectedHub = .triage
                         state.selectedTriagePanel = .diagnostics
                     }

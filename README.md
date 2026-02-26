@@ -115,31 +115,39 @@ The command prints a YAML snippet you can paste into `config/sample.yaml` and
 writes a JSON report with source/provenance, assumptions, notes, and warnings.
 An example report schema is provided at `config/sample.matrix.json`.
 
-## macOS GUI Shell (Phase 12)
+## macOS GUI Shell (Phase 13)
 
 A SwiftUI shell has been added under:
 
 - `macos/StopmoXcodeGUI`
 
-It currently uses a lifecycle navigation model:
+It uses a lifecycle navigation model:
 
 - `Configure`
   - Workspace & Health
   - Project Settings
   - Calibration (Transcode One + Suggest Matrix)
 - `Capture`
-  - Live Capture monitor (watch controls, telemetry, activity)
+  - Live Capture console (active-shot focus, watch runtime, ingest pace)
 - `Triage`
-  - Shots, Queue, Diagnostics
+  - Shot Health Board (default)
+  - Queue workspace (advanced)
+  - Diagnostics workspace (advanced)
 - `Deliver`
-  - Day Wrap (DPX to ProRes batch-first)
+  - Day Wrap shipping surface (batch-first + per-shot ProRes delivery)
   - Run History
 
 Notes:
 
 - `Write ProRes On Shot Complete` remains in Configure > Project Settings > Output.
 - Deliver Day Wrap defaults DPX input to configured `watch.output_dir` when empty.
+- Triage recovery actions (queue retry/export + diagnostics bundle/logs) are available in the collapsed recovery drawer and full advanced workspaces.
+- Day-wrap timeline/events diagnostics remain available under Deliver > Day Wrap > Advanced.
 - All previous backend bridge capabilities remain available; the change is IA/UX.
+
+Implementation notes are documented in:
+
+- `/Users/kyle/Developer/stopmo-xcode/docs/gui-phase13-pipeline-surfaces.md`
 
 Run from repo root:
 

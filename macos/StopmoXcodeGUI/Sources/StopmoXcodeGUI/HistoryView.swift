@@ -48,11 +48,9 @@ struct HistoryView: View {
                     headerActions
                 }
 
-                controlsCard
-                compareCard
-                historyCardsSection
+                historyWorkspaceLayout
             }
-            .padding(embedded ? StopmoUI.Spacing.md : StopmoUI.Spacing.lg)
+            .padding(embedded ? StopmoUI.Spacing.sm : StopmoUI.Spacing.lg)
         }
         .onAppear {
             if state.historySummary == nil {
@@ -69,6 +67,18 @@ struct HistoryView: View {
         }
         .onChange(of: pageSize) { _, _ in
             clampPageIndex()
+        }
+    }
+
+    private var historyWorkspaceLayout: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+            AdaptiveColumns(breakpoint: 940) {
+                controlsCard
+            } secondary: {
+                compareCard
+            }
+
+            historyCardsSection
         }
     }
 

@@ -53,18 +53,13 @@ struct LogsDiagnosticsView: View {
                     ) {
                         headerActions
                     }
-                } else {
-                    headerActions
                 }
 
-                controlsCard
-                diagnosticsBundleCard
-
                 if let snapshot = state.logsDiagnostics {
-                    runtimeSummaryCard(snapshot)
-                    diagnosticsIssuesCard(snapshot)
-                    structuredLogsCard(snapshot)
+                    controlsWorkspaceLayout
+                    diagnosticsWorkspaceLayout(snapshot)
                 } else {
+                    controlsWorkspaceLayout
                     EmptyStateCard(message: "No diagnostics loaded yet.")
                 }
             }
@@ -119,67 +114,152 @@ struct LogsDiagnosticsView: View {
         }
     }
 
+    private var controlsWorkspaceLayout: some View {
+        AdaptiveColumns(breakpoint: 760) {
+            controlsCard
+        } secondary: {
+            diagnosticsBundleCard
+        }
+    }
+
+    private func diagnosticsWorkspaceLayout(_ snapshot: LogsDiagnosticsSnapshot) -> some View {
+        AdaptiveColumns(breakpoint: 860) {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                runtimeSummaryCard(snapshot)
+                diagnosticsIssuesCard(snapshot)
+            }
+        } secondary: {
+            structuredLogsCard(snapshot)
+        }
+    }
+
     private var controlsCard: some View {
         SectionCard("Log Filters", subtitle: "Filter by severity, logger field, warning code, and free-text search.") {
-            VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        Picker("Log Severity", selection: $logSeverityFilter) {
-                            ForEach(LogSeverityFilter.allCases) { filter in
-                                Text(filter.rawValue).tag(filter)
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+                AdaptiveColumns(breakpoint: 980, spacing: StopmoUI.Spacing.md) {
+                    logFilterSubpanel("Severity & Logger") {
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                            Picker("Log Severity", selection: $logSeverityFilter) {
+                                ForEach(LogSeverityFilter.allCases) { filter in
+                                    Text(filter.rawValue).tag(filter)
+                                }
                             }
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 360)
+                            .pickerStyle(.menu)
 
-                        Picker("Issue Severity", selection: $diagnosticSeverityFilter) {
-                            ForEach(DiagnosticSeverityFilter.allCases) { filter in
-                                Text(filter.rawValue).tag(filter)
+                            Picker("Issue Severity", selection: $diagnosticSeverityFilter) {
+                                ForEach(DiagnosticSeverityFilter.allCases) { filter in
+                                    Text(filter.rawValue).tag(filter)
+                                }
                             }
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 280)
+                            .pickerStyle(.menu)
 
-                        TextField("Logger filter", text: $loggerFilter)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 180)
+                            TextField("Logger filter", text: $loggerFilter)
+                                .textFieldStyle(.roundedBorder)
+                        }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                } secondary: {
+                    logFilterSubpanel("Search & Warning Code") {
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                            TextField("Search message/timestamp", text: $messageSearch)
+                                .textFieldStyle(.roundedBorder)
+                                .focused($focusedField, equals: .search)
+                            TextField("Warning code filter", text: $warningCodeFilter)
+                                .textFieldStyle(.roundedBorder)
+                        }
+                    }
                 }
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        TextField("Search message/timestamp", text: $messageSearch)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 280)
-                            .focused($focusedField, equals: .search)
-                        TextField("Warning code filter", text: $warningCodeFilter)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 200)
+                logFilterSubpanel("Refresh Scope") {
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
                         TextField("Refresh severity (CSV, optional)", text: $refreshSeverityCSV)
                             .textFieldStyle(.roundedBorder)
-                            .frame(width: 230)
 
-                        Button("Refresh With Server Filter") {
-                            Task { await refreshLogsFromToolbar() }
-                        }
-                        .disabled(state.isBusy)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: StopmoUI.Spacing.sm) {
+                                Button("Refresh With Server Filter") {
+                                    Task { await refreshLogsFromToolbar() }
+                                }
+                                .disabled(state.isBusy)
 
-                        Button("Clear Filters") {
-                            logSeverityFilter = .all
-                            diagnosticSeverityFilter = .all
-                            loggerFilter = ""
-                            messageSearch = ""
-                            warningCodeFilter = ""
-                            refreshSeverityCSV = ""
-                            warningsPageIndex = 0
-                            logsPageIndex = 0
+                                Button("Reset Filters") {
+                                    resetLogFilters()
+                                }
+                                .disabled(!hasActiveLogFilters)
+
+                                Spacer(minLength: 0)
+                                logFilterSummaryChips
+                            }
+
+                            VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                                HStack(spacing: StopmoUI.Spacing.sm) {
+                                    Button("Refresh With Server Filter") {
+                                        Task { await refreshLogsFromToolbar() }
+                                    }
+                                    .disabled(state.isBusy)
+
+                                    Button("Reset Filters") {
+                                        resetLogFilters()
+                                    }
+                                    .disabled(!hasActiveLogFilters)
+                                }
+                                logFilterSummaryChips
+                            }
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
+    }
+
+    private var logFilterSummaryChips: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            StatusChip(label: "Entries \(filteredEntryCount)", tone: .neutral)
+            StatusChip(label: "Issues \(filteredWarningCount)", tone: filteredWarningCount > 0 ? .warning : .neutral)
+        }
+    }
+
+    private func logFilterSubpanel<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            content()
+        }
+        .padding(StopmoUI.Spacing.sm)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(Color.secondary.opacity(0.08))
+        )
+    }
+
+    private var filteredWarningCount: Int {
+        guard let snapshot = state.logsDiagnostics else { return 0 }
+        return filteredWarnings(from: snapshot).count
+    }
+
+    private var filteredEntryCount: Int {
+        guard let snapshot = state.logsDiagnostics else { return 0 }
+        return filteredEntries(from: snapshot).count
+    }
+
+    private var hasActiveLogFilters: Bool {
+        !refreshSeverityCSV.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || logSeverityFilter != .all
+            || diagnosticSeverityFilter != .all
+            || !loggerFilter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !messageSearch.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !warningCodeFilter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func resetLogFilters() {
+        logSeverityFilter = .all
+        diagnosticSeverityFilter = .all
+        loggerFilter = ""
+        messageSearch = ""
+        warningCodeFilter = ""
+        refreshSeverityCSV = ""
+        warningsPageIndex = 0
+        logsPageIndex = 0
     }
 
     private var diagnosticsBundleCard: some View {

@@ -4,51 +4,69 @@ struct TriageHubView: View {
     @EnvironmentObject private var state: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             LifecycleStageHeader(
                 hub: .triage,
                 title: "Triage",
-                subtitle: "Review shots, recover queue failures, and inspect diagnostics."
+                subtitle: "Review shots, recover queue failures, and inspect diagnostics.",
+                style: .compact,
+                showSubtitle: false
             ) {
                 Button("Open Deliver (Day Wrap)") {
                     state.selectedHub = .deliver
                     state.selectedDeliverPanel = .dayWrap
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-
-            panelPicker
 
             Group {
                 switch state.selectedTriagePanel {
                 case .shots:
-                    ShotsView(embedded: true)
+                    TriageShotHealthBoardView()
                 case .queue:
-                    QueueView(embedded: true)
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                        triageWorkspaceToolbar(title: "Queue Workspace")
+                        QueueView(embedded: true)
+                    }
                 case .diagnostics:
-                    LogsDiagnosticsView(embedded: true)
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                        triageWorkspaceToolbar(title: "Diagnostics Workspace")
+                        LogsDiagnosticsView(embedded: true)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(StopmoUI.Spacing.lg)
+        .padding(.horizontal, StopmoUI.Spacing.md)
+        .padding(.top, StopmoUI.Spacing.sm)
+        .padding(.bottom, StopmoUI.Spacing.sm)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private var panelPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: StopmoUI.Spacing.xs) {
-                ForEach(TriagePanel.allCases) { panel in
-                    PanelChipButton(
-                        label: panel.rawValue,
-                        iconName: panel.iconName,
-                        isSelected: state.selectedTriagePanel == panel,
-                        accentColor: LifecycleHub.triage.accentColor
-                    ) {
-                        state.selectedTriagePanel = panel
-                    }
+    private func triageWorkspaceToolbar(title: String) -> some View {
+        ToolbarStrip(title: title) {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                Button("Back to Shot Board") {
+                    state.selectedTriagePanel = .shots
                 }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                if state.selectedTriagePanel == .queue {
+                    Button("Open Diagnostics") {
+                        state.selectedTriagePanel = .diagnostics
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                } else if state.selectedTriagePanel == .diagnostics {
+                    Button("Open Queue") {
+                        state.selectedTriagePanel = .queue
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

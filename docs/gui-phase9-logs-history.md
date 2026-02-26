@@ -50,3 +50,12 @@ History view now includes:
 
 1. `swift build` passes in `macos/StopmoXcodeGUI`.
 2. `swift test` passes in `macos/StopmoXcodeGUI`.
+
+## Phase 13 Placement Update
+
+Phase 13 keeps all phase-9 diagnostics/history capabilities but changes default entry points:
+
+1. Triage defaults to Shot Health Board; diagnostics tools are exposed in a collapsed recovery drawer plus `Open Full Diagnostics Workspace`.
+2. Queue recovery controls similarly surface in the recovery drawer plus `Open Full Queue Workspace`.
+3. Deliver day-wrap timeline/events remain available under `Deliver > Day Wrap > Advanced`.
+4. Run History remains a dedicated Deliver tab with the same compare workflow.
