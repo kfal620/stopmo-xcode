@@ -16,3 +16,8 @@ macos/StopmoXcodeGUI/.swiftpm/xcode/xcuserdata
 macos/StopmoXcodeGUI/.swiftpm/xcode/*.xcworkspace
 *.xcuserstate
 macos/StopmoXcodeGUI/StopmoXcodeGUI.xcodeproj/project.xcworkspace/xcuserdata/kyle.xcuserdatad/UserInterfaceState.xcuserstate
+.build/
+xcuserdata/
+.VSCodeCounter/
+.deriveddata/
+DerivedData/
