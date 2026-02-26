@@ -59,6 +59,7 @@ final class AppState: ObservableObject {
     @Published var lastDiagnosticsBundlePath: String?
     @Published var deliveryOperationEnvelope: ToolOperationEnvelope?
     @Published var deliveryOperationRevision: Int = 0
+    @Published var deliveryRunState: DeliveryRunState = .idleDefault
     @Published var liveEvents: [String] = []
     @Published var queueDepthTrend: [Int] = []
     @Published var throughputFramesPerMinute: Double = 0.0
@@ -91,6 +92,7 @@ final class AppState: ObservableObject {
     private var lastDoneFrameCountSample: Int?
     private var lastRateSampleAt: Date?
     private var seenDiagnosticWarningKeys: Set<String> = []
+    private let maxDeliveryRunEvents: Int = 120
     private static let repoRootDefaultsKey = "stopmo_repo_root"
     private static let workspaceBookmarkDefaultsKey = "stopmo_workspace_bookmark"
     private var securityScopedWorkspaceURL: URL?
@@ -585,6 +587,104 @@ final class AppState: ObservableObject {
         deliveryOperationRevision += 1
     }
 
+    func beginDeliveryRun(kind: DeliveryRunKind, total: Int, label: String) {
+        let clampedTotal = max(0, total)
+        deliveryRunState = DeliveryRunState(
+            kind: kind,
+            status: .running,
+            total: clampedTotal,
+            completed: 0,
+            failed: 0,
+            activeLabel: label,
+            progress: 0.0,
+            latestOutputs: [],
+            events: [],
+            startedAtUtc: Self.timestampUtcNow(),
+            finishedAtUtc: nil
+        )
+    }
+
+    func appendDeliveryEvent(
+        tone: DeliveryRunEventTone,
+        title: String,
+        detail: String,
+        shotName: String? = nil,
+        timestampUtc: String? = nil
+    ) {
+        let event = DeliveryRunEvent(
+            id: UUID().uuidString,
+            timestampUtc: timestampUtc ?? Self.timestampUtcNow(),
+            tone: tone,
+            title: title,
+            detail: detail,
+            shotName: shotName
+        )
+        deliveryRunState.events.insert(event, at: 0)
+        if deliveryRunState.events.count > maxDeliveryRunEvents {
+            deliveryRunState.events = Array(deliveryRunState.events.prefix(maxDeliveryRunEvents))
+        }
+    }
+
+    func updateDeliveryRunProgress(completed: Int, failed: Int, activeLabel: String) {
+        let clampedCompleted = max(0, completed)
+        let clampedFailed = max(0, failed)
+        let processed = clampedCompleted + clampedFailed
+        let total = max(deliveryRunState.total, processed)
+
+        deliveryRunState.completed = clampedCompleted
+        deliveryRunState.failed = clampedFailed
+        deliveryRunState.total = total
+        deliveryRunState.activeLabel = activeLabel
+        if total > 0 {
+            deliveryRunState.progress = min(1.0, max(0.0, Double(processed) / Double(total)))
+        } else {
+            deliveryRunState.progress = 0.0
+        }
+    }
+
+    func finishDeliveryRun(
+        status: DeliveryRunStatus,
+        outputs: [String],
+        completed: Int? = nil,
+        total: Int? = nil,
+        failed: Int? = nil,
+        activeLabel: String? = nil
+    ) {
+        if let completed {
+            deliveryRunState.completed = max(0, completed)
+        }
+        if let failed {
+            deliveryRunState.failed = max(0, failed)
+        }
+        if let total {
+            deliveryRunState.total = max(0, total)
+        }
+        if let activeLabel {
+            deliveryRunState.activeLabel = activeLabel
+        }
+
+        let processed = deliveryRunState.completed + deliveryRunState.failed
+        if deliveryRunState.total > 0 {
+            deliveryRunState.progress = min(1.0, max(0.0, Double(processed) / Double(deliveryRunState.total)))
+        } else {
+            deliveryRunState.progress = status == .succeeded ? 1.0 : 0.0
+        }
+
+        deliveryRunState.status = status
+        deliveryRunState.latestOutputs = outputs
+        deliveryRunState.finishedAtUtc = Self.timestampUtcNow()
+    }
+
+    func pruneDeliverySelection(_ selected: Set<String>, from snapshot: ShotsSummarySnapshot?) -> Set<String> {
+        let deliverable = Set(
+            ShotHealthModel
+                .evaluate(snapshot: snapshot)
+                .filter(\.isDeliverable)
+                .map { $0.shot.shotName }
+        )
+        return selected.intersection(deliverable)
+    }
+
     func runDayWrapBatchDelivery(
         inputDir: String,
         outputDir: String?,
@@ -607,6 +707,12 @@ final class AppState: ObservableObject {
         isBusy = true
         clearError()
         statusMessage = "Running Day Wrap delivery"
+        beginDeliveryRun(kind: .dayWrapBatch, total: 0, label: "Running day wrap batch...")
+        appendDeliveryEvent(
+            tone: .warning,
+            title: "Day Wrap Started",
+            detail: "Batch DPX -> ProRes started for \(trimmedInput)."
+        )
         defer { isBusy = false }
 
         do {
@@ -623,7 +729,28 @@ final class AppState: ObservableObject {
             publishDeliveryOperation(envelope)
             let outputs = Self.outputPaths(from: envelope)
             let completed = envelope.operation.result?["count"]?.intValue ?? outputs.count
-            let total = envelope.operation.result?["total_sequences"]?.intValue ?? max(completed, outputs.count)
+            let reportedTotal = envelope.operation.result?["total_sequences"]?.intValue ?? max(completed, outputs.count)
+            let total = max(reportedTotal, completed, outputs.count)
+            let failed = max(0, total - completed)
+            updateDeliveryRunProgress(
+                completed: completed,
+                failed: failed,
+                activeLabel: "Day wrap batch complete"
+            )
+            let runStatus: DeliveryRunStatus = failed > 0 ? .partial : .succeeded
+            finishDeliveryRun(
+                status: runStatus,
+                outputs: outputs,
+                completed: completed,
+                total: total,
+                failed: failed,
+                activeLabel: failed > 0 ? "Completed with issues" : "Completed successfully"
+            )
+            appendDeliveryEvent(
+                tone: failed > 0 ? .warning : .success,
+                title: failed > 0 ? "Day Wrap Partial" : "Day Wrap Complete",
+                detail: "Completed \(completed) / \(total) sequences."
+            )
             presentInfo(
                 title: "Day Wrap Complete",
                 message: "Completed \(completed) / \(total) sequences.",
@@ -633,6 +760,16 @@ final class AppState: ObservableObject {
             statusMessage = "Day wrap delivery complete"
             return envelope
         } catch {
+            appendDeliveryEvent(
+                tone: .danger,
+                title: "Day Wrap Failed",
+                detail: error.localizedDescription
+            )
+            finishDeliveryRun(
+                status: .failed,
+                outputs: [],
+                activeLabel: "Day wrap failed"
+            )
             presentError(title: "Day Wrap Delivery Failed", message: error.localizedDescription)
             return nil
         }
@@ -657,10 +794,30 @@ final class AppState: ObservableObject {
             let repoRoot = self.repoRoot
             let resolvedOutput = outputDir?.trimmingCharacters(in: .whitespacesAndNewlines)
             var failedShots: [String] = []
+            var completedShots = 0
+            var failedCount = 0
+            self.beginDeliveryRun(kind: .selectedShots, total: uniqueRoots.count, label: "Starting selected delivery...")
+            self.appendDeliveryEvent(
+                tone: .warning,
+                title: "Selected Delivery Started",
+                detail: "Processing \(uniqueRoots.count) selected shot(s)."
+            )
 
             for (index, inputRoot) in uniqueRoots.enumerated() {
                 let shotLabel = URL(fileURLWithPath: inputRoot).lastPathComponent
-                self.statusMessage = "Delivering \(index + 1) / \(uniqueRoots.count): \(shotLabel)"
+                let activeLabel = "Delivering \(index + 1) / \(uniqueRoots.count): \(shotLabel)"
+                self.statusMessage = activeLabel
+                self.updateDeliveryRunProgress(
+                    completed: completedShots,
+                    failed: failedCount,
+                    activeLabel: activeLabel
+                )
+                self.appendDeliveryEvent(
+                    tone: .neutral,
+                    title: "Shot Started",
+                    detail: activeLabel,
+                    shotName: shotLabel
+                )
                 do {
                     let envelope = try await Task.detached(priority: .userInitiated) {
                         try BridgeClient().dpxToProres(
@@ -675,22 +832,76 @@ final class AppState: ObservableObject {
                     let outputs = Self.outputPaths(from: envelope)
                     if outputs.isEmpty {
                         failedShots.append("\(shotLabel): no ProRes outputs were generated")
+                        failedCount += 1
+                        self.appendDeliveryEvent(
+                            tone: .danger,
+                            title: "Shot Failed",
+                            detail: "No ProRes outputs were generated.",
+                            shotName: shotLabel
+                        )
                     } else {
                         deliveredOutputs.append(contentsOf: outputs)
+                        completedShots += 1
+                        self.appendDeliveryEvent(
+                            tone: .success,
+                            title: "Shot Delivered",
+                            detail: "Generated \(outputs.count) output clip(s).",
+                            shotName: shotLabel
+                        )
                     }
                 } catch {
                     failedShots.append("\(shotLabel): \(error.localizedDescription)")
+                    failedCount += 1
+                    self.appendDeliveryEvent(
+                        tone: .danger,
+                        title: "Shot Failed",
+                        detail: error.localizedDescription,
+                        shotName: shotLabel
+                    )
                 }
+                self.updateDeliveryRunProgress(
+                    completed: completedShots,
+                    failed: failedCount,
+                    activeLabel: "Processed \(completedShots + failedCount) / \(uniqueRoots.count)"
+                )
             }
 
             if deliveredOutputs.isEmpty {
                 let detail = failedShots.joined(separator: "\n")
+                self.finishDeliveryRun(
+                    status: .failed,
+                    outputs: [],
+                    completed: completedShots,
+                    total: uniqueRoots.count,
+                    failed: failedCount,
+                    activeLabel: "Selected delivery failed"
+                )
+                self.appendDeliveryEvent(
+                    tone: .danger,
+                    title: "Selected Delivery Failed",
+                    detail: "No ProRes outputs were generated."
+                )
                 throw BridgeError.processFailed(
                     detail.isEmpty
                         ? "No ProRes outputs were generated from the selected shots."
                         : detail
                 )
             }
+
+            let runStatus: DeliveryRunStatus = failedCount > 0 ? .partial : .succeeded
+            self.finishDeliveryRun(
+                status: runStatus,
+                outputs: deliveredOutputs,
+                completed: completedShots,
+                total: uniqueRoots.count,
+                failed: failedCount,
+                activeLabel: failedCount > 0 ? "Completed with some failures" : "Completed successfully"
+            )
+            self.appendDeliveryEvent(
+                tone: failedCount > 0 ? .warning : .success,
+                title: failedCount > 0 ? "Selected Delivery Partial" : "Selected Delivery Complete",
+                detail: "Delivered \(deliveredOutputs.count) clip(s) from \(completedShots) shot(s)."
+            )
 
             if !failedShots.isEmpty {
                 self.presentWarning(
@@ -814,6 +1025,12 @@ final class AppState: ObservableObject {
 
     private static func outputPaths(from envelope: ToolOperationEnvelope) -> [String] {
         envelope.operation.result?["outputs"]?.arrayValue?.compactMap(\.stringValue) ?? []
+    }
+
+    private static func timestampUtcNow() -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: Date())
     }
 
     func shouldMonitorCurrentSelection() -> Bool {

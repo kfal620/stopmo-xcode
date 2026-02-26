@@ -226,19 +226,16 @@ struct ScreenHeader<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
-            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                Text(title)
-                    .font(.title2.weight(.semibold))
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+            Text(title)
+                .font(.title2.weight(.semibold))
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            Spacer(minLength: 0)
-            trailing
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -688,6 +685,27 @@ struct StatusChip: View {
                 RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
                     .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
             )
+    }
+}
+
+struct CurrentSectionChip: View {
+    let section: AppSection
+
+    var body: some View {
+        Label(section.rawValue, systemImage: section.iconName)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(Color.accentColor)
+            .padding(.horizontal, StopmoUI.Spacing.sm)
+            .padding(.vertical, StopmoUI.Spacing.xs)
+            .background(
+                RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.14))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                    .stroke(Color.accentColor.opacity(0.3), lineWidth: 0.75)
+            )
+            .accessibilityLabel(Text("Current page \(section.rawValue)"))
     }
 }
 

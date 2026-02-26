@@ -89,6 +89,65 @@ enum DeliverPanel: String, CaseIterable, Identifiable {
     }
 }
 
+enum DeliveryRunStatus: String, Codable, Sendable {
+    case idle = "Idle"
+    case running = "Running"
+    case succeeded = "Succeeded"
+    case partial = "Partial"
+    case failed = "Failed"
+}
+
+enum DeliveryRunKind: String, Codable, Sendable {
+    case selectedShots = "Selected Shots"
+    case dayWrapBatch = "Day Wrap Batch"
+}
+
+enum DeliveryRunEventTone: String, Codable, Sendable {
+    case neutral
+    case success
+    case warning
+    case danger
+}
+
+struct DeliveryRunEvent: Identifiable, Codable, Sendable {
+    var id: String
+    var timestampUtc: String
+    var tone: DeliveryRunEventTone
+    var title: String
+    var detail: String
+    var shotName: String?
+}
+
+struct DeliveryRunState: Codable, Sendable {
+    var kind: DeliveryRunKind
+    var status: DeliveryRunStatus
+    var total: Int
+    var completed: Int
+    var failed: Int
+    var activeLabel: String
+    var progress: Double
+    var latestOutputs: [String]
+    var events: [DeliveryRunEvent]
+    var startedAtUtc: String?
+    var finishedAtUtc: String?
+
+    static var idleDefault: DeliveryRunState {
+        DeliveryRunState(
+            kind: .selectedShots,
+            status: .idle,
+            total: 0,
+            completed: 0,
+            failed: 0,
+            activeLabel: "No active delivery",
+            progress: 0.0,
+            latestOutputs: [],
+            events: [],
+            startedAtUtc: nil,
+            finishedAtUtc: nil
+        )
+    }
+}
+
 struct BridgeHealth: Codable, Sendable {
     var pythonExecutable: String
     var pythonVersion: String

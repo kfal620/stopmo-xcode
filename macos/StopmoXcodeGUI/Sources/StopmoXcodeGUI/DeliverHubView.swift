@@ -8,7 +8,7 @@ struct DeliverHubView: View {
             LifecycleStageHeader(
                 hub: .deliver,
                 title: "Deliver",
-                subtitle: "Run day-wrap ProRes assembly and review historical runs.",
+                subtitle: "Select ready shots, run ProRes delivery, and monitor run status.",
                 style: .compact,
                 showSubtitle: false
             ) {
