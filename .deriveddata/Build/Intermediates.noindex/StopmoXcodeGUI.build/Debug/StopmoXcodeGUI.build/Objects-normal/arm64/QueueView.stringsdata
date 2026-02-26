@@ -1,0 +1,328 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/QueueView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Refresh",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 94
+        }
+      },
+      {
+        "comment": "",
+        "key": "Retry Failed",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 121
+        }
+      },
+      {
+        "comment": "",
+        "key": "Retry Selected Failed",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 126
+        }
+      },
+      {
+        "comment": "",
+        "key": "Export Queue Snapshot",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search id/shot/source/error",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 150
+        }
+      },
+      {
+        "comment": "",
+        "key": "State",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 155
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sort",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 162
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected Only",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 169
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 172
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear Selection",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search id/shot/source/error",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 184
+        }
+      },
+      {
+        "comment": "",
+        "key": "State",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 189
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sort",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 196
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected Only",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 203
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 208
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear Selection",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 213
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 224
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 227
+        }
+      },
+      {
+        "comment": "",
+        "key": "50",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 228
+        }
+      },
+      {
+        "comment": "",
+        "key": "75",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 229
+        }
+      },
+      {
+        "comment": "",
+        "key": "100",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 230
+        }
+      },
+      {
+        "comment": "",
+        "key": "150",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 231
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 243
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 246
+        }
+      },
+      {
+        "comment": "",
+        "key": "50",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 247
+        }
+      },
+      {
+        "comment": "",
+        "key": "75",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 248
+        }
+      },
+      {
+        "comment": "",
+        "key": "100",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 249
+        }
+      },
+      {
+        "comment": "",
+        "key": "150",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 250
+        }
+      },
+      {
+        "comment": "",
+        "key": "Previous",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 268
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 273
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toggle selection",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 357
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open source in Finder",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 394
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy source path",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 403
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy last error",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 413
+        }
+      },
+      {
+        "comment": "",
+        "key": "Retry this failed job",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 423
+        }
+      },
+      {
+        "comment": "",
+        "key": "Last Error",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 444
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Source",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 463
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Shot Output",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 466
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy Error",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 469
+        }
+      },
+      {
+        "comment": "",
+        "key": "Retry Job",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 473
+        }
+      }
+    ]
+  },
+  "version": 1
+}

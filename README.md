@@ -1,168 +1,53 @@
 # stopmo-xcode
 
-`stopmo-xcode` is a cross-platform CLI for watching Dragonframe capture folders and deterministically transcoding incoming RAW still frames into ARRI-style LogC3/AWG deliverables.
+`stopmo-xcode` is a standalone macOS app for deterministic stop-motion ingest and delivery.
+Its primary interface is the SwiftUI desktop app (`StopmoXcodeGUI`), backed by the same
+deterministic RAW -> LogC3/AWG pipeline used in CLI workflows.
 
-## Commands
+## Download
 
-- `stopmo-xcode watch --config config/sample.yaml`
-- `stopmo-xcode transcode-one path/to/frame.CR3 --config config/sample.yaml`
-- `stopmo-xcode status --config config/sample.yaml`
-- `stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model "EOS R" --write-json config/sample.matrix.json`
-- `stopmo-xcode dpx-to-prores path/to/output_root --framerate 24`
+- Latest release: [Releases (latest)](../../releases/latest)
+- All releases: [Releases](../../releases)
+- Release packaging/signing/notarization details: `macos/StopmoXcodeGUI/RELEASE.md`
 
-## Install (editable)
+## Quick Start (macOS App)
 
-```bash
-python -m pip install -e .[dev,raw,ocio,io]
-```
+1. Download the latest DMG from Releases.
+2. Launch `StopmoXcodeGUI.app`.
+3. In `Configure`, load or edit your project config.
+4. In `Capture`, start watch/capture monitoring.
+5. In `Deliver`, run day-wrap ProRes delivery when ready.
 
-Optional extras:
+## Main Features
 
-- `.[watch]` for event-driven watcher support (`watchdog`)
-- `.[raw]` for LibRaw decode support (`rawpy`)
-- `.[ocio]` for OCIO-based transforms
-- `.[io]` for debug TIFF writer
+- Deterministic RAW processing pipeline (shot-stable WB/exposure policy).
+- Queue-backed crash-safe processing and resume behavior.
+- GUI surfaces for health checks, watch state, triage, diagnostics, and delivery.
+- Batch DPX -> ProRes delivery workflows.
+- Config + operation parity between GUI bridge and CLI commands.
 
-## One-Command Launcher (Phase 1)
+## System Notes
 
-Use the repo launcher to bootstrap everything and run the CLI in one step:
+- Standalone app packaging is Developer ID signed + notarized (non-App-Store).
+- Runtime payloads are bundled per architecture (`arm64`, `x86_64`).
+- If macOS warns on first launch, use standard Gatekeeper approval flow and run notarized release artifacts.
 
-```bash
-./stopmo watch --config config/sample.yaml
-```
+## Troubleshooting
 
-What `./stopmo` does automatically:
+- Open `Configure > Workspace & Health` to check environment/runtime status.
+- Use `Triage > Diagnostics` to inspect logs and export diagnostics bundles.
+- For release build and notarization details, see `macos/StopmoXcodeGUI/RELEASE.md`.
 
-- creates `.venv` if missing
-- installs runtime extras: `.[watch,raw,ocio,io,video]`
-- re-installs when `pyproject.toml` changes
-- runs `.venv/bin/stopmo-xcode ...`
+## Documentation
 
-For ProRes assembly, `ffmpeg` is resolved in this order:
+- GUI project docs: `macos/StopmoXcodeGUI/README.md`
+- GUI release/distribution docs: `macos/StopmoXcodeGUI/RELEASE.md`
+- Architecture notes: `docs/architecture.md`
+- Interpretation contract: `docs/interpretation-contract.md`
+- GUI phase docs: `docs/gui-phase13-pipeline-surfaces.md`
 
-1. `STOPMO_XCODE_FFMPEG` (if set)
-2. `ffmpeg` on `PATH`
-3. bundled `imageio-ffmpeg` binary from `.[video]`
+## CLI And Developer Docs
 
-## Notes
-
-- Deterministic defaults: shot-level WB lock, no per-frame exposure normalization.
-- Persistent SQLite queue supports crash-safe resume.
-- DPX outputs are documented as `ARRI LogC3 EI800 + AWG` by interpretation contract.
-
-## Exposure Metadata Compensation
-
-Exposure offset can combine multiple optional metadata terms:
-
-- ISO term: `log2(target_ei / frame_iso)`
-- Shutter term: `log2(target_shutter_s / frame_shutter_s)`
-- Aperture term: `2*log2(frame_aperture_f / target_aperture_f)`
-
-Enable/disable each term with:
-
-- `pipeline.auto_exposure_from_iso`
-- `pipeline.auto_exposure_from_shutter` with `pipeline.target_shutter_s`
-- `pipeline.auto_exposure_from_aperture` with `pipeline.target_aperture_f`
-
-## Contrast Control
-
-Pipeline contrast is applied in LogC3 domain with a pivot:
-
-- `pipeline.contrast` (default `1.0`, where `1.0` is no change)
-- `pipeline.contrast_pivot_linear` (default `0.18`)
-
-## Quick Start
-
-```bash
-stopmo-xcode watch --config config/sample.yaml
-```
-
-In another terminal, drop RAW frames into `sandbox/incoming`.
-
-Check queue state:
-
-```bash
-stopmo-xcode status --config config/sample.yaml
-```
-
-## Batch DPX To ProRes
-
-Convert nested shot DPX sequences to ProRes 4444 (LogC3 values preserved, no LUT applied):
-
-```bash
-stopmo-xcode dpx-to-prores <path/to/input_folder> --framerate 24
-```
-
-Example:
-stopmo-xcode dpx-to-prores <input_dir> [--out-dir ...] [--framerate 24] [--no-overwrite] [--json]
-
-- Scans only `*/dpx/*.dpx` sequences (ignores `truth_frame/`).
-- Output root defaults to `path/to/output_root/PRORES`.
-- Output clip name is the DPX sequence stem minus trailing frame number.
-  - Example: `PAW_0001.dpx` -> `PAW.mov`
-- Clips are written flat into `PRORES` (no shot subfolders).
-
-## Suggest Camera Matrix
-
-Use one representative RAW still from your camera to generate a starting
-`pipeline.camera_to_reference_matrix` for ACES2065-1:
-
-```bash
-stopmo-xcode suggest-matrix path/to/frame.CR3 --camera-make Canon --camera-model "EOS R" --write-json config/sample.matrix.json
-```
-
-The command prints a YAML snippet you can paste into `config/sample.yaml` and
-writes a JSON report with source/provenance, assumptions, notes, and warnings.
-An example report schema is provided at `config/sample.matrix.json`.
-
-## macOS GUI Shell (Phase 13)
-
-A SwiftUI shell has been added under:
-
-- `macos/StopmoXcodeGUI`
-
-It uses a lifecycle navigation model:
-
-- `Configure`
-  - Workspace & Health
-  - Project Settings
-  - Calibration (Transcode One + Suggest Matrix)
-- `Capture`
-  - Live Capture console (active-shot focus, watch runtime, ingest pace)
-- `Triage`
-  - Shot Health Board (default)
-  - Queue workspace (advanced)
-  - Diagnostics workspace (advanced)
-- `Deliver`
-  - Day Wrap shipping surface (batch-first + per-shot ProRes delivery)
-  - Run History
-
-Notes:
-
-- `Write ProRes On Shot Complete` remains in Configure > Project Settings > Output.
-- Deliver Day Wrap defaults DPX input to configured `watch.output_dir` when empty.
-- Triage recovery actions (queue retry/export + diagnostics bundle/logs) are available in the collapsed recovery drawer and full advanced workspaces.
-- Day-wrap timeline/events diagnostics remain available under Deliver > Day Wrap > Advanced.
-- All previous backend bridge capabilities remain available; the change is IA/UX.
-
-Implementation notes are documented in:
-
-- `/Users/kyle/Developer/stopmo-xcode/docs/gui-phase13-pipeline-surfaces.md`
-
-Run from repo root:
-
-```bash
-cd macos/StopmoXcodeGUI
-STOPMO_XCODE_ROOT=/Users/kyle/Documents/Coding/stopmo-xcode swift run StopmoXcodeGUI
-```
-
-Distribution tooling (Phase 9) is available under:
-
-- `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/scripts/package_release.sh`
-- `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/scripts/notarize_release.sh`
-- `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/RELEASE.md`
-
-Phase 10 parity/signoff QA workflow:
-
-- `/Users/kyle/Documents/Coding/stopmo-xcode/qa/phase10_parity_signoff.py`
-- `/Users/kyle/Documents/Coding/stopmo-xcode/qa/README.md`
+- CLI/developer guide: `docs/cli.md`
+- Contributor workflow: `CONTRIBUTING.md`
+- Agent workflow rules: `AGENTS.md`

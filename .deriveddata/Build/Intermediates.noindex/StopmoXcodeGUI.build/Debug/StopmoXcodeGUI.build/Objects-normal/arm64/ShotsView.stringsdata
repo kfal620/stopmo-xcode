@@ -1,0 +1,424 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ShotsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Refresh",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search shot/output/review path",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 120
+        }
+      },
+      {
+        "comment": "",
+        "key": "State",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 125
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sort",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search shot/output/review path",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 146
+        }
+      },
+      {
+        "comment": "",
+        "key": "State",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 151
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sort",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 158
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 165
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 176
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 179
+        }
+      },
+      {
+        "comment": "",
+        "key": "50",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 180
+        }
+      },
+      {
+        "comment": "",
+        "key": "75",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 181
+        }
+      },
+      {
+        "comment": "",
+        "key": "100",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 182
+        }
+      },
+      {
+        "comment": "",
+        "key": "150",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 183
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 195
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 198
+        }
+      },
+      {
+        "comment": "",
+        "key": "50",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 199
+        }
+      },
+      {
+        "comment": "",
+        "key": "75",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 200
+        }
+      },
+      {
+        "comment": "",
+        "key": "100",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 201
+        }
+      },
+      {
+        "comment": "",
+        "key": "150",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 202
+        }
+      },
+      {
+        "comment": "",
+        "key": "Previous",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 220
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 225
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select Visible Completed",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 267
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select All Completed",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 272
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear Selection",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 277
+        }
+      },
+      {
+        "comment": "",
+        "key": "Deliver Selected",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 282
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Deliver Day Wrap",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 287
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select Visible Completed",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 294
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select All Completed",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 299
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear Selection",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 304
+        }
+      },
+      {
+        "comment": "",
+        "key": "Deliver Selected",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 309
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Deliver Day Wrap",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 314
+        }
+      },
+      {
+        "comment": "",
+        "key": "Framerate: %lld",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 322
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overwrite Existing",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 323
+        }
+      },
+      {
+        "comment": "",
+        "key": "Last Delivered Outputs",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 328
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 337
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 340
+        }
+      },
+      {
+        "comment": "",
+        "key": "Toggle selection for completed shots on this page",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 387
+        }
+      },
+      {
+        "comment": "",
+        "key": "Deliver",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 382
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open shot folder in Finder",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 444
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy shot name",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 453
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open In Finder",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 492
+        }
+      },
+      {
+        "comment": "",
+        "key": "Shot Folder",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 496
+        }
+      },
+      {
+        "comment": "",
+        "key": "DPX",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 499
+        }
+      },
+      {
+        "comment": "",
+        "key": "Frame JSON",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 502
+        }
+      },
+      {
+        "comment": "",
+        "key": "Truth Frame",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 505
+        }
+      },
+      {
+        "comment": "",
+        "key": "Manifest",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 508
+        }
+      },
+      {
+        "comment": "",
+        "key": "Output MOV",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 511
+        }
+      },
+      {
+        "comment": "",
+        "key": "Review MOV",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 515
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select shot for quick delivery",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 540
+        }
+      },
+      {
+        "comment": "",
+        "key": "Only completed shots can be selected for delivery",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 548
+        }
+      }
+    ]
+  },
+  "version": 1
+}

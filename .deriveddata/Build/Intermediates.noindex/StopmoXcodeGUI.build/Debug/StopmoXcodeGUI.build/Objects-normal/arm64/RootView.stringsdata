@@ -1,0 +1,16 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 75
+        }
+      }
+    ]
+  },
+  "version": 1
+}

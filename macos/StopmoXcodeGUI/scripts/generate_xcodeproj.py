@@ -15,14 +15,16 @@ def main() -> int:
     if not src_dir.exists():
         raise RuntimeError(f"missing source directory: {src_dir}")
 
-    source_files = sorted(p for p in src_dir.glob("*.swift"))
+    source_files = sorted(p for p in src_dir.rglob("*.swift"))
     if not source_files:
         raise RuntimeError(f"no swift source files found in: {src_dir}")
 
     xcodeproj = project_root / "StopmoXcodeGUI.xcodeproj"
     pbxproj = xcodeproj / "project.pbxproj"
     scheme_dir = xcodeproj / "xcshareddata" / "xcschemes"
-    scheme_path = scheme_dir / "StopmoXcodeGUI.xcscheme"
+    dev_scheme_path = scheme_dir / "StopmoXcodeGUI-Dev.xcscheme"
+    release_scheme_path = scheme_dir / "StopmoXcodeGUI-Release.xcscheme"
+    legacy_scheme_path = scheme_dir / "StopmoXcodeGUI.xcscheme"
 
     xcodeproj.mkdir(parents=True, exist_ok=True)
     scheme_dir.mkdir(parents=True, exist_ok=True)
@@ -59,8 +61,9 @@ def main() -> int:
     build_file_entries = []
     for path in source_files:
         rel = path.relative_to(project_root).as_posix()
+        rel_from_src = path.relative_to(src_dir).as_posix()
         build_file_entries.append(
-            f"\t\t{build_file_ids[path]} /* {path.name} in Sources */ = {{isa = PBXBuildFile; fileRef = {file_ref_ids[path]} /* {path.name} */; }};"
+            f"\t\t{build_file_ids[path]} /* {rel_from_src} in Sources */ = {{isa = PBXBuildFile; fileRef = {file_ref_ids[path]} /* {rel_from_src} */; }};"
         )
 
     file_ref_entries = [
@@ -70,15 +73,16 @@ def main() -> int:
         f"\t\t{entitlements_debug_ref_id} /* entitlements.debug.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.debug.plist; sourceTree = \"<group>\"; }};",
     ]
     for path in source_files:
+        rel_from_src = path.relative_to(src_dir).as_posix()
         file_ref_entries.append(
-            f"\t\t{file_ref_ids[path]} /* {path.name} */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = {path.name}; sourceTree = \"<group>\"; }};"
+            f"\t\t{file_ref_ids[path]} /* {rel_from_src} */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = {rel_from_src}; sourceTree = \"<group>\"; }};"
         )
 
     sources_build_phase_files = "\n".join(
-        f"\t\t\t\t{build_file_ids[path]} /* {path.name} in Sources */," for path in source_files
+        f"\t\t\t\t{build_file_ids[path]} /* {path.relative_to(src_dir).as_posix()} in Sources */," for path in source_files
     )
     app_group_children = "\n".join(
-        f"\t\t\t\t{file_ref_ids[path]} /* {path.name} */," for path in source_files
+        f"\t\t\t\t{file_ref_ids[path]} /* {path.relative_to(src_dir).as_posix()} */," for path in source_files
     )
 
     pbxproj_text = f"""// !$*UTF8*$!
@@ -333,7 +337,7 @@ def main() -> int:
 }}
 """
 
-    scheme_xml = """<?xml version="1.0" encoding="UTF-8"?>
+    scheme_template = """<?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "2600"
    version = "1.7">
@@ -366,7 +370,7 @@ def main() -> int:
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Debug"
+      buildConfiguration = "__LAUNCH_CONFIG__"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -386,15 +390,11 @@ def main() -> int:
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "STOPMO_XCODE_ROOT"
-            value = "$(SRCROOT)/../.."
-            isEnabled = "YES">
-         </EnvironmentVariable>
+__ENV_VARS__
       </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
-      buildConfiguration = "Release"
+      buildConfiguration = "__PROFILE_CONFIG__"
       shouldUseLaunchSchemeArgsEnv = "YES"
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
@@ -411,19 +411,69 @@ def main() -> int:
       </BuildableProductRunnable>
    </ProfileAction>
    <AnalyzeAction
-      buildConfiguration = "Debug">
+      buildConfiguration = "__ANALYZE_CONFIG__">
    </AnalyzeAction>
    <ArchiveAction
       buildConfiguration = "Release"
       revealArchiveInOrganizer = "YES">
    </ArchiveAction>
 </Scheme>
-""".replace("__TARGET_ID__", target_id)
+"""
+
+    def make_scheme_xml(
+        *,
+        launch_config: str,
+        profile_config: str,
+        analyze_config: str,
+        env_vars: dict[str, str],
+    ) -> str:
+        env_lines: list[str] = []
+        for key, value in env_vars.items():
+            env_lines.append(
+                "         <EnvironmentVariable\n"
+                f"            key = \"{key}\"\n"
+                f"            value = \"{value}\"\n"
+                "            isEnabled = \"YES\">\n"
+                "         </EnvironmentVariable>"
+            )
+        env_payload = "\n".join(env_lines)
+        return (
+            scheme_template.replace("__TARGET_ID__", target_id)
+            .replace("__LAUNCH_CONFIG__", launch_config)
+            .replace("__PROFILE_CONFIG__", profile_config)
+            .replace("__ANALYZE_CONFIG__", analyze_config)
+            .replace("__ENV_VARS__", env_payload)
+        )
+
+    dev_scheme_xml = make_scheme_xml(
+        launch_config="Debug",
+        profile_config="Release",
+        analyze_config="Debug",
+        env_vars={
+            "STOPMO_XCODE_ROOT": "$(SRCROOT)/../..",
+            "STOPMO_XCODE_RUNTIME_MODE": "external",
+            "STOPMO_XCODE_BACKEND_MODE": "external",
+        },
+    )
+
+    release_scheme_xml = make_scheme_xml(
+        launch_config="Release",
+        profile_config="Release",
+        analyze_config="Release",
+        env_vars={
+            "STOPMO_XCODE_RUNTIME_MODE": "bundled",
+            "STOPMO_XCODE_BACKEND_MODE": "bundled",
+        },
+    )
 
     pbxproj.write_text(pbxproj_text, encoding="utf-8")
-    scheme_path.write_text(scheme_xml, encoding="utf-8")
+    dev_scheme_path.write_text(dev_scheme_xml, encoding="utf-8")
+    release_scheme_path.write_text(release_scheme_xml, encoding="utf-8")
+    legacy_scheme_path.write_text(dev_scheme_xml, encoding="utf-8")
     print(f"wrote {pbxproj}")
-    print(f"wrote {scheme_path}")
+    print(f"wrote {dev_scheme_path}")
+    print(f"wrote {release_scheme_path}")
+    print(f"wrote {legacy_scheme_path}")
     return 0
 
 

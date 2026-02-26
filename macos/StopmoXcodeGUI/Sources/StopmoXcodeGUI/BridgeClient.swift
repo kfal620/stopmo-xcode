@@ -2,12 +2,15 @@ import Foundation
 import Darwin
 
 enum BridgeError: Error, LocalizedError {
+    case missingWorkspaceRoot(String)
     case missingRepoRoot(String)
     case processFailed(String)
     case decodeFailed(String)
 
     var errorDescription: String? {
         switch self {
+        case .missingWorkspaceRoot(let root):
+            return "Invalid workspace root: \(root)"
         case .missingRepoRoot(let root):
             return "Invalid repo root: \(root)"
         case .processFailed(let message):
@@ -37,6 +40,18 @@ private final class BridgeOutputAccumulator: @unchecked Sendable {
 }
 
 struct BridgeClient: Sendable {
+    private enum BridgeRuntimeMode: String, Sendable {
+        case bundled
+        case external
+    }
+
+    private struct BridgeLaunchContext: Sendable {
+        var currentDirectory: String
+        var executable: String
+        var argumentsPrefix: [String]
+        var environmentOverrides: [String: String]
+    }
+
     private func decodeJSON<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -85,6 +100,12 @@ struct BridgeClient: Sendable {
     }
 
     private func resolveRepoRoot(_ repoRoot: String) -> String {
+        let env = ProcessInfo.processInfo.environment
+        for key in ["STOPMO_XCODE_BACKEND_ROOT", "STOPMO_XCODE_ROOT"] {
+            if let candidate = env[key], isRepoRoot(candidate) {
+                return candidate
+            }
+        }
         if isRepoRoot(repoRoot) {
             return repoRoot
         }
@@ -100,32 +121,96 @@ struct BridgeClient: Sendable {
         return repoRoot
     }
 
+    private func resolveWorkspaceRoot(_ workspaceRoot: String) -> String {
+        let trimmed = workspaceRoot.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            return trimmed
+        }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        if !home.isEmpty {
+            return home
+        }
+        return FileManager.default.currentDirectoryPath
+    }
+
+    private func bundledLauncherPath() -> String? {
+        let fm = FileManager.default
+        var candidates: [String] = []
+        if let resourcePath = Bundle.main.resourceURL?.appendingPathComponent("backend/launch_bridge.sh").path {
+            candidates.append(resourcePath)
+        }
+        candidates.append(Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/backend/launch_bridge.sh").path)
+        for candidate in candidates {
+            if fm.isExecutableFile(atPath: candidate) {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    private func resolveLaunchContext(workspaceRoot: String) throws -> BridgeLaunchContext {
+        let resolvedWorkspace = resolveWorkspaceRoot(workspaceRoot)
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: resolvedWorkspace, isDirectory: &isDir), isDir.boolValue else {
+            throw BridgeError.missingWorkspaceRoot(resolvedWorkspace)
+        }
+
+        if let launcher = bundledLauncherPath() {
+            return BridgeLaunchContext(
+                currentDirectory: resolvedWorkspace,
+                executable: launcher,
+                argumentsPrefix: [],
+                environmentOverrides: [
+                    "STOPMO_XCODE_RUNTIME_MODE": BridgeRuntimeMode.bundled.rawValue,
+                    "STOPMO_XCODE_WORKSPACE_ROOT": resolvedWorkspace,
+                ]
+            )
+        }
+
+        let resolvedRepoRoot = resolveRepoRoot(workspaceRoot)
+        let rootURL = URL(fileURLWithPath: resolvedRepoRoot)
+        guard FileManager.default.fileExists(atPath: rootURL.path) else {
+            throw BridgeError.missingRepoRoot(resolvedRepoRoot)
+        }
+        let bridgeScript = "\(resolvedRepoRoot)/src/stopmo_xcode/gui_bridge.py"
+        guard FileManager.default.fileExists(atPath: bridgeScript) else {
+            throw BridgeError.missingRepoRoot("Bridge script not found under repo root: \(resolvedRepoRoot)")
+        }
+
+        let srcPath = "\(resolvedRepoRoot)/src"
+        var pythonPath = srcPath
+        if let existing = ProcessInfo.processInfo.environment["PYTHONPATH"], !existing.isEmpty {
+            pythonPath = "\(srcPath):\(existing)"
+        }
+
+        return BridgeLaunchContext(
+            currentDirectory: resolvedRepoRoot,
+            executable: pythonExecutable(repoRoot: resolvedRepoRoot),
+            argumentsPrefix: [bridgeScript],
+            environmentOverrides: [
+                "PYTHONPATH": pythonPath,
+                "STOPMO_XCODE_RUNTIME_MODE": BridgeRuntimeMode.external.rawValue,
+                "STOPMO_XCODE_BACKEND_ROOT": resolvedRepoRoot,
+                "STOPMO_XCODE_WORKSPACE_ROOT": resolvedWorkspace,
+            ]
+        )
+    }
+
     private func runBridge(
         repoRoot: String,
         arguments: [String],
         stdin: Data? = nil,
         timeoutSeconds: TimeInterval = 20.0
     ) throws -> Data {
-        let resolvedRoot = resolveRepoRoot(repoRoot)
-        let rootURL = URL(fileURLWithPath: resolvedRoot)
-        guard FileManager.default.fileExists(atPath: rootURL.path) else {
-            throw BridgeError.missingRepoRoot(resolvedRoot)
-        }
-        let bridgeScript = "\(resolvedRoot)/src/stopmo_xcode/gui_bridge.py"
-        guard FileManager.default.fileExists(atPath: bridgeScript) else {
-            throw BridgeError.missingRepoRoot("Bridge script not found under repo root: \(resolvedRoot)")
-        }
+        let launch = try resolveLaunchContext(workspaceRoot: repoRoot)
 
         let process = Process()
-        process.currentDirectoryURL = rootURL
-        process.executableURL = URL(fileURLWithPath: pythonExecutable(repoRoot: resolvedRoot))
-        process.arguments = [bridgeScript] + arguments
+        process.currentDirectoryURL = URL(fileURLWithPath: launch.currentDirectory)
+        process.executableURL = URL(fileURLWithPath: launch.executable)
+        process.arguments = launch.argumentsPrefix + arguments
         var env = ProcessInfo.processInfo.environment
-        let srcPath = "\(resolvedRoot)/src"
-        if let existing = env["PYTHONPATH"], !existing.isEmpty {
-            env["PYTHONPATH"] = "\(srcPath):\(existing)"
-        } else {
-            env["PYTHONPATH"] = srcPath
+        for (key, value) in launch.environmentOverrides {
+            env[key] = value
         }
         process.environment = env
 

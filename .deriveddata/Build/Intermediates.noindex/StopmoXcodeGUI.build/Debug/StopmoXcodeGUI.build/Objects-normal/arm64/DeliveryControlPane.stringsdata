@@ -1,0 +1,96 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/DeliveryDayWrap/DeliveryControlPane.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "No output generated yet.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 155
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 148
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 151
+        }
+      },
+      {
+        "comment": "",
+        "key": "Framerate: %lld",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 347
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overwrite",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 349
+        }
+      },
+      {
+        "comment": "",
+        "key": "Run Day Wrap Batch",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 352
+        }
+      },
+      {
+        "comment": "",
+        "key": "Framerate: %lld",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 359
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overwrite",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 360
+        }
+      },
+      {
+        "comment": "",
+        "key": "Run Day Wrap Batch",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 361
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Run History",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 415
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Triage Diagnostics",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 418
+        }
+      }
+    ]
+  },
+  "version": 1
+}

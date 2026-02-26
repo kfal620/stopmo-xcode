@@ -1,0 +1,23 @@
+{
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectWatchSectionView.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectWatchSectionView.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectWatchSectionView.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectWatchSectionView.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectWatchSectionView.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectWatchSectionView.swiftdeps"
+  },
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/QueueView.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/QueueView.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/QueueView.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/QueueView.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/QueueView.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/QueueView.swiftdeps"
+  },
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootCommandBarView.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/RootCommandBarView.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/RootCommandBarView.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/RootCommandBarView.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/RootCommandBarView.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/RootCommandBarView.swiftdeps"
+  }
+}

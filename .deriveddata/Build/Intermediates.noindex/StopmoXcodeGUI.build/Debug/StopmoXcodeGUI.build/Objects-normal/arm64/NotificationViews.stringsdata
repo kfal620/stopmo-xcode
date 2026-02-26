@@ -1,0 +1,64 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/NotificationViews.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Dismiss notification toast",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 108
+        }
+      },
+      {
+        "comment": "",
+        "key": "Closes this temporary notification.",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Notifications",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear All",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 167
+        }
+      },
+      {
+        "comment": "",
+        "key": "Likely cause: %@",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 197
+        }
+      },
+      {
+        "comment": "",
+        "key": "Suggested action: %@",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 202
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy Details",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 207
+        }
+      }
+    ]
+  },
+  "version": 1
+}

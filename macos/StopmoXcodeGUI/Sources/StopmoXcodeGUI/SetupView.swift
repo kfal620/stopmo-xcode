@@ -101,13 +101,13 @@ struct SetupView: View {
     }
 
     private var pathsCard: some View {
-        SectionCard("Paths", subtitle: "Set repo/config locations and bootstrap from sample config.") {
+        SectionCard("Paths", subtitle: "Set workspace/config locations and bootstrap from sample config.") {
             LabeledPathField(
-                label: "Repo Root",
-                placeholder: "Repo root",
+                label: "Workspace Root",
+                placeholder: "Workspace root",
                 text: $state.repoRoot,
                 icon: "folder",
-                browseHelp: "Browse for repo root",
+                browseHelp: "Browse for workspace root",
                 isDisabled: state.isBusy
             ) {
                 state.chooseRepoRootDirectory()
@@ -139,7 +139,7 @@ struct SetupView: View {
             }
 
             HStack {
-                Text("Sample Config")
+                Text("Sample Config Source")
                     .foregroundStyle(.secondary)
                 Spacer()
                 StatusChip(label: sampleConfigExists ? "Found" : "Missing", tone: sampleConfigExists ? .success : .danger)
@@ -188,8 +188,9 @@ struct SetupView: View {
             if let health = state.health {
                 KeyValueRow(key: "Python Version", value: health.pythonVersion)
                 KeyValueRow(key: "stopmo Version", value: health.stopmoVersion ?? "unknown")
+                KeyValueRow(key: "Runtime Mode", value: health.backendMode ?? "external")
                 KeyValueRow(
-                    key: "Venv Exists",
+                    key: "Python Runtime",
                     value: health.venvPythonExists ? "yes" : "no",
                     tone: health.venvPythonExists ? .success : .danger
                 )
@@ -201,7 +202,13 @@ struct SetupView: View {
                 DisclosureGroup(isExpanded: $showRuntimeDetails) {
                     VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                         KeyValueRow(key: "Python", value: health.pythonExecutable)
-                        KeyValueRow(key: "Venv Python", value: health.venvPython)
+                        KeyValueRow(key: "Runtime Python", value: health.venvPython)
+                        if let backendRoot = health.backendRoot, !backendRoot.isEmpty {
+                            KeyValueRow(key: "Backend Root", value: backendRoot)
+                        }
+                        if let ffmpegSource = health.ffmpegSource, !ffmpegSource.isEmpty {
+                            KeyValueRow(key: "FFmpeg Source", value: ffmpegSource)
+                        }
                         if let configLoadOk = health.configLoadOk {
                             KeyValueRow(
                                 key: "Config Load",
@@ -416,7 +423,8 @@ struct SetupView: View {
         guard let health = state.health else {
             return "Not Checked"
         }
-        if health.venvPythonExists, health.ffmpegPath != nil, health.configLoadOk != false {
+        let rawReady = health.checks["rawpy"] ?? false
+        if health.venvPythonExists, rawReady, health.ffmpegPath != nil, health.configLoadOk != false {
             return "Ready"
         }
         return "Needs Attention"
@@ -426,7 +434,8 @@ struct SetupView: View {
         guard let health = state.health else {
             return .warning
         }
-        if health.venvPythonExists, health.ffmpegPath != nil, health.configLoadOk != false {
+        let rawReady = health.checks["rawpy"] ?? false
+        if health.venvPythonExists, rawReady, health.ffmpegPath != nil, health.configLoadOk != false {
             return .success
         }
         return .danger
@@ -507,6 +516,13 @@ struct SetupView: View {
 
     private func dependencyFixHint(for name: String) -> String {
         let lower = name.lowercased()
+        let bundledRuntime = state.health?.backendMode?.lowercased() == "bundled"
+        if bundledRuntime {
+            if lower.contains("exiftool") {
+                return "ExifTool is optional; install only if you need richer metadata extraction."
+            }
+            return "Bundled runtime should include this dependency. Reinstall the app or replace corrupted runtime assets."
+        }
         if lower.contains("rawpy") {
             return "Install extras: `.venv/bin/pip install -e \".[raw]\"`."
         }

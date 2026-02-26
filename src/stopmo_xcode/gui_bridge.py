@@ -344,9 +344,31 @@ def write_config_payload(config_path: str | Path, payload: dict[str, Any]) -> di
 
 
 def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
-    venv_python = Path.cwd() / ".venv" / "bin" / "python"
+    runtime_mode = str(os.environ.get("STOPMO_XCODE_RUNTIME_MODE", "external") or "external").strip().lower()
+    backend_root_env = os.environ.get("STOPMO_XCODE_BACKEND_ROOT")
+    backend_root = Path(backend_root_env).expanduser().resolve() if backend_root_env else Path.cwd().resolve()
+    workspace_root = os.environ.get("STOPMO_XCODE_WORKSPACE_ROOT")
+
+    if runtime_mode == "bundled":
+        venv_python = Path(sys.executable).resolve()
+        venv_python_exists = venv_python.exists()
+    else:
+        venv_python = backend_root / ".venv" / "bin" / "python"
+        venv_python_exists = venv_python.exists()
+
     ffmpeg_env = os.environ.get("STOPMO_XCODE_FFMPEG")
     ffmpeg_path = ffmpeg_env or shutil.which("ffmpeg")
+    ffmpeg_source = "env_or_path" if ffmpeg_path else None
+    if not ffmpeg_path:
+        try:
+            import imageio_ffmpeg  # type: ignore
+
+            imageio_ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+            if imageio_ffmpeg_path and Path(imageio_ffmpeg_path).exists():
+                ffmpeg_path = str(imageio_ffmpeg_path)
+                ffmpeg_source = "imageio_ffmpeg"
+        except Exception:
+            ffmpeg_path = None
 
     checks = {
         "rawpy": importlib.util.find_spec("rawpy") is not None,
@@ -359,12 +381,16 @@ def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
     }
 
     payload: dict[str, object] = {
+        "backend_mode": runtime_mode,
+        "backend_root": str(backend_root),
+        "workspace_root": workspace_root,
         "python_executable": sys.executable,
         "python_version": sys.version.split()[0],
         "venv_python": str(venv_python),
-        "venv_python_exists": venv_python.exists(),
+        "venv_python_exists": venv_python_exists,
         "checks": checks,
         "ffmpeg_path": ffmpeg_path,
+        "ffmpeg_source": ffmpeg_source,
         "stopmo_version": None,
     }
 

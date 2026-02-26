@@ -149,12 +149,16 @@ struct DeliveryRunState: Codable, Sendable {
 }
 
 struct BridgeHealth: Codable, Sendable {
+    var backendMode: String?
+    var backendRoot: String?
+    var workspaceRoot: String?
     var pythonExecutable: String
     var pythonVersion: String
     var venvPython: String
     var venvPythonExists: Bool
     var checks: [String: Bool]
     var ffmpegPath: String?
+    var ffmpegSource: String?
     var stopmoVersion: String?
     var configPath: String?
     var configExists: Bool?

@@ -1,0 +1,64 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Project config has local edits that are not yet written to disk.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 74
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Changes",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 78
+        }
+      },
+      {
+        "comment": "",
+        "key": "Discard Changes",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 82
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reload",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 117
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 122
+        }
+      },
+      {
+        "comment": "",
+        "key": "Discard",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 128
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select the section to edit",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 161
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,200 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/TriageShotHealthBoardView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "State",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 49
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search shot/state/path",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 56
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Folder",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 124
+        }
+      },
+      {
+        "comment": "",
+        "key": "More",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 130
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Manifest",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 131
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Logs Root",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 134
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open DPX",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 137
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Frame JSON",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 140
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Truth Frame",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 143
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Output MOV",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 147
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open DPX",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 198
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Frame JSON",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 201
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Truth Frame",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 204
+        }
+      },
+      {
+        "comment": "",
+        "key": "Recovery Mode",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 223
+        }
+      },
+      {
+        "comment": "",
+        "key": "Retry Failed",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 256
+        }
+      },
+      {
+        "comment": "",
+        "key": "Export Queue Snapshot",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 261
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Full Queue Workspace",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 266
+        }
+      },
+      {
+        "comment": "",
+        "key": "f%lld",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 280
+        }
+      },
+      {
+        "comment": "",
+        "key": "Retry",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 289
+        }
+      },
+      {
+        "comment": "",
+        "key": "Refresh Diagnostics",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 308
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Diagnostics Bundle",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 313
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Full Diagnostics Workspace",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 318
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 329
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 332
+        }
+      }
+    ]
+  },
+  "version": 1
+}

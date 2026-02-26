@@ -95,13 +95,15 @@ final class AppState: ObservableObject {
     private let maxDeliveryRunEvents: Int = 120
     private static let repoRootDefaultsKey = "stopmo_repo_root"
     private static let workspaceBookmarkDefaultsKey = "stopmo_workspace_bookmark"
+    private static let defaultWorkspaceFolderName = "StopmoXcodeWorkspace"
     private var securityScopedWorkspaceURL: URL?
 
     init() {
         let root = Self.resolveInitialRepoRoot()
         repoRoot = root
-        configPath = "\(root)/config/sample.yaml"
+        configPath = Self.defaultConfigPath(forWorkspaceRoot: root)
         restoreWorkspaceAccess()
+        bootstrapWorkspaceIfNeeded()
     }
 
     deinit {
@@ -666,6 +668,8 @@ final class AppState: ObservableObject {
 
         let resolvedOutput = outputDir?.trimmingCharacters(in: .whitespacesAndNewlines)
         let repoRoot = self.repoRoot
+        let originalRepoRoot = self.repoRoot
+        let originalConfigPath = self.configPath
         isBusy = true
         clearError()
         statusMessage = "Running Day Wrap delivery"
@@ -676,6 +680,12 @@ final class AppState: ObservableObject {
             detail: "Batch DPX -> ProRes started for \(trimmedInput)."
         )
         defer { isBusy = false }
+        defer {
+            self.restoreWorkspaceContextIfNeeded(
+                expectedRepoRoot: originalRepoRoot,
+                expectedConfigPath: originalConfigPath
+            )
+        }
 
         do {
             let envelope = try await Task.detached(priority: .userInitiated) {
@@ -744,6 +754,8 @@ final class AppState: ObservableObject {
         outputDir: String? = nil
     ) async -> [String] {
         var deliveredOutputs: [String] = []
+        let originalRepoRoot = self.repoRoot
+        let originalConfigPath = self.configPath
         await runBlockingTask(label: "Delivering selected shots") {
             let roots = shotInputRoots
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -882,7 +894,39 @@ final class AppState: ObservableObject {
             }
             self.statusMessage = "Shot delivery complete"
         }
+        restoreWorkspaceContextIfNeeded(
+            expectedRepoRoot: originalRepoRoot,
+            expectedConfigPath: originalConfigPath
+        )
         return deliveredOutputs
+    }
+
+    private func restoreWorkspaceContextIfNeeded(expectedRepoRoot: String, expectedConfigPath: String) {
+        guard repoRoot != expectedRepoRoot || configPath != expectedConfigPath else {
+            return
+        }
+
+        let expectedConfigExists = FileManager.default.fileExists(atPath: expectedConfigPath)
+        guard expectedConfigExists else {
+            return
+        }
+
+        let currentConfig = configPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        let currentDefaultConfig = Self.defaultConfigPath(forWorkspaceRoot: repoRoot)
+        let currentConfigLooksAutoDefault = currentConfig == currentDefaultConfig
+        let currentConfigExists = FileManager.default.fileExists(atPath: currentConfig)
+        guard currentConfigLooksAutoDefault, !currentConfigExists else {
+            return
+        }
+
+        repoRoot = expectedRepoRoot
+        configPath = expectedConfigPath
+        appendDeliveryEvent(
+            tone: .warning,
+            title: "Workspace Restored",
+            detail: "Restored workspace/config context after delivery path mutation was detected."
+        )
+        statusMessage = "Workspace context restored"
     }
 
     func copyDiagnosticsBundle(outDir: String? = nil) async {
@@ -1183,7 +1227,8 @@ final class AppState: ObservableObject {
             securityScopedWorkspaceURL = selectedURL
             workspaceAccessActive = started
             repoRoot = selectedURL.path
-            configPath = "\(selectedURL.path)/config/sample.yaml"
+            configPath = Self.defaultConfigPath(forWorkspaceRoot: selectedURL.path)
+            bootstrapWorkspaceIfNeeded()
             statusMessage = started ? "Workspace access granted" : "Workspace selected"
         } catch {
             presentError(title: "Workspace Selection Failed", message: error.localizedDescription)
@@ -1196,18 +1241,21 @@ final class AppState: ObservableObject {
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         panel.canCreateDirectories = false
-        panel.prompt = "Select Repo Root"
+        panel.prompt = "Select Workspace Root"
         panel.directoryURL = URL(fileURLWithPath: repoRoot, isDirectory: true)
         let response = panel.runModal()
         guard response == .OK, let selectedURL = panel.url else {
             return
         }
         repoRoot = selectedURL.path
-        let defaultConfig = selectedURL.appendingPathComponent("config/sample.yaml").path
+        let defaultConfig = Self.defaultConfigPath(forWorkspaceRoot: selectedURL.path)
         if FileManager.default.fileExists(atPath: defaultConfig) {
             configPath = defaultConfig
+        } else {
+            configPath = defaultConfig
+            bootstrapWorkspaceIfNeeded()
         }
-        statusMessage = "Repo root updated"
+        statusMessage = "Workspace root updated"
     }
 
     func chooseConfigFile() {
@@ -1231,11 +1279,28 @@ final class AppState: ObservableObject {
     }
 
     var sampleConfigPath: String {
-        "\(repoRoot)/config/sample.yaml"
+        if let bundledSample = bundledSampleConfigPath() {
+            return bundledSample
+        }
+        return Self.defaultConfigPath(forWorkspaceRoot: repoRoot)
     }
 
     func useSampleConfig() {
-        let sample = sampleConfigPath
+        if !Self.isLikelyRepoRoot(Path: repoRoot) {
+            configPath = Self.defaultConfigPath(forWorkspaceRoot: repoRoot)
+            if !FileManager.default.fileExists(atPath: configPath) {
+                bootstrapWorkspaceIfNeeded()
+            }
+            statusMessage = "Using workspace default config path"
+            return
+        }
+        guard let sample = resolvedSampleConfigSourcePath() else {
+            presentError(
+                title: "Sample Config Missing",
+                message: "Could not find a sample config source."
+            )
+            return
+        }
         guard FileManager.default.fileExists(atPath: sample) else {
             presentError(
                 title: "Sample Config Missing",
@@ -1248,17 +1313,18 @@ final class AppState: ObservableObject {
     }
 
     func createConfigFromSample() {
-        let sample = sampleConfigPath
         let destination = configPath.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !destination.isEmpty else {
             presentError(title: "Create Config Failed", message: "Config path is empty.")
             return
         }
         let fm = FileManager.default
-        guard fm.fileExists(atPath: sample) else {
+        let sample = resolvedSampleConfigSourcePath()
+        let canCopySample = sample != nil && fm.fileExists(atPath: sample ?? "")
+        if Self.isLikelyRepoRoot(Path: repoRoot), !canCopySample {
             presentError(
                 title: "Sample Config Missing",
-                message: "Could not find sample config at \(sample)"
+                message: "Could not find a sample config source."
             )
             return
         }
@@ -1276,7 +1342,11 @@ final class AppState: ObservableObject {
             if !parent.isEmpty, !fm.fileExists(atPath: parent) {
                 try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
             }
-            try fm.copyItem(atPath: sample, toPath: destination)
+            if Self.isLikelyRepoRoot(Path: repoRoot) {
+                try fm.copyItem(atPath: sample ?? "", toPath: destination)
+            } else {
+                try Self.writeDefaultConfigTemplate(destination: destination, workspaceRoot: repoRoot)
+            }
             presentInfo(
                 title: "Config Created",
                 message: destination,
@@ -1352,6 +1422,163 @@ final class AppState: ObservableObject {
         statusMessage = "Copied \(label)"
     }
 
+    private func bootstrapWorkspaceIfNeeded() {
+        let workspaceRoot = repoRoot.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !workspaceRoot.isEmpty else {
+            return
+        }
+        let fm = FileManager.default
+
+        do {
+            if !fm.fileExists(atPath: workspaceRoot) {
+                try fm.createDirectory(atPath: workspaceRoot, withIntermediateDirectories: true)
+            }
+
+            let configDestination = configPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? Self.defaultConfigPath(forWorkspaceRoot: workspaceRoot)
+                : configPath
+            configPath = configDestination
+
+            if fm.fileExists(atPath: configDestination) {
+                return
+            }
+
+            let configParent = (configDestination as NSString).deletingLastPathComponent
+            if !configParent.isEmpty, !fm.fileExists(atPath: configParent) {
+                try fm.createDirectory(atPath: configParent, withIntermediateDirectories: true)
+            }
+
+            try Self.writeDefaultConfigTemplate(destination: configDestination, workspaceRoot: workspaceRoot)
+            statusMessage = "Workspace bootstrapped"
+        } catch {
+            statusMessage = "Workspace bootstrap skipped: \(error.localizedDescription)"
+        }
+    }
+
+    private func bundledSampleConfigPath() -> String? {
+        var candidates: [String] = []
+        if let resourcePath = Bundle.main.resourceURL?.appendingPathComponent("backend/defaults/sample.yaml").path {
+            candidates.append(resourcePath)
+        }
+        candidates.append(Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/backend/defaults/sample.yaml").path)
+        for candidate in candidates {
+            if FileManager.default.fileExists(atPath: candidate) {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    private func resolvedSampleConfigSourcePath() -> String? {
+        let envRepo = ProcessInfo.processInfo.environment["STOPMO_XCODE_ROOT"] ?? ""
+        var candidates: [String] = [
+            "\(repoRoot)/config/sample.yaml",
+            "\(envRepo)/config/sample.yaml",
+        ]
+        if let bundled = bundledSampleConfigPath() {
+            candidates.append(bundled)
+        }
+        if let discovered = Self.discoverRepoRootNear(path: FileManager.default.currentDirectoryPath) {
+            candidates.append("\(discovered)/config/sample.yaml")
+        }
+        for candidate in candidates.map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) }) {
+            guard !candidate.isEmpty else { continue }
+            if FileManager.default.fileExists(atPath: candidate) {
+                return candidate
+            }
+        }
+        return nil
+    }
+
+    private static func defaultConfigPath(forWorkspaceRoot root: String) -> String {
+        "\(root)/config/sample.yaml"
+    }
+
+    private static func defaultWorkspaceRoot() -> String {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Documents")
+            .appendingPathComponent(defaultWorkspaceFolderName)
+            .path
+    }
+
+    private static func yamlQuote(_ value: String) -> String {
+        let escaped = value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        return "\"\(escaped)\""
+    }
+
+    private static func writeDefaultConfigTemplate(destination: String, workspaceRoot: String) throws {
+        let incoming = "\(workspaceRoot)/incoming"
+        let working = "\(workspaceRoot)/work"
+        let output = "\(workspaceRoot)/output"
+        let dbPath = "\(working)/queue.sqlite3"
+        let logPath = "\(working)/stopmo-xcode.log"
+
+        let directories = [incoming, working, output, "\(workspaceRoot)/config"]
+        let fm = FileManager.default
+        for dir in directories where !fm.fileExists(atPath: dir) {
+            try fm.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        }
+
+        let yaml = """
+        watch:
+          source_dir: \(yamlQuote(incoming))
+          working_dir: \(yamlQuote(working))
+          output_dir: \(yamlQuote(output))
+          db_path: \(yamlQuote(dbPath))
+          include_extensions:
+          - .cr2
+          - .cr3
+          - .raw
+          stable_seconds: 3.0
+          poll_interval_seconds: 1.0
+          scan_interval_seconds: 5.0
+          max_workers: 2
+          shot_complete_seconds: 30.0
+          shot_regex: null
+        pipeline:
+          camera_to_reference_matrix:
+          - - 1.0
+            - 0.0
+            - 0.0
+          - - 0.0
+            - 1.0
+            - 0.0
+          - - 0.0
+            - 0.0
+            - 1.0
+          exposure_offset_stops: 2.0
+          auto_exposure_from_iso: false
+          auto_exposure_from_shutter: false
+          target_shutter_s: null
+          auto_exposure_from_aperture: false
+          target_aperture_f: null
+          contrast: 1.25
+          contrast_pivot_linear: 0.18
+          lock_wb_from_first_frame: true
+          target_ei: 800
+          apply_match_lut: false
+          match_lut_path: null
+          use_ocio: false
+          ocio_config_path: null
+          ocio_input_space: camera_linear
+          ocio_reference_space: ACES2065-1
+          ocio_output_space: ARRI_LogC3_EI800_AWG
+        output:
+          emit_per_frame_json: true
+          emit_truth_frame_pack: true
+          truth_frame_index: 1
+          write_debug_tiff: false
+          write_prores_on_shot_complete: false
+          framerate: 24
+          show_lut_rec709_path: null
+        log_level: INFO
+        log_file: \(yamlQuote(logPath))
+        """
+        try yaml.appending("\n").write(toFile: destination, atomically: true, encoding: .utf8)
+    }
+
     private func restoreWorkspaceAccess() {
         guard let data = UserDefaults.standard.data(forKey: Self.workspaceBookmarkDefaultsKey) else {
             workspaceAccessActive = false
@@ -1376,9 +1603,10 @@ final class AppState: ObservableObject {
             let started = url.startAccessingSecurityScopedResource()
             securityScopedWorkspaceURL = url
             workspaceAccessActive = started
-            if started, Self.isLikelyRepoRoot(Path: url.path) {
+            if started {
                 repoRoot = url.path
-                configPath = "\(url.path)/config/sample.yaml"
+                configPath = Self.defaultConfigPath(forWorkspaceRoot: url.path)
+                bootstrapWorkspaceIfNeeded()
             }
         } catch {
             workspaceAccessActive = false
@@ -1387,16 +1615,27 @@ final class AppState: ObservableObject {
 
     private static func resolveInitialRepoRoot() -> String {
         let env = ProcessInfo.processInfo.environment
+        if let workspaceRoot = env["STOPMO_XCODE_WORKSPACE_ROOT"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !workspaceRoot.isEmpty {
+            return workspaceRoot
+        }
         for key in ["STOPMO_XCODE_ROOT", "SRCROOT", "PROJECT_DIR"] {
             let value = env[key]?.trimmingCharacters(in: .whitespacesAndNewlines)
             if let value, !value.isEmpty {
                 if let resolved = resolveCandidateRoot(value) {
                     return resolved
                 }
+                var isDir: ObjCBool = false
+                if FileManager.default.fileExists(atPath: value, isDirectory: &isDir), isDir.boolValue {
+                    return value
+                }
             }
         }
-        if let remembered = UserDefaults.standard.string(forKey: repoRootDefaultsKey), isLikelyRepoRoot(Path: remembered) {
-            return remembered
+        if let remembered = UserDefaults.standard.string(forKey: repoRootDefaultsKey) {
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: remembered, isDirectory: &isDir), isDir.boolValue {
+                return remembered
+            }
         }
         if let fromBundle = discoverRepoRootNear(path: Bundle.main.bundleURL.path) {
             return fromBundle
@@ -1404,7 +1643,7 @@ final class AppState: ObservableObject {
         if let fromCwd = discoverRepoRootNear(path: FileManager.default.currentDirectoryPath) {
             return fromCwd
         }
-        return FileManager.default.currentDirectoryPath
+        return defaultWorkspaceRoot()
     }
 
     private static func resolveCandidateRoot(_ value: String) -> String? {
@@ -1645,16 +1884,23 @@ final class AppState: ObservableObject {
 
     private func errorHints(for message: String) -> (likelyCause: String?, suggestedAction: String?) {
         let lower = message.lowercased()
+        let bundledRuntime = health?.backendMode?.lowercased() == "bundled"
         if lower.contains("no module named") || lower.contains("modulenotfounderror") {
+            if bundledRuntime {
+                return (
+                    likelyCause: "Bundled runtime assets are missing or corrupted.",
+                    suggestedAction: "Reinstall the app from the latest signed DMG and rerun Runtime Health."
+                )
+            }
             return (
                 likelyCause: "Python dependencies are missing or PYTHONPATH/venv is not configured for this workspace.",
-                suggestedAction: "Set repo root to this repository and install dependencies in `.venv` (`pip install -e \".[dev]\"` plus runtime extras)."
+                suggestedAction: "Use the development scheme with STOPMO_XCODE_ROOT pointed at this repository, then install dependencies in `.venv`."
             )
         }
         if lower.contains("invalid repo root") || lower.contains("bridge script not found") {
             return (
-                likelyCause: "Repo root does not point to the stopmo-xcode project root.",
-                suggestedAction: "In Configure > Workspace & Health, choose a repo root containing `pyproject.toml` and `src/stopmo_xcode`."
+                likelyCause: "Development backend root does not point to the stopmo-xcode project root.",
+                suggestedAction: "For development mode, set STOPMO_XCODE_ROOT to a repository containing `pyproject.toml` and `src/stopmo_xcode`."
             )
         }
         if lower.contains("permission") || lower.contains("not allowed") || lower.contains("operation not permitted") {
@@ -1664,6 +1910,12 @@ final class AppState: ObservableObject {
             )
         }
         if lower.contains("ffmpeg") {
+            if bundledRuntime {
+                return (
+                    likelyCause: "Bundled FFmpeg runtime is unavailable.",
+                    suggestedAction: "Reinstall the app and run Runtime Health to confirm bundled tooling is present."
+                )
+            }
             return (
                 likelyCause: "FFmpeg is missing or unavailable in PATH.",
                 suggestedAction: "Install FFmpeg and run Check Runtime Health to verify dependency availability."

@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GUI_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${GUI_ROOT}/../.." && pwd)"
 
 APP_NAME="${APP_NAME:-StopmoXcodeGUI}"
 BUNDLE_ID="${BUNDLE_ID:-com.stopmo.xcode.gui}"
@@ -10,60 +11,150 @@ VERSION="${VERSION:-0.2.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 DIST_DIR="${DIST_DIR:-${GUI_ROOT}/dist}"
 SIGN_IDENTITY="${SIGN_IDENTITY:-}"
+ALLOW_UNSIGNED="${ALLOW_UNSIGNED:-0}"
+ARCHES="${ARCHES:-arm64 x86_64}"
+XCODE_SCHEME="${XCODE_SCHEME:-StopmoXcodeGUI-Release}"
+NOTARIZE="${NOTARIZE:-0}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-}"
 
 INFO_PLIST_TEMPLATE="${GUI_ROOT}/packaging/Info.plist"
 ENTITLEMENTS_PLIST="${GUI_ROOT}/packaging/entitlements.plist"
+XCODEPROJ_PATH="${GUI_ROOT}/StopmoXcodeGUI.xcodeproj"
+BACKEND_RUNTIME_DIR="${DIST_DIR}/backend-runtime"
 
-if [[ ! -f "${INFO_PLIST_TEMPLATE}" ]]; then
-  echo "missing Info.plist template: ${INFO_PLIST_TEMPLATE}" >&2
+if [[ ! -d "$XCODEPROJ_PATH" ]]; then
+  echo "xcodeproj not found: $XCODEPROJ_PATH" >&2
+  exit 1
+fi
+if [[ ! -f "$INFO_PLIST_TEMPLATE" ]]; then
+  echo "missing Info.plist template: $INFO_PLIST_TEMPLATE" >&2
+  exit 1
+fi
+if [[ ! -f "$ENTITLEMENTS_PLIST" ]]; then
+  echo "missing entitlements file: $ENTITLEMENTS_PLIST" >&2
+  exit 1
+fi
+if [[ "$ALLOW_UNSIGNED" != "1" && -z "$SIGN_IDENTITY" ]]; then
+  echo "SIGN_IDENTITY is required for release packaging (set ALLOW_UNSIGNED=1 only for local smoke builds)." >&2
+  exit 1
+fi
+if [[ "$NOTARIZE" == "1" && -z "$NOTARY_PROFILE" ]]; then
+  echo "NOTARY_PROFILE is required when NOTARIZE=1." >&2
   exit 1
 fi
 
-mkdir -p "${DIST_DIR}"
+mkdir -p "$DIST_DIR"
 
-echo "Building ${APP_NAME} (release)..."
-swift build -c release --product "${APP_NAME}" --package-path "${GUI_ROOT}"
-BIN_DIR="$(swift build -c release --product "${APP_NAME}" --show-bin-path --package-path "${GUI_ROOT}")"
-BIN_PATH="${BIN_DIR}/${APP_NAME}"
-if [[ ! -x "${BIN_PATH}" ]]; then
-  echo "release binary missing: ${BIN_PATH}" >&2
+DERIVED_DATA="${DIST_DIR}/.derivedData"
+rm -rf "$DERIVED_DATA"
+
+build_args=(
+  -project "$XCODEPROJ_PATH"
+  -scheme "$XCODE_SCHEME"
+  -configuration Release
+  -derivedDataPath "$DERIVED_DATA"
+  CODE_SIGNING_ALLOWED=NO
+  CODE_SIGNING_REQUIRED=NO
+  build
+)
+for arch in $ARCHES; do
+  build_args=(-arch "$arch" "${build_args[@]}")
+done
+
+echo "Building universal app via xcodebuild (${ARCHES})..."
+xcodebuild "${build_args[@]}"
+
+BUILT_APP="${DERIVED_DATA}/Build/Products/Release/${APP_NAME}.app"
+if [[ ! -d "$BUILT_APP" ]]; then
+  echo "release app missing: $BUILT_APP" >&2
   exit 1
 fi
 
 APP_BUNDLE="${DIST_DIR}/${APP_NAME}.app"
-ZIP_PATH="${DIST_DIR}/${APP_NAME}-${VERSION}.zip"
+DMG_PATH="${DIST_DIR}/${APP_NAME}-${VERSION}.dmg"
+MANIFEST_PATH="${DIST_DIR}/manifest.json"
 
-echo "Creating app bundle: ${APP_BUNDLE}"
-rm -rf "${APP_BUNDLE}"
-mkdir -p "${APP_BUNDLE}/Contents/MacOS" "${APP_BUNDLE}/Contents/Resources"
-cp "${BIN_PATH}" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
-chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
+rm -rf "$APP_BUNDLE"
+cp -R "$BUILT_APP" "$APP_BUNDLE"
 
-cp "${INFO_PLIST_TEMPLATE}" "${APP_BUNDLE}/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${BUNDLE_ID}" "${APP_BUNDLE}/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" "${APP_BUNDLE}/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER}" "${APP_BUNDLE}/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${BUNDLE_ID}" "$APP_BUNDLE/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${VERSION}" "$APP_BUNDLE/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUMBER}" "$APP_BUNDLE/Contents/Info.plist"
 
-if [[ -n "${SIGN_IDENTITY}" ]]; then
-  echo "Signing bundle with identity: ${SIGN_IDENTITY}"
+MAIN_BIN="$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+if [[ ! -x "$MAIN_BIN" ]]; then
+  echo "main executable missing: $MAIN_BIN" >&2
+  exit 1
+fi
+for arch in $ARCHES; do
+  lipo -verify_arch "$arch" "$MAIN_BIN"
+done
+
+echo "Building backend runtimes (${ARCHES})..."
+OUT_DIR="$BACKEND_RUNTIME_DIR" ARCHES="$ARCHES" "$SCRIPT_DIR/build_backend_runtime.sh"
+
+BACKEND_DEST="$APP_BUNDLE/Contents/Resources/backend"
+rm -rf "$BACKEND_DEST"
+mkdir -p "$BACKEND_DEST/runtimes" "$BACKEND_DEST/defaults"
+
+for arch in $ARCHES; do
+  if [[ ! -d "$BACKEND_RUNTIME_DIR/$arch" ]]; then
+    echo "missing backend runtime for architecture: $arch" >&2
+    exit 1
+  fi
+  cp -R "$BACKEND_RUNTIME_DIR/$arch" "$BACKEND_DEST/runtimes/$arch"
+done
+
+cp "$SCRIPT_DIR/backend_launch_bridge.sh" "$BACKEND_DEST/launch_bridge.sh"
+chmod +x "$BACKEND_DEST/launch_bridge.sh"
+
+if [[ -f "$REPO_ROOT/config/sample.yaml" ]]; then
+  cp "$REPO_ROOT/config/sample.yaml" "$BACKEND_DEST/defaults/sample.yaml"
+fi
+if [[ -f "$BACKEND_RUNTIME_DIR/manifest.json" ]]; then
+  cp "$BACKEND_RUNTIME_DIR/manifest.json" "$MANIFEST_PATH"
+fi
+
+sign_one() {
+  local target="$1"
+  codesign --force --timestamp --options runtime --sign "$SIGN_IDENTITY" "$target"
+}
+
+if [[ "$ALLOW_UNSIGNED" != "1" ]]; then
+  echo "Signing nested runtime payloads with identity: $SIGN_IDENTITY"
+  while IFS= read -r target; do
+    sign_one "$target"
+  done < <(find "$BACKEND_DEST" -type f \( -name '*.dylib' -o -name '*.so' -o -perm -111 \) | sort)
+
+  sign_one "$MAIN_BIN"
   codesign \
-    --deep \
     --force \
     --timestamp \
     --options runtime \
-    --entitlements "${ENTITLEMENTS_PLIST}" \
-    --sign "${SIGN_IDENTITY}" \
-    "${APP_BUNDLE}"
-  codesign --verify --deep --strict --verbose=2 "${APP_BUNDLE}"
-  spctl --assess --type execute --verbose=2 "${APP_BUNDLE}" || true
+    --entitlements "$ENTITLEMENTS_PLIST" \
+    --sign "$SIGN_IDENTITY" \
+    "$APP_BUNDLE"
+
+  codesign --verify --strict --verbose=2 "$APP_BUNDLE"
+  codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+  spctl --assess --type execute --verbose=2 "$APP_BUNDLE"
 else
-  echo "SIGN_IDENTITY not set; skipping codesign"
+  echo "ALLOW_UNSIGNED=1 set; skipping codesign."
 fi
 
-echo "Packaging zip: ${ZIP_PATH}"
-rm -f "${ZIP_PATH}"
-ditto -c -k --sequesterRsrc --keepParent "${APP_BUNDLE}" "${ZIP_PATH}"
+APP_BUNDLE="$APP_BUNDLE" APP_NAME="$APP_NAME" VERSION="$VERSION" DIST_DIR="$DIST_DIR" DMG_PATH="$DMG_PATH" "$SCRIPT_DIR/create_dmg.sh"
 
-echo "Release artifact created:"
-echo "  App: ${APP_BUNDLE}"
-echo "  Zip: ${ZIP_PATH}"
+if [[ "$ALLOW_UNSIGNED" != "1" ]]; then
+  sign_one "$DMG_PATH"
+fi
+
+if [[ "$NOTARIZE" == "1" ]]; then
+  NOTARY_PROFILE="$NOTARY_PROFILE" "$SCRIPT_DIR/notarize_release.sh" "$DMG_PATH" "$APP_BUNDLE"
+fi
+
+echo "Release artifacts created:"
+echo "  App: $APP_BUNDLE"
+echo "  DMG: $DMG_PATH"
+if [[ -f "$MANIFEST_PATH" ]]; then
+  echo "  Manifest: $MANIFEST_PATH"
+fi

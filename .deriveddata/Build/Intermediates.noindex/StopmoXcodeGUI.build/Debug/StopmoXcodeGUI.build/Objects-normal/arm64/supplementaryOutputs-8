@@ -1,0 +1,23 @@
+{
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectPipelineSectionView.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPipelineSectionView.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPipelineSectionView.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPipelineSectionView.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPipelineSectionView.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPipelineSectionView.swiftdeps"
+  },
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectPresetsSectionView.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPresetsSectionView.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPresetsSectionView.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPresetsSectionView.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPresetsSectionView.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectPresetsSectionView.swiftdeps"
+  },
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ProjectView.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectView.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectView.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectView.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectView.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/ProjectView.swiftdeps"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/DeliveryDayWrap/DeliveryFormatting.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryFormatting.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryFormatting.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryFormatting.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryFormatting.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryFormatting.swiftdeps"
+  },
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/DeliveryDayWrap/DeliveryLayoutMetrics.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryLayoutMetrics.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryLayoutMetrics.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryLayoutMetrics.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryLayoutMetrics.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryLayoutMetrics.swiftdeps"
+  },
+  "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/DeliveryDayWrap/DeliveryShotListPane.swift" : {
+    "const-values" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryShotListPane.swiftconstvalues",
+    "dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryShotListPane.d",
+    "diagnostics" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryShotListPane.dia",
+    "object" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryShotListPane.o",
+    "swift-dependencies" : "/Users/kyle/Developer/stopmo-xcode/.deriveddata/Build/Intermediates.noindex/StopmoXcodeGUI.build/Debug/StopmoXcodeGUI.build/Objects-normal/arm64/DeliveryShotListPane.swiftdeps"
+  }
+}

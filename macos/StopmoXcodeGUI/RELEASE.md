@@ -1,29 +1,23 @@
 # StopmoXcodeGUI Distribution
 
-This project ships a macOS `.app` bundle and a zip archive suitable for notarization.
+This project ships a standalone, signed `.app` bundled inside a notarizable `.dmg`.
 
 ## Prerequisites
 
-- Xcode command line tools
-- Apple Developer account (Developer ID cert)
-- `codesign`, `xcrun notarytool`, `xcrun stapler`
+- Xcode command line tools (`xcodebuild`, `codesign`, `hdiutil`)
+- Apple Developer account with a `Developer ID Application` certificate
+- `xcrun notarytool` and `xcrun stapler`
 
-## 1) Build + Package
+## 1) Build Standalone Release Artifacts
 
 From repo root:
 
 ```bash
 cd macos/StopmoXcodeGUI
-chmod +x scripts/package_release.sh scripts/notarize_release.sh
+chmod +x scripts/package_release.sh scripts/notarize_release.sh scripts/build_backend_runtime.sh scripts/create_dmg.sh
 ```
 
-Unsigned package:
-
-```bash
-scripts/package_release.sh
-```
-
-Signed package:
+Build, bundle runtimes, sign, and produce DMG:
 
 ```bash
 SIGN_IDENTITY="Developer ID Application: YOUR NAME (TEAMID)" \
@@ -35,7 +29,14 @@ scripts/package_release.sh
 Outputs:
 
 - `macos/StopmoXcodeGUI/dist/StopmoXcodeGUI.app`
-- `macos/StopmoXcodeGUI/dist/StopmoXcodeGUI-<version>.zip`
+- `macos/StopmoXcodeGUI/dist/StopmoXcodeGUI-<version>.dmg`
+- `macos/StopmoXcodeGUI/dist/manifest.json` (runtime manifest)
+
+Notes:
+
+- Release build uses scheme `StopmoXcodeGUI-Release` by default.
+- Backend runtimes are assembled per architecture (`arm64`, `x86_64`) under `Contents/Resources/backend/runtimes/`.
+- `ALLOW_UNSIGNED=1` can be used only for local smoke builds.
 
 ## 2) Notarize + Staple
 
@@ -53,12 +54,23 @@ Submit and staple:
 ```bash
 NOTARY_PROFILE="stopmo-notary" \
 scripts/notarize_release.sh \
-  dist/StopmoXcodeGUI-0.2.0.zip \
+  dist/StopmoXcodeGUI-0.2.0.dmg \
   dist/StopmoXcodeGUI.app
 ```
 
-## Notes
+## 3) Optional: Build + Notarize in One Step
 
-- Bundle metadata lives in `packaging/Info.plist`.
-- Hardened runtime entitlements are in `packaging/entitlements.plist`.
-- This GUI uses a Python backend bridge and expects a compatible runtime environment at execution time.
+```bash
+SIGN_IDENTITY="Developer ID Application: YOUR NAME (TEAMID)" \
+NOTARIZE=1 \
+NOTARY_PROFILE="stopmo-notary" \
+VERSION="0.2.0" \
+BUILD_NUMBER="1" \
+scripts/package_release.sh
+```
+
+## Runtime Behavior
+
+- Standalone app mode uses bundled backend launch script:
+  - `Contents/Resources/backend/launch_bridge.sh`
+- Development mode still works against external repo + `.venv` via `StopmoXcodeGUI-Dev` scheme.

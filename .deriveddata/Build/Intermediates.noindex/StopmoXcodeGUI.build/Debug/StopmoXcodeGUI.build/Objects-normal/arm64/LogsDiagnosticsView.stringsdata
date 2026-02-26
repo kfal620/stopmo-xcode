@@ -1,0 +1,248 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LogsDiagnosticsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Refresh",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 110
+        }
+      },
+      {
+        "comment": "",
+        "key": "Log Severity",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 142
+        }
+      },
+      {
+        "comment": "",
+        "key": "Issue Severity",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 149
+        }
+      },
+      {
+        "comment": "",
+        "key": "Logger filter",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 156
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search message/timestamp",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "Warning code filter",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 166
+        }
+      },
+      {
+        "comment": "",
+        "key": "Refresh severity (CSV, optional)",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 174
+        }
+      },
+      {
+        "comment": "",
+        "key": "Refresh With Server Filter",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 179
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset Filters",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 184
+        }
+      },
+      {
+        "comment": "",
+        "key": "Refresh With Server Filter",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 195
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reset Filters",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 200
+        }
+      },
+      {
+        "comment": "",
+        "key": "No bundle generated in this session yet.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 287
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create Diagnostics Bundle",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Bundle",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 275
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy Bundle Path",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 278
+        }
+      },
+      {
+        "comment": "",
+        "key": "Issue Page",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 328
+        }
+      },
+      {
+        "comment": "",
+        "key": "Previous",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 336
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 341
+        }
+      },
+      {
+        "comment": "",
+        "key": "15",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 329
+        }
+      },
+      {
+        "comment": "",
+        "key": "25",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 330
+        }
+      },
+      {
+        "comment": "",
+        "key": "40",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 331
+        }
+      },
+      {
+        "comment": "",
+        "key": "Likely cause: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 376
+        }
+      },
+      {
+        "comment": "",
+        "key": "Suggested action: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 379
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 368
+        }
+      },
+      {
+        "comment": "",
+        "key": "Log Page",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 404
+        }
+      },
+      {
+        "comment": "",
+        "key": "Previous",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 412
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 417
+        }
+      },
+      {
+        "comment": "",
+        "key": "50",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 405
+        }
+      },
+      {
+        "comment": "",
+        "key": "100",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 406
+        }
+      },
+      {
+        "comment": "",
+        "key": "200",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 407
+        }
+      }
+    ]
+  },
+  "version": 1
+}

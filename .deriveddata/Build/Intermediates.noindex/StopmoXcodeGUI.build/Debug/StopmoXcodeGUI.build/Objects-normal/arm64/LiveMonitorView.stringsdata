@@ -1,0 +1,136 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/LiveMonitorView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Retry Now",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 137
+        }
+      },
+      {
+        "comment": "",
+        "key": "Restart Monitoring",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 142
+        }
+      },
+      {
+        "comment": "",
+        "key": "Restart Watch",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 147
+        }
+      },
+      {
+        "comment": "",
+        "key": "Check Runtime Health",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 152
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Triage",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 221
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Triage",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 178
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Shot Folder",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 201
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Deliver",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 207
+        }
+      },
+      {
+        "comment": "",
+        "key": "Blocked by preflight: %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 356
+        }
+      },
+      {
+        "comment": "",
+        "key": "Launch error: %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 361
+        }
+      },
+      {
+        "comment": "",
+        "key": "Showing latest %lld lines of %lld.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 454
+        }
+      },
+      {
+        "comment": "",
+        "key": "Filter",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 485
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pause",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 493
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search activity",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 495
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show More",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 503
+        }
+      },
+      {
+        "comment": "",
+        "key": "Show Less",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 512
+        }
+      }
+    ]
+  },
+  "version": 1
+}

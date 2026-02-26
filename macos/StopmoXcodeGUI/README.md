@@ -2,24 +2,12 @@
 
 SwiftUI shell for `stopmo-xcode`.
 
-## Architecture / Contributor Docs
+## Build And Test
 
-- UI architecture map:
-  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/docs/ui-architecture.md`
-- macOS GUI agent guide:
-  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/AGENTS.md`
-
-## Build
+From this directory (`macos/StopmoXcodeGUI`):
 
 ```bash
-cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
 swift build
-```
-
-## Test
-
-```bash
-cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
 swift test
 ```
 
@@ -28,43 +16,50 @@ Focused regression tests for recent UI refactors:
 - `Tests/StopmoXcodeGUITests/ProjectEditorViewModelTests.swift`
 - `Tests/StopmoXcodeGUITests/NotificationPresenterStateTests.swift`
 
-Phase-0 UI parity/baseline reference:
-
-- `/Users/kyle/Documents/Coding/stopmo-xcode/docs/gui-phase0-baseline.md`
-
 ## Xcode Project Wrapper
 
 A proper macOS app target wrapper now exists:
 
-- `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/StopmoXcodeGUI.xcodeproj`
+- `StopmoXcodeGUI.xcodeproj`
 
 Regenerate it (e.g. after adding/removing Swift files):
 
 ```bash
-cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
 ./scripts/generate_xcodeproj.py
 ```
 
 Open in Xcode:
 
 ```bash
-open /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/StopmoXcodeGUI.xcodeproj
+open StopmoXcodeGUI.xcodeproj
 ```
 
-Shared scheme `StopmoXcodeGUI` includes `STOPMO_XCODE_ROOT=$(SRCROOT)/../..`.
+Shared schemes:
 
-## Run
+- `StopmoXcodeGUI-Dev`
+  - external backend mode (`STOPMO_XCODE_ROOT=$(SRCROOT)/../..`)
+- `StopmoXcodeGUI-Release`
+  - bundled backend mode validation (`STOPMO_XCODE_RUNTIME_MODE=bundled`)
+- `StopmoXcodeGUI`
+  - compatibility alias to the dev scheme
+
+## Run (Development)
+
+From repo root:
 
 ```bash
-cd /Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI
-STOPMO_XCODE_ROOT=/Users/kyle/Documents/Coding/stopmo-xcode swift run StopmoXcodeGUI
+cd macos/StopmoXcodeGUI
+STOPMO_XCODE_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
 ```
 
 ## Notes
 
-- The app calls Python bridge commands via:
-  - `.venv/bin/python -m stopmo_xcode.gui_bridge ...`
-- It expects the repo root to contain `.venv` and `pyproject.toml`.
+- Dev mode bridge path:
+  - external repo backend (`.venv` + `src/stopmo_xcode/gui_bridge.py`)
+- Release mode bridge path:
+  - bundled launcher under app resources:
+    - `Contents/Resources/backend/launch_bridge.sh`
+- Workspace root is now independent from backend root. In bundled mode users choose workspace/config paths only.
 - Current phase includes:
   - Lifecycle hubs:
     - Configure
@@ -82,11 +77,25 @@ STOPMO_XCODE_ROOT=/Users/kyle/Documents/Coding/stopmo-xcode swift run StopmoXcod
     - Config validation panel in Configure
     - Watch preflight/blocker checks before start
     - Crash-recovery status surfaced in Capture
+  - Phase-0 UI parity/baseline reference:
+    - `../../docs/gui-phase0-baseline.md`
 
 ## Packaging / Signing / Notarization
 
 - Release workflow scripts and requirements are documented in:
-  - `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/RELEASE.md`
+  - `RELEASE.md`
 - Packaging assets:
-  - `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/packaging/Info.plist`
-  - `/Users/kyle/Documents/Coding/stopmo-xcode/macos/StopmoXcodeGUI/packaging/entitlements.plist`
+  - `packaging/Info.plist`
+  - `packaging/entitlements.plist`
+- Runtime/distribution scripts:
+  - `scripts/build_backend_runtime.sh`
+  - `scripts/create_dmg.sh`
+  - `scripts/package_release.sh`
+  - `scripts/notarize_release.sh`
+
+## Architecture / Contributor Docs
+
+- UI architecture map:
+  - `docs/ui-architecture.md`
+- macOS GUI agent guide:
+  - `AGENTS.md`

@@ -1,0 +1,184 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/HistoryView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Refresh",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 94
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search run/shots/outputs/pipeline/tool version",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 106
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sort",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 112
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select Newest Two",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear Selection",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 144
+        }
+      },
+      {
+        "comment": "",
+        "key": "Only Failures",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 126
+        }
+      },
+      {
+        "comment": "",
+        "key": "Only Selected",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 133
+        }
+      },
+      {
+        "comment": "",
+        "key": "Page Size",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 154
+        }
+      },
+      {
+        "comment": "",
+        "key": "Previous",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 168
+        }
+      },
+      {
+        "comment": "",
+        "key": "10",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 155
+        }
+      },
+      {
+        "comment": "",
+        "key": "20",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 156
+        }
+      },
+      {
+        "comment": "",
+        "key": "30",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 157
+        }
+      },
+      {
+        "comment": "",
+        "key": "50",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 158
+        }
+      },
+      {
+        "comment": "",
+        "key": "vs",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 192
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy Compare Summary",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 215
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Left First Output",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 218
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open Right First Output",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 224
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select for compare mode",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 263
+        }
+      },
+      {
+        "comment": "",
+        "key": "Copy Run Summary",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 284
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open First Output",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 287
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open First Manifest",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 293
+        }
+      }
+    ]
+  },
+  "version": 1
+}

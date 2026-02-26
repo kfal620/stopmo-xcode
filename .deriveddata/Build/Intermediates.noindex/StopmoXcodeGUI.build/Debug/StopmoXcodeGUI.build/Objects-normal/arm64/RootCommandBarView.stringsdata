@@ -1,0 +1,16 @@
+{
+  "source": "/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootCommandBarView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Current section %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 101
+        }
+      }
+    ]
+  },
+  "version": 1
+}
