@@ -99,7 +99,14 @@ struct LiveMonitorView: View {
     }
 
     private var monitoringRecoveryCard: some View {
-        SectionCard("Recovery", subtitle: "Bridge/watch failure handling with safe restart controls.") {
+        SectionCard(
+            "Recovery",
+            subtitle: "Bridge/watch failure handling with safe restart controls.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .outlined,
+            showSubtitle: false
+        ) {
             if let message = state.monitoringLastFailureMessage, !message.isEmpty {
                 Text(message)
                     .font(.system(.caption, design: .monospaced))
@@ -151,7 +158,14 @@ struct LiveMonitorView: View {
     }
 
     private var activeShotFocusCard: some View {
-        SectionCard("Active Shot Focus", subtitle: "Current shot ingest parity and conversion health.", density: .compact) {
+        SectionCard(
+            "Active Shot Focus",
+            subtitle: "Current shot ingest parity and conversion health.",
+            density: .compact,
+            surfaceLevel: .raised,
+            chrome: .standard,
+            showSubtitle: false
+        ) {
             if let evaluation = activeShotEvaluation {
                 let shot = evaluation.shot
                 HStack(spacing: StopmoUI.Spacing.sm) {
@@ -165,17 +179,21 @@ struct LiveMonitorView: View {
                             state.selectedHub = .triage
                             state.selectedTriagePanel = .shots
                         }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                     }
                 }
 
                 ProgressView(value: activeShotProgress(for: shot))
+                    .tint(AppVisualTokens.stageAccent(hub: .capture))
 
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     StatusChip(label: "Done \(shot.doneFrames)", tone: .success, density: .compact)
                     StatusChip(label: "Inflight \(shot.inflightFrames)", tone: shot.inflightFrames > 0 ? .warning : .neutral, density: .compact)
                     StatusChip(label: "Failed \(shot.failedFrames)", tone: shot.failedFrames > 0 ? .danger : .neutral, density: .compact)
                     StatusChip(label: "Total \(shot.totalFrames)", tone: .neutral, density: .compact)
-                    StatusChip(label: ShotHealthModel.updatedDisplayLabel(for: shot), tone: .neutral, density: .compact)
+                    Text(ShotHealthModel.updatedDisplayLabel(for: shot))
+                        .metadataTextStyle(.tertiary)
                         .help(shot.lastUpdatedAt ?? "No update timestamp")
                 }
 
@@ -183,11 +201,15 @@ struct LiveMonitorView: View {
                     Button("Open Shot Folder") {
                         state.openPathInFinder(shotRootPath(for: shot))
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                     if evaluation.isDeliverable {
                         Button("Open Deliver") {
                             state.selectedHub = .deliver
                             state.selectedDeliverPanel = .dayWrap
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
                     if let reason = evaluation.readinessReason, !reason.isEmpty {
                         StatusChip(label: reason, tone: .warning, density: .compact)
@@ -206,7 +228,14 @@ struct LiveMonitorView: View {
     }
 
     private var liveKpiCard: some View {
-        SectionCard("Live KPIs", subtitle: "Queue states, throughput, worker load, and ETA heuristic.", density: .compact) {
+        SectionCard(
+            "Live KPIs",
+            subtitle: "Queue states, throughput, worker load, and ETA heuristic.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             let counts = state.queueSnapshot?.counts ?? [:]
             let detected = counts["detected", default: 0]
             let decoding = counts["decoding", default: 0]
@@ -219,14 +248,14 @@ struct LiveMonitorView: View {
             let throughput = state.throughputFramesPerMinute
 
             MetricWrap(minItemWidth: 145) {
-                StatusChip(label: "detected \(detected)", tone: detected > 0 ? .warning : .neutral, density: .compact)
-                StatusChip(label: "decoding \(decoding)", tone: decoding > 0 ? .warning : .neutral, density: .compact)
-                StatusChip(label: "xform \(xform)", tone: xform > 0 ? .warning : .neutral, density: .compact)
-                StatusChip(label: "dpx_write \(dpxWrite)", tone: dpxWrite > 0 ? .warning : .neutral, density: .compact)
+                StatusChip(label: "detected \(detected)", tone: .neutral, density: .compact)
+                StatusChip(label: "decoding \(decoding)", tone: .neutral, density: .compact)
+                StatusChip(label: "xform \(xform)", tone: .neutral, density: .compact)
+                StatusChip(label: "dpx_write \(dpxWrite)", tone: .neutral, density: .compact)
                 StatusChip(label: "done \(done)", tone: done > 0 ? .success : .neutral, density: .compact)
                 StatusChip(label: "failed \(failed)", tone: failed > 0 ? .danger : .neutral, density: .compact)
                 StatusChip(label: String(format: "%.1f frames/min", throughput), tone: throughput > 0 ? .success : .neutral, density: .compact)
-                StatusChip(label: "Workers \(inflight)/\(max(1, workers))", tone: inflight > 0 ? .warning : .neutral, density: .compact)
+                StatusChip(label: "Workers \(inflight)/\(max(1, workers))", tone: .neutral, density: .compact)
                 StatusChip(label: etaLabel(), tone: throughput > 0 ? .neutral : .warning, density: .compact)
                 TimelineView(.periodic(from: Date(), by: 1)) { context in
                     StatusChip(label: "Last frame \(lastFrameAgeLabel(at: context.date))", tone: state.lastFrameAt == nil ? .warning : .neutral, density: .compact)
@@ -236,7 +265,14 @@ struct LiveMonitorView: View {
     }
 
     private var queueTrendCard: some View {
-        SectionCard("Queue Depth Trend", subtitle: "Secondary telemetry for queue fluctuations.", density: .compact) {
+        SectionCard(
+            "Queue Depth Trend",
+            subtitle: "Secondary telemetry for queue fluctuations.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             DisclosureGroup(isExpanded: $showQueueTrend) {
                 if state.queueDepthTrend.count < 2 {
                     EmptyStateCard(message: "Collecting samples. Keep live monitoring active for trend visibility.")
@@ -259,7 +295,14 @@ struct LiveMonitorView: View {
     }
 
     private var watchServiceCard: some View {
-        SectionCard("Watch Service", subtitle: "Runtime details, watch controls, and progress counters.", density: .compact) {
+        SectionCard(
+            "Watch Service",
+            subtitle: "Runtime details, watch controls, and progress counters.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             HStack(spacing: StopmoUI.Spacing.sm) {
                 ToolbarActionCluster {
                     CommandIconButton(
@@ -311,13 +354,13 @@ struct LiveMonitorView: View {
             if let watch = state.watchServiceState {
                 if watch.startBlocked == true, let preflight = watch.preflight, !preflight.blockers.isEmpty {
                     Text("Blocked by preflight: \(preflight.blockers.joined(separator: ", "))")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                        .metadataTextStyle(.secondary)
+                        .foregroundStyle(.red.opacity(0.88))
                 }
                 if let launchError = watch.launchError, !launchError.isEmpty {
                     Text("Launch error: \(launchError)")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                        .metadataTextStyle(.secondary)
+                        .foregroundStyle(.red.opacity(0.88))
                 }
             }
 
@@ -385,7 +428,13 @@ struct LiveMonitorView: View {
     private func watchLogTailCard(_ logTail: [String]) -> some View {
         let visibleTail = Array(logTail.suffix(watchLogDisplayLimit))
 
-        return SectionCard("Watch Log Tail", density: .compact) {
+        return SectionCard(
+            "Watch Log Tail",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             DisclosureGroup(isExpanded: $showWatchLogTail) {
                 VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                     ScrollView {
@@ -410,7 +459,7 @@ struct LiveMonitorView: View {
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
                 DisclosureToggleLabel(
-                    title: "Show Log Tail (\(visibleTail.count) lines)",
+                    title: "Log Tail (\(visibleTail.count) lines)",
                     isExpanded: $showWatchLogTail
                 )
             }
@@ -418,7 +467,14 @@ struct LiveMonitorView: View {
     }
 
     private var activityCard: some View {
-        return SectionCard("Activity Feed", subtitle: "Job transitions, warnings/errors, and watch assembly events.", density: .compact) {
+        return SectionCard(
+            "Activity Feed",
+            subtitle: "Job transitions, warnings/errors, and watch assembly events.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             DisclosureGroup(isExpanded: $showActivityFeed) {
                 let filteredEvents = filteredActivityEvents
                 let visibleCount = min(activityDisplayLimit, filteredEvents.count)
@@ -480,7 +536,7 @@ struct LiveMonitorView: View {
             } label: {
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     DisclosureToggleLabel(
-                        title: "Show Activity (\(sourceActivityEvents.count) recent events)",
+                        title: "Activity (\(sourceActivityEvents.count) recent events)",
                         isExpanded: $showActivityFeed
                     )
                     if pauseActivityUpdates {

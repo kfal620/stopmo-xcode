@@ -25,7 +25,7 @@ struct CaptureHubView: View {
                         state.selectedHub = .triage
                         state.selectedTriagePanel = .shots
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                     Button("Open Deliver") {
                         state.selectedHub = .deliver

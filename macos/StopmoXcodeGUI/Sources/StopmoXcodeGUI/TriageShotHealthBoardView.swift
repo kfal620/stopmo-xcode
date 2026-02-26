@@ -44,22 +44,26 @@ struct TriageShotHealthBoardView: View {
 
     private var toolbarStrip: some View {
         ToolbarStrip(title: "Shot Health Toolbar") {
-            HStack(alignment: .center, spacing: StopmoUI.Spacing.xs) {
-                StatusChip(label: "Clean \(cleanCount)", tone: .success, density: .compact)
-                StatusChip(label: "Issues \(issuesCount)", tone: issuesCount > 0 ? .danger : .neutral, density: .compact)
-                StatusChip(label: "Inflight \(inflightCount)", tone: inflightCount > 0 ? .warning : .neutral, density: .compact)
-                StatusChip(label: "Total \(filteredEvaluations.count)", tone: .neutral, density: .compact)
-                Picker("State", selection: $shotFilter) {
-                    ForEach(TriageShotFilter.allCases) { filter in
-                        Text(filter.rawValue).tag(filter)
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                HStack(alignment: .center, spacing: StopmoUI.Spacing.xs) {
+                    Picker("State", selection: $shotFilter) {
+                        ForEach(TriageShotFilter.allCases) { filter in
+                            Text(filter.rawValue).tag(filter)
+                        }
                     }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 320)
+                    TextField("Search shot/state/path", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 300)
+                    Spacer(minLength: 0)
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: 300)
-                TextField("Search shot/state/path", text: $searchText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 280)
-                Spacer(minLength: 0)
+                HStack(spacing: StopmoUI.Spacing.xs) {
+                    StatusChip(label: "Clean \(cleanCount)", tone: .success, density: .compact)
+                    StatusChip(label: "Issues \(issuesCount)", tone: issuesCount > 0 ? .danger : .neutral, density: .compact)
+                    StatusChip(label: "Inflight \(inflightCount)", tone: inflightCount > 0 ? .warning : .neutral, density: .compact)
+                    StatusChip(label: "Total \(filteredEvaluations.count)", tone: .neutral, density: .compact)
+                }
             }
         }
     }
@@ -69,6 +73,8 @@ struct TriageShotHealthBoardView: View {
             "Health Board",
             subtitle: "Expand cards for full shot detail and recovery actions.",
             density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
             showTitle: false,
             showSubtitle: false
         ) {
@@ -100,7 +106,8 @@ struct TriageShotHealthBoardView: View {
                         .font(.subheadline.weight(.semibold))
                     StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
                     StatusChip(label: evaluation.completionLabel, tone: evaluation.isDeliverable ? .success : .warning, density: .compact)
-                    StatusChip(label: updatedLabel, tone: .neutral, density: .compact)
+                    Text(updatedLabel)
+                        .metadataTextStyle(.tertiary)
                         .help(shot.lastUpdatedAt ?? "No update timestamp")
                     Spacer(minLength: 0)
                 }
@@ -146,16 +153,20 @@ struct TriageShotHealthBoardView: View {
             }
 
             if isExpanded {
-                expandedShotContent(shot)
+                SurfaceContainer(level: .card, chrome: .quiet, cornerRadius: 8) {
+                    expandedShotContent(shot)
+                        .padding(StopmoUI.Spacing.sm)
+                }
             }
         }
         .frame(maxWidth: .infinity, minHeight: DenseShotRowStyle.minHeight, alignment: .topLeading)
         .padding(.horizontal, DenseShotRowStyle.horizontalPadding)
         .padding(.vertical, DenseShotRowStyle.verticalPadding)
-        .background(
-            RoundedRectangle(cornerRadius: DenseShotRowStyle.cornerRadius, style: .continuous)
-                .fill(Color.secondary.opacity(0.08))
-        )
+        .background {
+            SurfaceContainer(level: .card, chrome: .quiet, cornerRadius: DenseShotRowStyle.cornerRadius) {
+                Color.clear
+            }
+        }
     }
 
     private func expandedShotContent(_ shot: ShotSummaryRow) -> some View {
@@ -214,7 +225,14 @@ struct TriageShotHealthBoardView: View {
     }
 
     private var recoveryDrawerCard: some View {
-        SectionCard("Recovery Drawer", subtitle: "Collapsed by default; open only when recovery is needed.", density: .compact) {
+        SectionCard(
+            "Recovery Drawer",
+            subtitle: "Collapsed by default; open only when recovery is needed.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             DisclosureGroup(isExpanded: $showRecoveryDrawer) {
                 VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
                     Picker("Recovery Mode", selection: $recoveryMode) {
@@ -449,13 +467,13 @@ struct TriageShotHealthBoardView: View {
     private func progressTone(for healthState: ShotHealthState) -> Color {
         switch healthState {
         case .clean:
-            return .green
+            return .green.opacity(0.75)
         case .issues:
-            return .red
+            return .red.opacity(0.9)
         case .inflight:
-            return .orange
+            return .orange.opacity(0.85)
         case .queued:
-            return .secondary
+            return AppVisualTokens.textSecondary.opacity(0.75)
         }
     }
 

@@ -19,6 +19,124 @@ enum StopmoUI {
         static let formLabel: CGFloat = 220
         static let iconTapTarget: CGFloat = 30
     }
+
+    enum Motion {
+        static let hover: Double = 0.14
+        static let disclosure: Double = 0.18
+    }
+}
+
+enum SurfaceLevel {
+    case canvas
+    case panel
+    case card
+    case raised
+
+    var nominalFillOpacity: Double {
+        switch self {
+        case .canvas:
+            return 0
+        case .panel:
+            return 0.045
+        case .card:
+            return 0.06
+        case .raised:
+            return 0.08
+        }
+    }
+
+    var nominalBorderOpacity: Double {
+        switch self {
+        case .canvas:
+            return 0
+        case .panel:
+            return 0.08
+        case .card:
+            return 0.084
+        case .raised:
+            return 0.16
+        }
+    }
+}
+
+enum CardChrome {
+    case standard
+    case quiet
+    case outlined
+}
+
+enum SidebarDetailMode {
+    case always
+    case progressive
+    case hidden
+}
+
+enum MetadataTone {
+    case secondary
+    case tertiary
+}
+
+enum AppVisualTokens {
+    static let backgroundCanvas = LinearGradient(
+        colors: [
+            Color(red: 0.055, green: 0.072, blue: 0.065),
+            Color(red: 0.048, green: 0.06, blue: 0.055),
+            Color(red: 0.045, green: 0.055, blue: 0.052),
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
+    static let panelFill = Color.white.opacity(0.045)
+    static let cardFill = Color.white.opacity(0.06)
+    static let raisedFill = Color.white.opacity(0.08)
+
+    static let borderSubtle = Color.white.opacity(0.08)
+    static let borderStrong = Color.white.opacity(0.16)
+
+    static let textPrimary = Color.white.opacity(0.92)
+    static let textSecondary = Color.white.opacity(0.72)
+    static let textTertiary = Color.white.opacity(0.58)
+
+    static let shadowSoft = Color.black.opacity(0.14)
+    static let shadowRaised = Color.black.opacity(0.22)
+
+    static func stageAccent(hub: LifecycleHub) -> Color {
+        hub.accentColor
+    }
+
+    static func fill(for level: SurfaceLevel, emphasized: Bool = false) -> Color {
+        switch level {
+        case .canvas:
+            return Color.clear
+        case .panel:
+            return emphasized ? panelFill.opacity(1.15) : panelFill
+        case .card:
+            return emphasized ? cardFill.opacity(1.15) : cardFill
+        case .raised:
+            return emphasized ? raisedFill.opacity(1.1) : raisedFill
+        }
+    }
+
+    static func border(for level: SurfaceLevel, chrome: CardChrome = .standard) -> Color {
+        switch chrome {
+        case .quiet:
+            return borderSubtle.opacity(0.8)
+        case .outlined:
+            return borderStrong
+        case .standard:
+            switch level {
+            case .canvas:
+                return .clear
+            case .panel:
+                return borderSubtle
+            case .card:
+                return borderSubtle.opacity(1.05)
+            case .raised:
+                return borderStrong.opacity(0.9)
+            }
+        }
+    }
 }
 
 private struct HubContentWidthEnvironmentKey: EnvironmentKey {
@@ -49,9 +167,9 @@ extension LifecycleHub {
     var accentGradient: LinearGradient {
         LinearGradient(
             colors: [
-                accentColor.opacity(0.34),
-                accentColor.opacity(0.14),
-                Color.secondary.opacity(0.08),
+                AppVisualTokens.stageAccent(hub: self).opacity(0.32),
+                AppVisualTokens.stageAccent(hub: self).opacity(0.13),
+                Color.black.opacity(0.12),
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -68,7 +186,7 @@ enum StatusTone {
     var foreground: Color {
         switch self {
         case .neutral:
-            return .primary
+            return AppVisualTokens.textPrimary
         case .success:
             return .green
         case .warning:
@@ -81,13 +199,13 @@ enum StatusTone {
     var background: Color {
         switch self {
         case .neutral:
-            return Color.secondary.opacity(0.14)
+            return Color.white.opacity(0.11)
         case .success:
-            return Color.green.opacity(0.16)
+            return Color.green.opacity(0.2)
         case .warning:
-            return Color.orange.opacity(0.18)
+            return Color.orange.opacity(0.22)
         case .danger:
-            return Color.red.opacity(0.16)
+            return Color.red.opacity(0.2)
         }
     }
 }
@@ -158,16 +276,38 @@ struct LifecycleStageHeader<Trailing: View>: View {
             fullWidthHeader
             compactFallbackHeader
         }
-        .padding(.horizontal, style == .compact ? 10 : 12)
-        .padding(.vertical, style == .compact ? 5 : 8)
+        .padding(.horizontal, style == .compact ? 9 : 12)
+        .padding(.vertical, style == .compact ? 4 : 8)
         .background(
             RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                .fill(hub.accentGradient)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            hub.accentColor.opacity(style == .compact ? 0.18 : 0.26),
+                            hub.accentColor.opacity(style == .compact ? 0.08 : 0.14),
+                            AppVisualTokens.panelFill,
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
         )
         .overlay(
             RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                .stroke(hub.accentColor.opacity(0.35), lineWidth: 1)
+                .stroke(hub.accentColor.opacity(style == .compact ? 0.28 : 0.38), lineWidth: 0.9)
         )
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [hub.accentColor.opacity(0.7), hub.accentColor.opacity(0.18)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: style == .compact ? 2 : 3)
+                .padding(.vertical, 2)
+        }
     }
 
     private var fullWidthHeader: some View {
@@ -208,15 +348,15 @@ struct LifecycleStageHeader<Trailing: View>: View {
                 .font(.caption2.weight(.bold))
         }
         .foregroundStyle(hub.accentColor)
-        .padding(.horizontal, style == .compact ? 6 : 8)
-        .padding(.vertical, style == .compact ? 3 : 4)
+        .padding(.horizontal, style == .compact ? 7 : 9)
+        .padding(.vertical, style == .compact ? 2.5 : 4)
         .background(
             Capsule(style: .continuous)
-                .fill(hub.accentColor.opacity(0.16))
+                .fill(hub.accentColor.opacity(0.24))
         )
         .overlay(
             Capsule(style: .continuous)
-                .stroke(hub.accentColor.opacity(0.4), lineWidth: 0.75)
+                .stroke(hub.accentColor.opacity(0.55), lineWidth: 0.8)
         )
     }
 }
@@ -264,19 +404,37 @@ struct DisclosureToggleLabel: View {
     let title: String
     @Binding var isExpanded: Bool
     var font: Font = .subheadline.weight(.semibold)
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack {
             Text(title)
                 .font(font)
+                .foregroundStyle(AppVisualTokens.textSecondary)
             Spacer(minLength: 0)
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.12)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: StopmoUI.Motion.disclosure)) {
                 isExpanded.toggle()
             }
         }
+    }
+}
+
+struct MetadataTextStyle: ViewModifier {
+    let tone: MetadataTone
+
+    func body(content: Content) -> some View {
+        content
+            .font(.caption2)
+            .foregroundStyle(tone == .secondary ? AppVisualTokens.textSecondary : AppVisualTokens.textTertiary)
+    }
+}
+
+extension View {
+    func metadataTextStyle(_ tone: MetadataTone = .secondary) -> some View {
+        modifier(MetadataTextStyle(tone: tone))
     }
 }
 
@@ -341,25 +499,18 @@ struct ToolbarStrip<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-            if let title, !title.isEmpty {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        SurfaceContainer(level: .panel, chrome: .quiet) {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                if let title, !title.isEmpty {
+                    Text(title)
+                        .metadataTextStyle(.tertiary)
+                }
+                content
             }
-            content
+            .padding(.horizontal, StopmoUI.Spacing.sm)
+            .padding(.vertical, StopmoUI.Spacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, StopmoUI.Spacing.sm)
-        .padding(.vertical, StopmoUI.Spacing.xs)
-        .background(
-            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                .fill(Color.secondary.opacity(0.1))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 0.75)
-        )
     }
 }
 
@@ -392,10 +543,81 @@ struct MetricWrap<Content: View>: View {
     }
 }
 
+struct SurfaceContainer<Content: View>: View {
+    let level: SurfaceLevel
+    let chrome: CardChrome
+    let emphasized: Bool
+    let cornerRadius: CGFloat
+    @ViewBuilder let content: Content
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isHovered: Bool = false
+
+    init(
+        level: SurfaceLevel,
+        chrome: CardChrome = .standard,
+        emphasized: Bool = false,
+        cornerRadius: CGFloat = StopmoUI.Radius.card,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.level = level
+        self.chrome = chrome
+        self.emphasized = emphasized
+        self.cornerRadius = cornerRadius
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(AppVisualTokens.fill(for: level, emphasized: emphasized || isHovered))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(AppVisualTokens.border(for: level, chrome: chrome), lineWidth: chrome == .outlined ? 1 : 0.75)
+            )
+            .shadow(
+                color: shadowColor,
+                radius: shadowRadius,
+                x: 0,
+                y: shadowY
+            )
+            .onHover { hovering in
+                withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
+                    isHovered = hovering
+                }
+            }
+    }
+
+    private var shadowColor: Color {
+        if level == .raised || emphasized || isHovered {
+            return AppVisualTokens.shadowRaised
+        }
+        return AppVisualTokens.shadowSoft.opacity(0.65)
+    }
+
+    private var shadowRadius: CGFloat {
+        if level == .raised || emphasized || isHovered {
+            return 8
+        }
+        return 0
+    }
+
+    private var shadowY: CGFloat {
+        if level == .raised || emphasized || isHovered {
+            return 2
+        }
+        return 0
+    }
+}
+
 struct SectionCard<Content: View>: View {
     let title: String
     let subtitle: String?
     let density: CardDensity
+    let surfaceLevel: SurfaceLevel
+    let chrome: CardChrome
     let showTitle: Bool
     let showSubtitle: Bool
     @ViewBuilder let content: Content
@@ -404,6 +626,8 @@ struct SectionCard<Content: View>: View {
         _ title: String,
         subtitle: String? = nil,
         density: CardDensity = .regular,
+        surfaceLevel: SurfaceLevel = .panel,
+        chrome: CardChrome = .standard,
         showTitle: Bool = true,
         showSubtitle: Bool = true,
         @ViewBuilder content: () -> Content
@@ -411,6 +635,8 @@ struct SectionCard<Content: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.density = density
+        self.surfaceLevel = surfaceLevel
+        self.chrome = chrome
         self.showTitle = showTitle
         self.showSubtitle = showSubtitle
         self.content = content()
@@ -420,23 +646,25 @@ struct SectionCard<Content: View>: View {
         let rowSpacing: CGFloat = density == .compact ? StopmoUI.Spacing.sm : StopmoUI.Spacing.md
         let headerSpacing: CGFloat = density == .compact ? 2 : StopmoUI.Spacing.xxs
 
-        GroupBox {
+        SurfaceContainer(level: surfaceLevel, chrome: chrome, emphasized: chrome == .outlined) {
             VStack(alignment: .leading, spacing: rowSpacing) {
                 if showTitle || (showSubtitle && subtitle != nil) {
                     VStack(alignment: .leading, spacing: headerSpacing) {
                         if showTitle {
                             Text(title)
                                 .font(density == .compact ? .subheadline.weight(.semibold) : .headline)
+                                .foregroundStyle(AppVisualTokens.textPrimary)
                         }
                         if showSubtitle, let subtitle, !subtitle.isEmpty {
                             Text(subtitle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .metadataTextStyle()
                         }
                     }
                 }
                 content
             }
+            .padding(.horizontal, density == .compact ? StopmoUI.Spacing.sm : StopmoUI.Spacing.md)
+            .padding(.vertical, density == .compact ? StopmoUI.Spacing.sm : StopmoUI.Spacing.md)
             .padding(.top, density == .compact ? 0 : StopmoUI.Spacing.xxs)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -456,6 +684,10 @@ struct StatusChip: View {
             .padding(.vertical, density == .compact ? 2 : StopmoUI.Spacing.xxs)
             .background(tone.background)
             .clipShape(RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                    .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+            )
     }
 }
 
@@ -468,9 +700,9 @@ struct KeyValueRow: View {
         HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.sm) {
             Text(key)
                 .frame(width: StopmoUI.Width.keyColumn, alignment: .leading)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppVisualTokens.textSecondary)
             Text(value)
-                .foregroundStyle(tone == .neutral ? .primary : tone.foreground)
+                .foregroundStyle(tone == .neutral ? AppVisualTokens.textPrimary : tone.foreground)
                 .textSelection(.enabled)
         }
         .font(.callout)
@@ -533,15 +765,13 @@ struct EmptyStateCard: View {
     let message: String
 
     var body: some View {
-        Text(message)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(StopmoUI.Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                    .fill(Color.secondary.opacity(0.08))
-            )
+        SurfaceContainer(level: .card, chrome: .quiet) {
+            Text(message)
+                .font(.callout)
+                .foregroundStyle(AppVisualTokens.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(StopmoUI.Spacing.md)
+        }
     }
 }
 
@@ -595,10 +825,13 @@ struct ToolbarActionCluster<Content: View>: View {
             content
         }
         .padding(4)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(AppVisualTokens.fill(for: .raised))
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.primary.opacity(0.09), lineWidth: 0.75)
+                .stroke(AppVisualTokens.border(for: .raised), lineWidth: 0.75)
         )
     }
 }
@@ -607,6 +840,8 @@ struct CommandContextChip: View {
     let icon: String
     let value: String
     let tooltip: String
+    var isPrimary: Bool = false
+    var accentColor: Color? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovered: Bool = false
@@ -624,7 +859,20 @@ struct CommandContextChip: View {
         .padding(.vertical, 3)
         .background(
             RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                .fill(isHovered ? Color.secondary.opacity(0.22) : Color.secondary.opacity(0.16))
+                .fill(
+                    isPrimary
+                        ? (accentColor ?? AppVisualTokens.textPrimary).opacity(isHovered ? 0.26 : 0.18)
+                        : AppVisualTokens.fill(for: .panel, emphasized: isHovered)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .stroke(
+                    isPrimary
+                        ? (accentColor ?? AppVisualTokens.textPrimary).opacity(0.38)
+                        : AppVisualTokens.border(for: .panel, chrome: .quiet),
+                    lineWidth: 0.75
+                )
         )
         .overlay(alignment: .top) {
             if isHovered {
@@ -649,7 +897,7 @@ struct CommandContextChip: View {
             }
         }
         .onHover { hovering in
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.12)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: StopmoUI.Motion.hover)) {
                 isHovered = hovering
             }
         }
@@ -669,6 +917,7 @@ struct CommandIconButton: View {
     var badgeTone: StatusTone = .warning
     let action: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isHovered: Bool = false
 
     var body: some View {
@@ -704,7 +953,9 @@ struct CommandIconButton: View {
         .buttonStyle(.plain)
         .disabled(isDisabled)
         .onHover { hovering in
-            isHovered = hovering
+            withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
+                isHovered = hovering
+            }
         }
         .overlay(alignment: .top) {
             if isHovered && !isDisabled {

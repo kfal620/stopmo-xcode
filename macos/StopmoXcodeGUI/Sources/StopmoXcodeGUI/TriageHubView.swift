@@ -16,7 +16,7 @@ struct TriageHubView: View {
                     state.selectedHub = .deliver
                     state.selectedDeliverPanel = .dayWrap
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             }
 

@@ -19,25 +19,38 @@ struct RootView: View {
         } detail: {
             detailView
                 .environment(\.hubContentWidth, detailContentWidth)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: RootDetailWidthPreferenceKey.self,
-                            value: proxy.size.width
+                .background {
+                    ZStack {
+                        AppVisualTokens.backgroundCanvas
+                        RadialGradient(
+                            colors: [
+                                Color.white.opacity(0.06),
+                                Color.clear,
+                            ],
+                            center: .topLeading,
+                            startRadius: 20,
+                            endRadius: 520
                         )
+                        GeometryReader { proxy in
+                            Color.clear.preference(
+                                key: RootDetailWidthPreferenceKey.self,
+                                value: proxy.size.width
+                            )
+                        }
                     }
-                )
+                }
                 .onPreferenceChange(RootDetailWidthPreferenceKey.self) { width in
                     detailContentWidth = width
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .safeAreaInset(edge: .top, spacing: 0) {
-                    VStack(spacing: 0) {
+                    VStack(spacing: StopmoUI.Spacing.xxs) {
                         RootCommandBarView {
                             await state.refreshCurrentSelection()
                         }
-                        Divider()
                     }
+                    .padding(.top, 4)
+                    .padding(.horizontal, 8)
                 }
                 .navigationSplitViewColumnWidth(min: 780, ideal: 1120)
         }

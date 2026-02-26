@@ -45,39 +45,51 @@ struct DeliveryDayWrapView: View {
 
     private var deliveryToolbar: some View {
         ToolbarStrip(title: "Delivery Toolbar") {
-            HStack(spacing: StopmoUI.Spacing.xs) {
-                StatusChip(label: "Ready \(readyShotEvaluations.count)", tone: .success, density: .compact)
-                StatusChip(label: "Not Ready \(notReadyShotEvaluations.count)", tone: notReadyShotEvaluations.isEmpty ? .neutral : .warning, density: .compact)
-                StatusChip(label: dpxInputDirReady ? "Input Ready" : "Input Missing", tone: dpxInputDirReady ? .success : .danger, density: .compact)
-                StatusChip(label: "\(dpxFramerate) fps", tone: .neutral, density: .compact)
-                StatusChip(label: dpxOverwrite ? "Overwrite on" : "Overwrite off", tone: dpxOverwrite ? .warning : .neutral, density: .compact)
-                StatusChip(
-                    label: state.config.output.writeProresOnShotComplete ? "Auto Shot-Complete: Enabled" : "Auto Shot-Complete: Disabled",
-                    tone: state.config.output.writeProresOnShotComplete ? .warning : .neutral,
-                    density: .compact
-                )
-                if !lastBatchProgressLabel.isEmpty {
-                    StatusChip(label: lastBatchProgressLabel, tone: .success, density: .compact)
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                HStack(spacing: StopmoUI.Spacing.xs) {
+                    StatusChip(label: "Ready \(readyShotEvaluations.count)", tone: .success, density: .compact)
+                    StatusChip(label: "Not Ready \(notReadyShotEvaluations.count)", tone: notReadyShotEvaluations.isEmpty ? .neutral : .warning, density: .compact)
+                    StatusChip(label: dpxInputDirReady ? "Input Ready" : "Input Missing", tone: dpxInputDirReady ? .success : .danger, density: .compact)
+                    StatusChip(label: "\(dpxFramerate) fps", tone: .neutral, density: .compact)
+                    StatusChip(label: dpxOverwrite ? "Overwrite on" : "Overwrite off", tone: dpxOverwrite ? .warning : .neutral, density: .compact)
+                    StatusChip(
+                        label: state.config.output.writeProresOnShotComplete ? "Auto Shot-Complete: Enabled" : "Auto Shot-Complete: Disabled",
+                        tone: state.config.output.writeProresOnShotComplete ? .warning : .neutral,
+                        density: .compact
+                    )
+                    if !lastBatchProgressLabel.isEmpty {
+                        StatusChip(label: lastBatchProgressLabel, tone: .success, density: .compact)
+                    }
+                    Spacer(minLength: 0)
                 }
-                Spacer(minLength: 0)
-                Button("Edit Policy") {
-                    state.selectedHub = .configure
-                    state.selectedConfigurePanel = .projectSettings
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Spacer(minLength: 0)
+                    Button("Edit Policy") {
+                        state.selectedHub = .configure
+                        state.selectedConfigurePanel = .projectSettings
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    Button("Run Day Wrap Batch") {
+                        Task { await runBatchDelivery() }
+                    }
+                    .disabled(state.isBusy || !dpxInputDirReady)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                Button("Run Day Wrap Batch") {
-                    Task { await runBatchDelivery() }
-                }
-                .disabled(state.isBusy || !dpxInputDirReady)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
             }
         }
     }
 
     private var dayWrapBatchCard: some View {
-        SectionCard("Day Wrap Batch", subtitle: "Run batch DPX to ProRes for shot/day wrap delivery.", density: .compact) {
+        SectionCard(
+            "DPX -> ProRes",
+            subtitle: "Run batch DPX to ProRes for shot/day wrap delivery.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             KeyValueRow(key: "DPX Source Root", value: state.config.watch.outputDir)
 
             LabeledPathField(
@@ -147,7 +159,14 @@ struct DeliveryDayWrapView: View {
     }
 
     private var deliverableShotsCard: some View {
-        SectionCard("Deliverable Shots", subtitle: "Ready shots with one-click ProRes delivery.", density: .compact, showSubtitle: false) {
+        SectionCard(
+            "Deliverable Shots",
+            subtitle: "Ready shots with one-click ProRes delivery.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             if readyShotEvaluations.isEmpty {
                 EmptyStateCard(message: "No shots are ready for delivery yet.")
             } else {
@@ -170,7 +189,8 @@ struct DeliveryDayWrapView: View {
                     .font(.subheadline.weight(.semibold))
                 StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
                 StatusChip(label: evaluation.completionLabel, tone: .success, density: .compact)
-                StatusChip(label: ShotHealthModel.updatedDisplayLabel(for: shot), tone: .neutral, density: .compact)
+                Text(ShotHealthModel.updatedDisplayLabel(for: shot))
+                    .metadataTextStyle(.tertiary)
                     .help(shot.lastUpdatedAt ?? "No update timestamp")
                 Spacer(minLength: 0)
             }
@@ -207,14 +227,22 @@ struct DeliveryDayWrapView: View {
         .frame(maxWidth: .infinity, minHeight: DenseShotRowStyle.minHeight, alignment: .topLeading)
         .padding(.horizontal, DenseShotRowStyle.horizontalPadding)
         .padding(.vertical, DenseShotRowStyle.verticalPadding)
-        .background(
-            RoundedRectangle(cornerRadius: DenseShotRowStyle.cornerRadius, style: .continuous)
-                .fill(Color.secondary.opacity(0.08))
-        )
+        .background {
+            SurfaceContainer(level: .card, chrome: .quiet, cornerRadius: DenseShotRowStyle.cornerRadius) {
+                Color.clear
+            }
+        }
     }
 
     private var notReadyShotsCard: some View {
-        SectionCard("Not Ready Shots", subtitle: "Collapsed list of shots that cannot be delivered yet.", density: .compact) {
+        SectionCard(
+            "Not Ready Shots",
+            subtitle: "Collapsed list of shots that cannot be delivered yet.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             DisclosureGroup(
                 isExpanded: $showNotReadyShots
             ) {
@@ -253,7 +281,14 @@ struct DeliveryDayWrapView: View {
     }
 
     private var advancedDiagnosticsCard: some View {
-        SectionCard("Advanced", subtitle: "Detailed run timeline and operation events.", density: .compact) {
+        SectionCard(
+            "Advanced",
+            subtitle: "Detailed run timeline and operation events.",
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
             DisclosureGroup(isExpanded: $showAdvancedDiagnostics) {
                 ToolsView(
                     mode: .deliveryOnly,

@@ -2,28 +2,64 @@ import SwiftUI
 
 struct RootSidebarView: View {
     @EnvironmentObject private var state: AppState
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hoveredHub: LifecycleHub?
+    private let detailMode: SidebarDetailMode = .progressive
 
     var body: some View {
-        List(selection: $state.selectedHub) {
-            ForEach(LifecycleHub.allCases) { hub in
-                NavigationLink(value: hub) {
-                    sidebarRow(for: hub)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(LifecycleHub.allCases) { hub in
+                    let isSelected = state.selectedHub == hub
+                    let isHovered = hoveredHub == hub
+
+                    Button {
+                        state.selectedHub = hub
+                    } label: {
+                        sidebarRow(
+                            for: hub,
+                            isSelected: isSelected,
+                            isHovered: isHovered
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onHover { hovering in
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
+                            hoveredHub = hovering ? hub : (hoveredHub == hub ? nil : hoveredHub)
+                        }
+                    }
                 }
             }
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .listStyle(.sidebar)
+        .background(AppVisualTokens.backgroundCanvas)
         .navigationTitle("stopmo-xcode")
         .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 330)
     }
 
-    private func sidebarRow(for hub: LifecycleHub) -> some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
+    private func sidebarRow(
+        for hub: LifecycleHub,
+        isSelected: Bool,
+        isHovered: Bool
+    ) -> some View {
+        let showSubtitle = Self.shouldShowSubtitle(
+            mode: detailMode,
+            isSelected: isSelected,
+            isHovered: isHovered
+        )
+
+        return VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
             HStack(alignment: .top, spacing: StopmoUI.Spacing.sm) {
                 Image(systemName: hub.iconName)
                     .frame(width: 18, alignment: .leading)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isSelected ? hub.accentColor : AppVisualTokens.textSecondary)
 
                 Text(hub.rawValue)
+                    .foregroundStyle(AppVisualTokens.textPrimary)
 
                 Spacer(minLength: 0)
 
@@ -36,12 +72,44 @@ struct RootSidebarView: View {
                 }
             }
 
-            Text(hub.subtitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+            if showSubtitle {
+                Text(hub.subtitle)
+                    .metadataTextStyle(.secondary)
+                    .lineLimit(2)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 5)
+        .padding(.horizontal, 4)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+                .fill(
+                    isSelected
+                        ? hub.accentColor.opacity(0.16)
+                        : (isHovered ? AppVisualTokens.fill(for: .panel, emphasized: true) : Color.clear)
+                )
+        )
+        .overlay(alignment: .leading) {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(hub.accentColor.opacity(0.88))
+                    .frame(width: 2)
+                    .padding(.vertical, 3)
+                    .padding(.leading, 1)
+            }
+        }
+        .animation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover), value: showSubtitle)
+    }
+
+    nonisolated static func shouldShowSubtitle(mode: SidebarDetailMode, isSelected: Bool, isHovered: Bool) -> Bool {
+        switch mode {
+        case .always:
+            return true
+        case .hidden:
+            return false
+        case .progressive:
+            return isSelected || isHovered
+        }
     }
 
     private func sidebarBadge(for hub: LifecycleHub) -> SidebarBadge? {

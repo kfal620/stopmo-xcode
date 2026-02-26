@@ -8,6 +8,7 @@ struct StopmoXcodeGUIApp: App {
         WindowGroup("stopmo-xcode GUI") {
             RootView()
                 .environmentObject(state)
+                .preferredColorScheme(.dark)
                 .frame(minWidth: 1120, minHeight: 760)
         }
         .commands {

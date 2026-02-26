@@ -6,52 +6,54 @@ struct RootCommandBarView: View {
     let refreshAction: () async -> Void
 
     var body: some View {
-        HStack(spacing: StopmoUI.Spacing.xs) {
-            projectContextChip
+        SurfaceContainer(level: .raised, chrome: .quiet, emphasized: true) {
+            HStack(spacing: StopmoUI.Spacing.xs) {
+                projectContextChip
 
-            if state.watchServiceState?.running == true {
-                StatusChip(label: "Watch Running", tone: .success, density: .compact)
-            } else {
-                StatusChip(label: "Watch Stopped", tone: .warning, density: .compact)
+                if state.watchServiceState?.running == true {
+                    StatusChip(label: "Watch Running", tone: .success, density: .compact)
+                } else {
+                    StatusChip(label: "Watch Stopped", tone: .warning, density: .compact)
+                }
+
+                Spacer(minLength: 0)
+
+                ToolbarActionCluster {
+                    CommandIconButton(
+                        systemImage: "play.fill",
+                        tooltip: "Start watch service",
+                        accessibilityLabel: "Start Watch",
+                        isDisabled: state.isBusy || (state.watchServiceState?.running ?? false)
+                    ) {
+                        Task { await state.startWatchService() }
+                    }
+
+                    CommandIconButton(
+                        systemImage: "stop.fill",
+                        tooltip: "Stop watch service",
+                        accessibilityLabel: "Stop Watch",
+                        isDisabled: state.isBusy || !(state.watchServiceState?.running ?? false)
+                    ) {
+                        Task { await state.stopWatchService() }
+                    }
+
+                    CommandIconButton(
+                        systemImage: "arrow.clockwise",
+                        tooltip: "Refresh current panel",
+                        accessibilityLabel: "Refresh",
+                        isDisabled: state.isBusy
+                    ) {
+                        Task { await refreshAction() }
+                    }
+
+                    NotificationBellButton()
+                }
             }
-
-            Spacer(minLength: 0)
-
-            ToolbarActionCluster {
-                CommandIconButton(
-                    systemImage: "play.fill",
-                    tooltip: "Start watch service",
-                    accessibilityLabel: "Start Watch",
-                    isDisabled: state.isBusy || (state.watchServiceState?.running ?? false)
-                ) {
-                    Task { await state.startWatchService() }
-                }
-
-                CommandIconButton(
-                    systemImage: "stop.fill",
-                    tooltip: "Stop watch service",
-                    accessibilityLabel: "Stop Watch",
-                    isDisabled: state.isBusy || !(state.watchServiceState?.running ?? false)
-                ) {
-                    Task { await state.stopWatchService() }
-                }
-
-                CommandIconButton(
-                    systemImage: "arrow.clockwise",
-                    tooltip: "Refresh current panel",
-                    accessibilityLabel: "Refresh",
-                    isDisabled: state.isBusy
-                ) {
-                    Task { await refreshAction() }
-                }
-
-                NotificationBellButton()
-            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 1)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.bar)
         .zIndex(20)
     }
 
@@ -61,7 +63,9 @@ struct RootCommandBarView: View {
                 CommandContextChip(
                     icon: "map",
                     value: state.hubPanelContextLabel,
-                    tooltip: "Current Hub / Panel"
+                    tooltip: "Current Hub / Panel",
+                    isPrimary: true,
+                    accentColor: state.selectedHub.accentColor
                 )
                 CommandContextChip(
                     icon: "doc.text",
@@ -79,7 +83,9 @@ struct RootCommandBarView: View {
                 CommandContextChip(
                     icon: "map",
                     value: state.hubPanelContextLabel,
-                    tooltip: "Current Hub / Panel"
+                    tooltip: "Current Hub / Panel",
+                    isPrimary: true,
+                    accentColor: state.selectedHub.accentColor
                 )
                 CommandContextChip(
                     icon: "doc.text",
@@ -91,7 +97,9 @@ struct RootCommandBarView: View {
             CommandContextChip(
                 icon: "map",
                 value: state.hubPanelContextLabel,
-                tooltip: "Current Hub / Panel"
+                tooltip: "Current Hub / Panel",
+                isPrimary: true,
+                accentColor: state.selectedHub.accentColor
             )
         }
         .frame(maxWidth: 560, alignment: .leading)

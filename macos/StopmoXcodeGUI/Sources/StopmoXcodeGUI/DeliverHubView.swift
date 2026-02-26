@@ -15,7 +15,7 @@ struct DeliverHubView: View {
                 Button("Back to Capture") {
                     state.selectedHub = .capture
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             }
 
