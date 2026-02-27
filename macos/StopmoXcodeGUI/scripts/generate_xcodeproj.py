@@ -51,6 +51,19 @@ def main() -> int:
     entitlements_ref_id = make_id("EntitlementsRef")
     entitlements_debug_ref_id = make_id("EntitlementsDebugRef")
 
+    source_rel_paths = sorted(path.relative_to(src_dir) for path in source_files)
+    source_dirs: set[Path] = set()
+    for rel in source_rel_paths:
+        parent = rel.parent
+        while str(parent) != ".":
+            source_dirs.add(parent)
+            parent = parent.parent
+
+    sorted_source_dirs = sorted(source_dirs, key=lambda p: (len(p.parts), p.as_posix()))
+    source_group_ids: dict[Path, str] = {
+        directory: make_id(f"SourceGroup:{directory.as_posix()}") for directory in sorted_source_dirs
+    }
+
     file_ref_ids: dict[Path, str] = {}
     build_file_ids: dict[Path, str] = {}
     for path in source_files:
@@ -60,7 +73,6 @@ def main() -> int:
 
     build_file_entries = []
     for path in source_files:
-        rel = path.relative_to(project_root).as_posix()
         rel_from_src = path.relative_to(src_dir).as_posix()
         build_file_entries.append(
             f"\t\t{build_file_ids[path]} /* {rel_from_src} in Sources */ = {{isa = PBXBuildFile; fileRef = {file_ref_ids[path]} /* {rel_from_src} */; }};"
@@ -74,16 +86,49 @@ def main() -> int:
     ]
     for path in source_files:
         rel_from_src = path.relative_to(src_dir).as_posix()
+        file_name = path.name
         file_ref_entries.append(
-            f"\t\t{file_ref_ids[path]} /* {rel_from_src} */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = {rel_from_src}; sourceTree = \"<group>\"; }};"
+            f"\t\t{file_ref_ids[path]} /* {rel_from_src} */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = {file_name}; sourceTree = \"<group>\"; }};"
         )
 
     sources_build_phase_files = "\n".join(
         f"\t\t\t\t{build_file_ids[path]} /* {path.relative_to(src_dir).as_posix()} in Sources */," for path in source_files
     )
-    app_group_children = "\n".join(
-        f"\t\t\t\t{file_ref_ids[path]} /* {path.relative_to(src_dir).as_posix()} */," for path in source_files
-    )
+
+    def nested_group_id(directory: Path) -> str:
+        return app_group_id if str(directory) == "." else source_group_ids[directory]
+
+    def group_children_lines(directory: Path) -> str:
+        child_dirs = sorted((d for d in sorted_source_dirs if d.parent == directory), key=lambda p: p.as_posix())
+        child_files = [rel for rel in source_rel_paths if rel.parent == directory]
+        children: list[str] = []
+        for child_dir in child_dirs:
+            children.append(f"\t\t\t\t{source_group_ids[child_dir]} /* {child_dir.name} */,")
+        for child_file in child_files:
+            file_ref = file_ref_ids[src_dir / child_file]
+            children.append(f"\t\t\t\t{file_ref} /* {child_file.as_posix()} */,")
+        return "\n".join(children)
+
+    app_group_children = group_children_lines(Path("."))
+    nested_group_entries: list[str] = []
+    for directory in sorted_source_dirs:
+        group_id = nested_group_id(directory)
+        children_block = group_children_lines(directory)
+        nested_group_entries.append(
+            "\n".join(
+                [
+                    f"\t\t{group_id} /* {directory.name} */ = {{",
+                    "\t\t\tisa = PBXGroup;",
+                    "\t\t\tchildren = (",
+                    children_block,
+                    "\t\t\t);",
+                    f"\t\t\tpath = {directory.name};",
+                    "\t\t\tsourceTree = \"<group>\";",
+                    "\t\t};",
+                ]
+            )
+        )
+    nested_groups_block = "\n".join(nested_group_entries)
 
     pbxproj_text = f"""// !$*UTF8*$!
 {{
@@ -145,6 +190,7 @@ def main() -> int:
 \t\t\tpath = StopmoXcodeGUI;
 \t\t\tsourceTree = "<group>";
 \t\t}};
+{nested_groups_block}
 \t\t{packaging_group_id} /* Packaging */ = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (

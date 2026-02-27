@@ -82,28 +82,28 @@
 		6851888A471B45F362B9E693 /* entitlements.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.plist; sourceTree = "<group>"; };
 		204E97482B5682072413C183 /* entitlements.debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.debug.plist; sourceTree = "<group>"; };
 		675733F70C6A47729E2C036B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
-		3A288BF1CED7DB14CC4BCE9A /* AppStateDomain/AppStateDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateDomain/AppStateDependencies.swift; sourceTree = "<group>"; };
-		CD80D9211B5AEB3E77CC201B /* AppStateDomain/BridgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateDomain/BridgeService.swift; sourceTree = "<group>"; };
-		37AC9DF5BB362ABE53787FB7 /* AppStateDomain/LiveMonitoringCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateDomain/LiveMonitoringCoordinator.swift; sourceTree = "<group>"; };
-		353527FA8C714676E1D5BB08 /* AppStateDomain/LiveRefreshPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateDomain/LiveRefreshPlanner.swift; sourceTree = "<group>"; };
-		CD3AF2D6EEE27B3DFCE5E8BC /* AppStateDomain/WorkspaceConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateDomain/WorkspaceConfigService.swift; sourceTree = "<group>"; };
+		3A288BF1CED7DB14CC4BCE9A /* AppStateDomain/AppStateDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStateDependencies.swift; sourceTree = "<group>"; };
+		CD80D9211B5AEB3E77CC201B /* AppStateDomain/BridgeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeService.swift; sourceTree = "<group>"; };
+		37AC9DF5BB362ABE53787FB7 /* AppStateDomain/LiveMonitoringCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitoringCoordinator.swift; sourceTree = "<group>"; };
+		353527FA8C714676E1D5BB08 /* AppStateDomain/LiveRefreshPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveRefreshPlanner.swift; sourceTree = "<group>"; };
+		CD3AF2D6EEE27B3DFCE5E8BC /* AppStateDomain/WorkspaceConfigService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceConfigService.swift; sourceTree = "<group>"; };
 		D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
 		83CCF08D56FC31A7E74E914B /* CaptureHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureHubView.swift; sourceTree = "<group>"; };
 		D22997BC57AA2C16218C09EB /* ConfigureHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureHubView.swift; sourceTree = "<group>"; };
 		FF97F8E99FD6D31438D9E56E /* DeliverHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliverHubView.swift; sourceTree = "<group>"; };
-		B14FE43E0F8FEE6CD3212FBA /* DeliveryDayWrap/DeliveryControlPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryControlPane.swift; sourceTree = "<group>"; };
-		5BCC4BFBC596A6D73FFAA397 /* DeliveryDayWrap/DeliveryFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryFormatting.swift; sourceTree = "<group>"; };
-		A7F04DFB9E34FBD68B3CBFDA /* DeliveryDayWrap/DeliveryLayoutMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryLayoutMetrics.swift; sourceTree = "<group>"; };
-		D243223FB1F8844E862F81F8 /* DeliveryDayWrap/DeliveryShotListPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryShotListPane.swift; sourceTree = "<group>"; };
+		B14FE43E0F8FEE6CD3212FBA /* DeliveryDayWrap/DeliveryControlPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryControlPane.swift; sourceTree = "<group>"; };
+		5BCC4BFBC596A6D73FFAA397 /* DeliveryDayWrap/DeliveryFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryFormatting.swift; sourceTree = "<group>"; };
+		A7F04DFB9E34FBD68B3CBFDA /* DeliveryDayWrap/DeliveryLayoutMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLayoutMetrics.swift; sourceTree = "<group>"; };
+		D243223FB1F8844E862F81F8 /* DeliveryDayWrap/DeliveryShotListPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryShotListPane.swift; sourceTree = "<group>"; };
 		FF5C31137C8AF36D1AAF0C40 /* DeliveryDayWrapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrapView.swift; sourceTree = "<group>"; };
 		9224EAA88378396F8FB7C33F /* DeliveryRunReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryRunReducer.swift; sourceTree = "<group>"; };
-		E777C21971AD3C8464489C05 /* DesignSystem/CommandControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/CommandControls.swift; sourceTree = "<group>"; };
-		51FF608BC9454BFC4801E352 /* DesignSystem/CoreControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/CoreControls.swift; sourceTree = "<group>"; };
-		DAF3A52364CC1718C20D88F8 /* DesignSystem/DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/DesignTokens.swift; sourceTree = "<group>"; };
-		76E25903DADF16586B5D6DF3 /* DesignSystem/EnvironmentKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/EnvironmentKeys.swift; sourceTree = "<group>"; };
-		A855C060B0571ED253D321AD /* DesignSystem/HeadersAndDisclosures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/HeadersAndDisclosures.swift; sourceTree = "<group>"; };
-		49F20C19A3FA9775070444CA /* DesignSystem/HubStyling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/HubStyling.swift; sourceTree = "<group>"; };
-		B5D264658073E540A4912187 /* DesignSystem/LayoutPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem/LayoutPrimitives.swift; sourceTree = "<group>"; };
+		E777C21971AD3C8464489C05 /* DesignSystem/CommandControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandControls.swift; sourceTree = "<group>"; };
+		51FF608BC9454BFC4801E352 /* DesignSystem/CoreControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreControls.swift; sourceTree = "<group>"; };
+		DAF3A52364CC1718C20D88F8 /* DesignSystem/DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		76E25903DADF16586B5D6DF3 /* DesignSystem/EnvironmentKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentKeys.swift; sourceTree = "<group>"; };
+		A855C060B0571ED253D321AD /* DesignSystem/HeadersAndDisclosures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadersAndDisclosures.swift; sourceTree = "<group>"; };
+		49F20C19A3FA9775070444CA /* DesignSystem/HubStyling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubStyling.swift; sourceTree = "<group>"; };
+		B5D264658073E540A4912187 /* DesignSystem/LayoutPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutPrimitives.swift; sourceTree = "<group>"; };
 		624D6464AFF1F9AF0857113A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		9AB5C1CB812516A120B00D2C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitorView.swift; sourceTree = "<group>"; };
@@ -131,20 +131,20 @@
 		7542F43972FC8A8F86041336 /* ShotsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotsView.swift; sourceTree = "<group>"; };
 		F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopmoXcodeGUIApp.swift; sourceTree = "<group>"; };
 		CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
-		7D7CD8C51271798DD1F8DEBE /* ToolsWorkspace/ToolsDpxPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsDpxPane.swift; sourceTree = "<group>"; };
-		2047E211211BA3CC7562C4F1 /* ToolsWorkspace/ToolsMatrixPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsMatrixPane.swift; sourceTree = "<group>"; };
-		27479114790D9AEEA54F975B /* ToolsWorkspace/ToolsPaneSharedViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsPaneSharedViews.swift; sourceTree = "<group>"; };
-		9EA47DFB3C2A66F2FE7F02B6 /* ToolsWorkspace/ToolsPreflightReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsPreflightReducer.swift; sourceTree = "<group>"; };
-		8F22335BB52BE7D30550F0B9 /* ToolsWorkspace/ToolsRecentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsRecentsStore.swift; sourceTree = "<group>"; };
-		963855C05BDFE37CB52268CF /* ToolsWorkspace/ToolsRunnerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsRunnerService.swift; sourceTree = "<group>"; };
-		719954905DC70E2FF6B7C790 /* ToolsWorkspace/ToolsTimelineReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsTimelineReducer.swift; sourceTree = "<group>"; };
-		12F21AE60F36D91B21C52550 /* ToolsWorkspace/ToolsTranscodePane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsTranscodePane.swift; sourceTree = "<group>"; };
-		52602A8F34D31D8291FAE5B0 /* ToolsWorkspace/ToolsWorkspaceDiagnosticsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsWorkspaceDiagnosticsPane.swift; sourceTree = "<group>"; };
-		FC3826145AF75CCD3C175ED9 /* ToolsWorkspace/ToolsWorkspaceHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsWorkspaceHeaderView.swift; sourceTree = "<group>"; };
-		261EF14D80C3033F52DCCA48 /* ToolsWorkspace/ToolsWorkspaceMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsWorkspaceMapper.swift; sourceTree = "<group>"; };
-		5AFF4E18E1799B32C9A0B5BA /* ToolsWorkspace/ToolsWorkspaceTabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsWorkspaceTabBarView.swift; sourceTree = "<group>"; };
-		A7E716C274CBA9070FF31CC4 /* ToolsWorkspace/ToolsWorkspaceTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsWorkspaceTypes.swift; sourceTree = "<group>"; };
-		CA038AC5523DEFE656E7BCE6 /* ToolsWorkspace/ToolsWorkspaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspace/ToolsWorkspaceViewModel.swift; sourceTree = "<group>"; };
+		7D7CD8C51271798DD1F8DEBE /* ToolsWorkspace/ToolsDpxPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsDpxPane.swift; sourceTree = "<group>"; };
+		2047E211211BA3CC7562C4F1 /* ToolsWorkspace/ToolsMatrixPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsMatrixPane.swift; sourceTree = "<group>"; };
+		27479114790D9AEEA54F975B /* ToolsWorkspace/ToolsPaneSharedViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsPaneSharedViews.swift; sourceTree = "<group>"; };
+		9EA47DFB3C2A66F2FE7F02B6 /* ToolsWorkspace/ToolsPreflightReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsPreflightReducer.swift; sourceTree = "<group>"; };
+		8F22335BB52BE7D30550F0B9 /* ToolsWorkspace/ToolsRecentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsRecentsStore.swift; sourceTree = "<group>"; };
+		963855C05BDFE37CB52268CF /* ToolsWorkspace/ToolsRunnerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsRunnerService.swift; sourceTree = "<group>"; };
+		719954905DC70E2FF6B7C790 /* ToolsWorkspace/ToolsTimelineReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsTimelineReducer.swift; sourceTree = "<group>"; };
+		12F21AE60F36D91B21C52550 /* ToolsWorkspace/ToolsTranscodePane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsTranscodePane.swift; sourceTree = "<group>"; };
+		52602A8F34D31D8291FAE5B0 /* ToolsWorkspace/ToolsWorkspaceDiagnosticsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceDiagnosticsPane.swift; sourceTree = "<group>"; };
+		FC3826145AF75CCD3C175ED9 /* ToolsWorkspace/ToolsWorkspaceHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceHeaderView.swift; sourceTree = "<group>"; };
+		261EF14D80C3033F52DCCA48 /* ToolsWorkspace/ToolsWorkspaceMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceMapper.swift; sourceTree = "<group>"; };
+		5AFF4E18E1799B32C9A0B5BA /* ToolsWorkspace/ToolsWorkspaceTabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceTabBarView.swift; sourceTree = "<group>"; };
+		A7E716C274CBA9070FF31CC4 /* ToolsWorkspace/ToolsWorkspaceTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceTypes.swift; sourceTree = "<group>"; };
+		CA038AC5523DEFE656E7BCE6 /* ToolsWorkspace/ToolsWorkspaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceViewModel.swift; sourceTree = "<group>"; };
 		F9AF4EE0973ACECA2B711E21 /* TriageHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriageHubView.swift; sourceTree = "<group>"; };
 		C738BE541F738155C20C7C2F /* TriageShotHealthBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriageShotHealthBoardView.swift; sourceTree = "<group>"; };
 		89E41737BBC047F2CF0FBD3F /* WorkspaceIOService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceIOService.swift; sourceTree = "<group>"; };
@@ -189,29 +189,17 @@
 		A7D8CE70846932FEE851CAD6 /* StopmoXcodeGUI */ = {
 			isa = PBXGroup;
 			children = (
+				298CE9CFCDFB1CD1CD11E3F5 /* AppStateDomain */,
+				746BA44BDA1F801A32088F2D /* DeliveryDayWrap */,
+				5F360107A5B837FF491EEA37 /* DesignSystem */,
+				952AD302FE14A7B8AE0A8BE9 /* ToolsWorkspace */,
 				675733F70C6A47729E2C036B /* AppState.swift */,
-				3A288BF1CED7DB14CC4BCE9A /* AppStateDomain/AppStateDependencies.swift */,
-				CD80D9211B5AEB3E77CC201B /* AppStateDomain/BridgeService.swift */,
-				37AC9DF5BB362ABE53787FB7 /* AppStateDomain/LiveMonitoringCoordinator.swift */,
-				353527FA8C714676E1D5BB08 /* AppStateDomain/LiveRefreshPlanner.swift */,
-				CD3AF2D6EEE27B3DFCE5E8BC /* AppStateDomain/WorkspaceConfigService.swift */,
 				D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */,
 				83CCF08D56FC31A7E74E914B /* CaptureHubView.swift */,
 				D22997BC57AA2C16218C09EB /* ConfigureHubView.swift */,
 				FF97F8E99FD6D31438D9E56E /* DeliverHubView.swift */,
-				B14FE43E0F8FEE6CD3212FBA /* DeliveryDayWrap/DeliveryControlPane.swift */,
-				5BCC4BFBC596A6D73FFAA397 /* DeliveryDayWrap/DeliveryFormatting.swift */,
-				A7F04DFB9E34FBD68B3CBFDA /* DeliveryDayWrap/DeliveryLayoutMetrics.swift */,
-				D243223FB1F8844E862F81F8 /* DeliveryDayWrap/DeliveryShotListPane.swift */,
 				FF5C31137C8AF36D1AAF0C40 /* DeliveryDayWrapView.swift */,
 				9224EAA88378396F8FB7C33F /* DeliveryRunReducer.swift */,
-				E777C21971AD3C8464489C05 /* DesignSystem/CommandControls.swift */,
-				51FF608BC9454BFC4801E352 /* DesignSystem/CoreControls.swift */,
-				DAF3A52364CC1718C20D88F8 /* DesignSystem/DesignTokens.swift */,
-				76E25903DADF16586B5D6DF3 /* DesignSystem/EnvironmentKeys.swift */,
-				A855C060B0571ED253D321AD /* DesignSystem/HeadersAndDisclosures.swift */,
-				49F20C19A3FA9775070444CA /* DesignSystem/HubStyling.swift */,
-				B5D264658073E540A4912187 /* DesignSystem/LayoutPrimitives.swift */,
 				624D6464AFF1F9AF0857113A /* DesignSystem.swift */,
 				9AB5C1CB812516A120B00D2C /* HistoryView.swift */,
 				2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */,
@@ -239,6 +227,53 @@
 				7542F43972FC8A8F86041336 /* ShotsView.swift */,
 				F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */,
 				CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */,
+				F9AF4EE0973ACECA2B711E21 /* TriageHubView.swift */,
+				C738BE541F738155C20C7C2F /* TriageShotHealthBoardView.swift */,
+				89E41737BBC047F2CF0FBD3F /* WorkspaceIOService.swift */,
+			);
+			path = StopmoXcodeGUI;
+			sourceTree = "<group>";
+		};
+		298CE9CFCDFB1CD1CD11E3F5 /* AppStateDomain */ = {
+			isa = PBXGroup;
+			children = (
+				3A288BF1CED7DB14CC4BCE9A /* AppStateDomain/AppStateDependencies.swift */,
+				CD80D9211B5AEB3E77CC201B /* AppStateDomain/BridgeService.swift */,
+				37AC9DF5BB362ABE53787FB7 /* AppStateDomain/LiveMonitoringCoordinator.swift */,
+				353527FA8C714676E1D5BB08 /* AppStateDomain/LiveRefreshPlanner.swift */,
+				CD3AF2D6EEE27B3DFCE5E8BC /* AppStateDomain/WorkspaceConfigService.swift */,
+			);
+			path = AppStateDomain;
+			sourceTree = "<group>";
+		};
+		746BA44BDA1F801A32088F2D /* DeliveryDayWrap */ = {
+			isa = PBXGroup;
+			children = (
+				B14FE43E0F8FEE6CD3212FBA /* DeliveryDayWrap/DeliveryControlPane.swift */,
+				5BCC4BFBC596A6D73FFAA397 /* DeliveryDayWrap/DeliveryFormatting.swift */,
+				A7F04DFB9E34FBD68B3CBFDA /* DeliveryDayWrap/DeliveryLayoutMetrics.swift */,
+				D243223FB1F8844E862F81F8 /* DeliveryDayWrap/DeliveryShotListPane.swift */,
+			);
+			path = DeliveryDayWrap;
+			sourceTree = "<group>";
+		};
+		5F360107A5B837FF491EEA37 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				E777C21971AD3C8464489C05 /* DesignSystem/CommandControls.swift */,
+				51FF608BC9454BFC4801E352 /* DesignSystem/CoreControls.swift */,
+				DAF3A52364CC1718C20D88F8 /* DesignSystem/DesignTokens.swift */,
+				76E25903DADF16586B5D6DF3 /* DesignSystem/EnvironmentKeys.swift */,
+				A855C060B0571ED253D321AD /* DesignSystem/HeadersAndDisclosures.swift */,
+				49F20C19A3FA9775070444CA /* DesignSystem/HubStyling.swift */,
+				B5D264658073E540A4912187 /* DesignSystem/LayoutPrimitives.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		952AD302FE14A7B8AE0A8BE9 /* ToolsWorkspace */ = {
+			isa = PBXGroup;
+			children = (
 				7D7CD8C51271798DD1F8DEBE /* ToolsWorkspace/ToolsDpxPane.swift */,
 				2047E211211BA3CC7562C4F1 /* ToolsWorkspace/ToolsMatrixPane.swift */,
 				27479114790D9AEEA54F975B /* ToolsWorkspace/ToolsPaneSharedViews.swift */,
@@ -253,11 +288,8 @@
 				5AFF4E18E1799B32C9A0B5BA /* ToolsWorkspace/ToolsWorkspaceTabBarView.swift */,
 				A7E716C274CBA9070FF31CC4 /* ToolsWorkspace/ToolsWorkspaceTypes.swift */,
 				CA038AC5523DEFE656E7BCE6 /* ToolsWorkspace/ToolsWorkspaceViewModel.swift */,
-				F9AF4EE0973ACECA2B711E21 /* TriageHubView.swift */,
-				C738BE541F738155C20C7C2F /* TriageShotHealthBoardView.swift */,
-				89E41737BBC047F2CF0FBD3F /* WorkspaceIOService.swift */,
 			);
-			path = StopmoXcodeGUI;
+			path = ToolsWorkspace;
 			sourceTree = "<group>";
 		};
 		EFFB3ED641C12006A34F98DF /* Packaging */ = {
