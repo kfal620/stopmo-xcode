@@ -16,6 +16,10 @@
 		25EF29FEE6DB3C6A55E930A4 /* DeliverHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF97F8E99FD6D31438D9E56E /* DeliverHubView.swift */; };
 		2A84592FB76BA5AE87EEC740 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D896E1717E9670E976B51F /* QueueView.swift */; };
 		2F1A2041FB46702C782E5C98 /* DeliveryRunReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9224EAA88378396F8FB7C33F /* DeliveryRunReducer.swift */; };
+		3AA8C29F2890A8B9B00E6001 /* NotificationReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA8C29F2890A8B9B00E7001 /* NotificationReducer.swift */; };
+		3AA8C29F2890A8B9B00E6002 /* WorkspaceIOService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA8C29F2890A8B9B00E7002 /* WorkspaceIOService.swift */; };
+		3AA8C29F2890A8B9B00E6003 /* MonitoringReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA8C29F2890A8B9B00E7003 /* MonitoringReducer.swift */; };
+		3AA8C29F2890A8B9B00E6004 /* LiveTelemetryReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AA8C29F2890A8B9B00E7004 /* LiveTelemetryReducer.swift */; };
 		41BDDBDD67846EDB3E49F880 /* RootSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A9FA764D88BFB34448FA570 /* RootSidebarView.swift */; };
 		42CCCA538C95B1971841A013 /* PathTimestampHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A831E44F415723F03A6F83 /* PathTimestampHelpers.swift */; };
 		4EE8C8C0ADCAE07F67608551 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624D6464AFF1F9AF0857113A /* DesignSystem.swift */; };
@@ -57,6 +61,10 @@
 		2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveMonitorView.swift; sourceTree = "<group>"; };
 		33F65CFFADB163F1046753D2 /* ProjectPipelineSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPipelineSectionView.swift; sourceTree = "<group>"; };
 		34F686D89FE98D7807DD38CB /* StopmoXcodeGUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StopmoXcodeGUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AA8C29F2890A8B9B00E7001 /* NotificationReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationReducer.swift; sourceTree = "<group>"; };
+		3AA8C29F2890A8B9B00E7002 /* WorkspaceIOService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceIOService.swift; sourceTree = "<group>"; };
+		3AA8C29F2890A8B9B00E7003 /* MonitoringReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringReducer.swift; sourceTree = "<group>"; };
+		3AA8C29F2890A8B9B00E7004 /* LiveTelemetryReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTelemetryReducer.swift; sourceTree = "<group>"; };
 		502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsDiagnosticsView.swift; sourceTree = "<group>"; };
 		5BCC4BFBC596A6D73FFAA397 /* DeliveryDayWrap/DeliveryFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryFormatting.swift; sourceTree = "<group>"; };
 		624D6464AFF1F9AF0857113A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
@@ -142,9 +150,12 @@
 				9224EAA88378396F8FB7C33F /* DeliveryRunReducer.swift */,
 				624D6464AFF1F9AF0857113A /* DesignSystem.swift */,
 				9AB5C1CB812516A120B00D2C /* HistoryView.swift */,
+				3AA8C29F2890A8B9B00E7004 /* LiveTelemetryReducer.swift */,
 				2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */,
 				502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */,
 				A9D1977BF837AF172307DE8C /* Models.swift */,
+				3AA8C29F2890A8B9B00E7003 /* MonitoringReducer.swift */,
+				3AA8C29F2890A8B9B00E7001 /* NotificationReducer.swift */,
 				B0EBAC0E1E89F9A0C523ED77 /* NotificationViews.swift */,
 				80A831E44F415723F03A6F83 /* PathTimestampHelpers.swift */,
 				2390058DD0F9C45F7479EC13 /* ProjectEditorViewModel.swift */,
@@ -166,6 +177,7 @@
 				CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */,
 				F9AF4EE0973ACECA2B711E21 /* TriageHubView.swift */,
 				C738BE541F738155C20C7C2F /* TriageShotHealthBoardView.swift */,
+				3AA8C29F2890A8B9B00E7002 /* WorkspaceIOService.swift */,
 			);
 			path = StopmoXcodeGUI;
 			sourceTree = "<group>";
@@ -261,9 +273,12 @@
 				2F1A2041FB46702C782E5C98 /* DeliveryRunReducer.swift in Sources */,
 				4EE8C8C0ADCAE07F67608551 /* DesignSystem.swift in Sources */,
 				A5DC539A64BD86625DC80324 /* HistoryView.swift in Sources */,
+				3AA8C29F2890A8B9B00E6004 /* LiveTelemetryReducer.swift in Sources */,
 				157A5419C022C0B3ABD5CDD2 /* LiveMonitorView.swift in Sources */,
 				64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */,
 				B62DF06FD6D5FE6F04C691A3 /* Models.swift in Sources */,
+				3AA8C29F2890A8B9B00E6003 /* MonitoringReducer.swift in Sources */,
+				3AA8C29F2890A8B9B00E6001 /* NotificationReducer.swift in Sources */,
 				EB013BE49848FC1BB04B588F /* NotificationViews.swift in Sources */,
 				42CCCA538C95B1971841A013 /* PathTimestampHelpers.swift in Sources */,
 				F73B7C5C2A799063856995AB /* ProjectEditorViewModel.swift in Sources */,
@@ -285,6 +300,7 @@
 				EE9EF4FDC880E05C1E9FC12E /* ToolsView.swift in Sources */,
 				DE554A10F22E3C5E2FCB285C /* TriageHubView.swift in Sources */,
 				EF9DCE84CBD6AE7F1A9BF744 /* TriageShotHealthBoardView.swift in Sources */,
+				3AA8C29F2890A8B9B00E6002 /* WorkspaceIOService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -97,6 +97,7 @@ final class AppState: ObservableObject {
     private static let workspaceBookmarkDefaultsKey = "stopmo_workspace_bookmark"
     private static let defaultWorkspaceFolderName = "StopmoXcodeWorkspace"
     private var securityScopedWorkspaceURL: URL?
+    private let workspaceIO = WorkspaceIOService()
 
     init() {
         let root = Self.resolveInitialRepoRoot()
@@ -480,10 +481,11 @@ final class AppState: ObservableObject {
 
     private func registerMonitoringSuccess(with watchState: WatchServiceState) {
         let hadFailures = monitoringConsecutiveFailures > 0
-        monitoringConsecutiveFailures = 0
+        let reduced = MonitoringReducer.successTransition(watchState: watchState, now: Date())
+        monitoringConsecutiveFailures = reduced.consecutiveFailures
         monitoringLastFailureMessage = nil
-        monitoringLastSuccessAt = Date()
-        monitoringPollIntervalSeconds = preferredSuccessPollInterval(using: watchState)
+        monitoringLastSuccessAt = reduced.lastSuccessAt
+        monitoringPollIntervalSeconds = reduced.pollIntervalSeconds
         monitoringNextPollAt = nil
         if hadFailures {
             recordLiveEvent("Live polling recovered")
@@ -492,12 +494,13 @@ final class AppState: ObservableObject {
     }
 
     private func registerMonitoringFailure(_ message: String) {
-        monitoringConsecutiveFailures += 1
+        let reduced = MonitoringReducer.failureTransition(previousFailures: monitoringConsecutiveFailures, now: Date())
+        monitoringConsecutiveFailures = reduced.consecutiveFailures
         monitoringLastFailureAt = Date()
         monitoringLastFailureMessage = message
-        monitoringPollIntervalSeconds = preferredFailurePollInterval(for: monitoringConsecutiveFailures)
-        monitoringNextPollAt = Date().addingTimeInterval(monitoringPollIntervalSeconds)
-        if monitoringConsecutiveFailures >= 3, !hasEmittedMonitoringFailureWarning {
+        monitoringPollIntervalSeconds = reduced.pollIntervalSeconds
+        monitoringNextPollAt = reduced.nextPollAt
+        if reduced.shouldEmitDegradedWarning, !hasEmittedMonitoringFailureWarning {
             presentWarning(
                 title: "Live Monitoring Degraded",
                 message: "Polling has failed \(monitoringConsecutiveFailures) times in a row.",
@@ -506,23 +509,6 @@ final class AppState: ObservableObject {
             )
             hasEmittedMonitoringFailureWarning = true
         }
-    }
-
-    private func preferredSuccessPollInterval(using watchState: WatchServiceState) -> Double {
-        let counts = watchState.queue.counts
-        let queueDepth = counts["detected", default: 0]
-            + counts["decoding", default: 0]
-            + counts["xform", default: 0]
-            + counts["dpx_write", default: 0]
-        if watchState.running || queueDepth > 0 || watchState.inflightFrames > 0 {
-            return 1.0
-        }
-        return 2.5
-    }
-
-    private func preferredFailurePollInterval(for failureCount: Int) -> Double {
-        let backoff = pow(2.0, Double(min(max(1, failureCount), 4)))
-        return min(12.0, max(1.0, backoff))
     }
 
     func refreshLogsDiagnostics(severity: String? = nil) async {
@@ -1143,49 +1129,34 @@ final class AppState: ObservableObject {
     }
 
     private func updateLiveTelemetry(with watchState: WatchServiceState, counts: [String: Int]) {
-        let now = Date()
-        let doneCount = counts["done", default: watchState.completedFrames]
-        if let prevDone = lastDoneFrameCountSample,
-           let prevAt = lastRateSampleAt
-        {
-            let deltaDone = max(0, doneCount - prevDone)
-            let deltaSeconds = now.timeIntervalSince(prevAt)
-            if deltaSeconds > 0.05 {
-                throughputFramesPerMinute = (Double(deltaDone) / deltaSeconds) * 60.0
-            }
-            if deltaDone > 0 {
-                lastFrameAt = now
-            }
-        } else if doneCount > 0 {
-            lastFrameAt = now
-            throughputFramesPerMinute = 0.0
-        }
-
-        lastDoneFrameCountSample = doneCount
-        lastRateSampleAt = now
-
-        let depth = counts["detected", default: 0]
-            + counts["decoding", default: 0]
-            + counts["xform", default: 0]
-            + counts["dpx_write", default: 0]
-        queueDepthTrend.append(depth)
-        if queueDepthTrend.count > 180 {
-            queueDepthTrend = Array(queueDepthTrend.suffix(180))
-        }
+        let reduced = LiveTelemetryReducer.updateTelemetry(
+            watchState: watchState,
+            counts: counts,
+            previousDoneFrameCount: lastDoneFrameCountSample,
+            previousSampleAt: lastRateSampleAt,
+            previousLastFrameAt: lastFrameAt,
+            previousThroughput: throughputFramesPerMinute,
+            previousQueueDepthTrend: queueDepthTrend,
+            now: Date()
+        )
+        throughputFramesPerMinute = reduced.throughputFramesPerMinute
+        lastFrameAt = reduced.lastFrameAt
+        lastDoneFrameCountSample = reduced.lastDoneFrameCountSample
+        lastRateSampleAt = reduced.lastRateSampleAt
+        queueDepthTrend = reduced.queueDepthTrend
     }
 
     private func recordLiveEvent(_ message: String) {
-        let line = "[\(timestampNow())] \(message)"
-        liveEvents.insert(line, at: 0)
-        if liveEvents.count > 400 {
-            liveEvents = Array(liveEvents.prefix(400))
-        }
+        liveEvents = LiveTelemetryReducer.recordLiveEvent(
+            existingEvents: liveEvents,
+            message: message,
+            timestamp: timestampNow(),
+            maxEvents: 400
+        )
     }
 
     private func timestampNow() -> String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "HH:mm:ss"
-        return fmt.string(from: Date())
+        PathTimestampHelpers.nowTimeLabel()
     }
 
     private func runBlockingTask(label: String, work: @escaping () async throws -> Void) async {
@@ -1201,29 +1172,17 @@ final class AppState: ObservableObject {
     }
 
     func chooseWorkspaceDirectory() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        panel.canCreateDirectories = false
-        panel.prompt = "Use Workspace"
-        panel.directoryURL = URL(fileURLWithPath: repoRoot, isDirectory: true)
-        let response = panel.runModal()
-        guard response == .OK, let selectedURL = panel.url else {
+        guard let selectedURL = workspaceIO.chooseWorkspaceDirectory(initialPath: repoRoot) else {
             return
         }
         do {
             if let current = securityScopedWorkspaceURL {
-                current.stopAccessingSecurityScopedResource()
+                workspaceIO.stopAccessingSecurityScope(current)
                 securityScopedWorkspaceURL = nil
             }
-            let bookmark = try selectedURL.bookmarkData(
-                options: [.withSecurityScope],
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            )
+            let bookmark = try workspaceIO.createSecurityScopedBookmark(for: selectedURL)
             UserDefaults.standard.set(bookmark, forKey: Self.workspaceBookmarkDefaultsKey)
-            let started = selectedURL.startAccessingSecurityScopedResource()
+            let started = workspaceIO.startAccessingSecurityScope(selectedURL)
             securityScopedWorkspaceURL = selectedURL
             workspaceAccessActive = started
             repoRoot = selectedURL.path
@@ -1236,15 +1195,7 @@ final class AppState: ObservableObject {
     }
 
     func chooseRepoRootDirectory() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        panel.canCreateDirectories = false
-        panel.prompt = "Select Workspace Root"
-        panel.directoryURL = URL(fileURLWithPath: repoRoot, isDirectory: true)
-        let response = panel.runModal()
-        guard response == .OK, let selectedURL = panel.url else {
+        guard let selectedURL = workspaceIO.chooseRepoRootDirectory(initialPath: repoRoot) else {
             return
         }
         repoRoot = selectedURL.path
@@ -1259,19 +1210,7 @@ final class AppState: ObservableObject {
     }
 
     func chooseConfigFile() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = false
-        panel.canChooseFiles = true
-        panel.allowsMultipleSelection = false
-        panel.canCreateDirectories = false
-        panel.allowedContentTypes = [
-            UTType(filenameExtension: "yaml") ?? .text,
-            UTType(filenameExtension: "yml") ?? .text,
-        ]
-        panel.prompt = "Select Config"
-        panel.directoryURL = URL(fileURLWithPath: repoRoot, isDirectory: true)
-        let response = panel.runModal()
-        guard response == .OK, let selectedURL = panel.url else {
+        guard let selectedURL = workspaceIO.chooseConfigFile(initialPath: repoRoot) else {
             return
         }
         configPath = selectedURL.path
@@ -1363,13 +1302,13 @@ final class AppState: ObservableObject {
         let fm = FileManager.default
         let configURL = URL(fileURLWithPath: configPath)
         if fm.fileExists(atPath: configURL.path) {
-            NSWorkspace.shared.activateFileViewerSelecting([configURL])
+            _ = workspaceIO.openPathInFinder(configURL.path)
             statusMessage = "Opened config in Finder"
             return
         }
         let parent = configURL.deletingLastPathComponent()
         if fm.fileExists(atPath: parent.path) {
-            NSWorkspace.shared.open(parent)
+            workspaceIO.openDirectory(parent.path)
             presentWarning(
                 title: "Config File Missing",
                 message: "Opened config directory because the target file was not found.",
@@ -1395,30 +1334,23 @@ final class AppState: ObservableObject {
             )
             return
         }
-        let fm = FileManager.default
-        let url = URL(fileURLWithPath: trimmed)
-        if fm.fileExists(atPath: url.path) {
-            NSWorkspace.shared.activateFileViewerSelecting([url])
+        switch workspaceIO.openPathInFinder(trimmed) {
+        case .openedTarget:
             statusMessage = "Opened in Finder"
-            return
-        }
-        let parent = url.deletingLastPathComponent()
-        if fm.fileExists(atPath: parent.path) {
-            NSWorkspace.shared.open(parent)
+        case .openedParent:
             presentWarning(
                 title: "Path Missing",
                 message: "Opened parent folder because target path was not found.",
                 likelyCause: "The referenced output/source path does not exist yet.",
                 suggestedAction: "Verify pipeline outputs or refresh live state."
             )
-            return
+        case .missing:
+            presentError(title: "Open in Finder Failed", message: "Path not found: \(trimmed)")
         }
-        presentError(title: "Open in Finder Failed", message: "Path not found: \(trimmed)")
     }
 
     func copyTextToPasteboard(_ text: String, label: String = "Text") {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        workspaceIO.copyToPasteboard(text)
         statusMessage = "Copied \(label)"
     }
 
@@ -1584,28 +1516,17 @@ final class AppState: ObservableObject {
             workspaceAccessActive = false
             return
         }
-        var stale = false
         do {
-            let url = try URL(
-                resolvingBookmarkData: data,
-                options: [.withSecurityScope],
-                relativeTo: nil,
-                bookmarkDataIsStale: &stale
-            )
-            if stale {
-                let refreshed = try url.bookmarkData(
-                    options: [.withSecurityScope],
-                    includingResourceValuesForKeys: nil,
-                    relativeTo: nil
-                )
+            let resolved = try workspaceIO.resolveWorkspaceBookmark(data)
+            if let refreshed = resolved.refreshedBookmarkData {
                 UserDefaults.standard.set(refreshed, forKey: Self.workspaceBookmarkDefaultsKey)
             }
-            let started = url.startAccessingSecurityScopedResource()
-            securityScopedWorkspaceURL = url
+            let started = workspaceIO.startAccessingSecurityScope(resolved.url)
+            securityScopedWorkspaceURL = resolved.url
             workspaceAccessActive = started
             if started {
-                repoRoot = url.path
-                configPath = Self.defaultConfigPath(forWorkspaceRoot: url.path)
+                repoRoot = resolved.url.path
+                configPath = Self.defaultConfigPath(forWorkspaceRoot: resolved.url.path)
                 bootstrapWorkspaceIfNeeded()
             }
         } catch {
@@ -1705,17 +1626,11 @@ final class AppState: ObservableObject {
     }
 
     var notificationsBadgeText: String? {
-        guard !notifications.isEmpty else {
-            return nil
-        }
-        if notifications.count > 99 {
-            return "99+"
-        }
-        return "\(notifications.count)"
+        NotificationReducer.badgeText(for: notifications)
     }
 
     var notificationsBadgeTone: StatusTone {
-        notifications.contains { $0.kind == .error } ? .danger : .warning
+        NotificationReducer.badgeTone(for: notifications)
     }
 
     func dismissToast() {
@@ -1735,8 +1650,7 @@ final class AppState: ObservableObject {
             lines.append("Suggested action: \(action)")
         }
         lines.append("Timestamp: \(notification.createdAtLabel)")
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(lines.joined(separator: "\n"), forType: .string)
+        workspaceIO.copyToPasteboard(lines.joined(separator: "\n"))
         statusMessage = "Notification copied"
     }
 
@@ -1777,7 +1691,10 @@ final class AppState: ObservableObject {
         guard !trimmed.isEmpty else {
             return
         }
-        let hints = errorHints(for: trimmed)
+        let hints = NotificationReducer.errorHints(
+            for: trimmed,
+            bundledRuntime: health?.backendMode?.lowercased() == "bundled"
+        )
         var alertMessage = trimmed
         if let cause = hints.likelyCause {
             alertMessage += "\n\nLikely cause: \(cause)"
@@ -1818,10 +1735,7 @@ final class AppState: ObservableObject {
             suggestedAction: suggestedAction,
             createdAt: Date()
         )
-        notifications.insert(notification, at: 0)
-        if notifications.count > 200 {
-            notifications = Array(notifications.prefix(200))
-        }
+        NotificationReducer.append(notification, to: &notifications, maxCount: 200)
         if showToast {
             showToastNotification(notification)
         }
@@ -1882,54 +1796,4 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func errorHints(for message: String) -> (likelyCause: String?, suggestedAction: String?) {
-        let lower = message.lowercased()
-        let bundledRuntime = health?.backendMode?.lowercased() == "bundled"
-        if lower.contains("no module named") || lower.contains("modulenotfounderror") {
-            if bundledRuntime {
-                return (
-                    likelyCause: "Bundled runtime assets are missing or corrupted.",
-                    suggestedAction: "Reinstall the app from the latest signed DMG and rerun Runtime Health."
-                )
-            }
-            return (
-                likelyCause: "Python dependencies are missing or PYTHONPATH/venv is not configured for this workspace.",
-                suggestedAction: "Use the development scheme with STOPMO_XCODE_ROOT pointed at this repository, then install dependencies in `.venv`."
-            )
-        }
-        if lower.contains("invalid repo root") || lower.contains("bridge script not found") {
-            return (
-                likelyCause: "Development backend root does not point to the stopmo-xcode project root.",
-                suggestedAction: "For development mode, set STOPMO_XCODE_ROOT to a repository containing `pyproject.toml` and `src/stopmo_xcode`."
-            )
-        }
-        if lower.contains("permission") || lower.contains("not allowed") || lower.contains("operation not permitted") {
-            return (
-                likelyCause: "macOS file/system permission access was denied.",
-                suggestedAction: "Re-select workspace access in Configure > Workspace & Health and allow permission prompts."
-            )
-        }
-        if lower.contains("ffmpeg") {
-            if bundledRuntime {
-                return (
-                    likelyCause: "Bundled FFmpeg runtime is unavailable.",
-                    suggestedAction: "Reinstall the app and run Runtime Health to confirm bundled tooling is present."
-                )
-            }
-            return (
-                likelyCause: "FFmpeg is missing or unavailable in PATH.",
-                suggestedAction: "Install FFmpeg and run Check Runtime Health to verify dependency availability."
-            )
-        }
-        if lower.contains("decode") || lower.contains("raw") {
-            return (
-                likelyCause: "Input frame decode failed for the selected file.",
-                suggestedAction: "Verify file exists/is supported and inspect Logs & Diagnostics for decode warnings."
-            )
-        }
-        return (
-            likelyCause: "The backend operation failed while processing the request.",
-            suggestedAction: "Check Logs & Diagnostics and retry the operation after correcting config/runtime issues."
-        )
-    }
 }
