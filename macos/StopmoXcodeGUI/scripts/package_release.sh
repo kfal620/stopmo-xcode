@@ -22,6 +22,34 @@ ENTITLEMENTS_PLIST="${GUI_ROOT}/packaging/entitlements.plist"
 XCODEPROJ_PATH="${GUI_ROOT}/StopmoXcodeGUI.xcodeproj"
 BACKEND_RUNTIME_DIR="${DIST_DIR}/backend-runtime"
 
+require_tool() {
+  local tool_name="$1"
+  if ! command -v "$tool_name" >/dev/null 2>&1; then
+    echo "required tool not found: $tool_name" >&2
+    exit 1
+  fi
+}
+
+verify_sign_identity() {
+  local identity="$1"
+  local matches
+  matches="$(security find-identity -v -p codesigning 2>/dev/null | grep -F "$identity" || true)"
+  if [[ -z "$matches" ]]; then
+    echo "SIGN_IDENTITY not found in login keychain codesigning identities: $identity" >&2
+    echo "Run: security find-identity -v -p codesigning" >&2
+    exit 1
+  fi
+}
+
+verify_notary_profile() {
+  local profile="$1"
+  if ! xcrun notarytool history --keychain-profile "$profile" >/dev/null 2>&1; then
+    echo "NOTARY_PROFILE not found or not accessible: $profile" >&2
+    echo "Create it with: xcrun notarytool store-credentials <profile> --apple-id <id> --team-id <team> --password <app-specific-password>" >&2
+    exit 1
+  fi
+}
+
 if [[ ! -d "$XCODEPROJ_PATH" ]]; then
   echo "xcodeproj not found: $XCODEPROJ_PATH" >&2
   exit 1
@@ -41,6 +69,18 @@ fi
 if [[ "$NOTARIZE" == "1" && -z "$NOTARY_PROFILE" ]]; then
   echo "NOTARY_PROFILE is required when NOTARIZE=1." >&2
   exit 1
+fi
+
+require_tool xcodebuild
+require_tool lipo
+require_tool codesign
+require_tool hdiutil
+require_tool xcrun
+if [[ "$ALLOW_UNSIGNED" != "1" ]]; then
+  verify_sign_identity "$SIGN_IDENTITY"
+fi
+if [[ "$NOTARIZE" == "1" ]]; then
+  verify_notary_profile "$NOTARY_PROFILE"
 fi
 
 mkdir -p "$DIST_DIR"
@@ -87,7 +127,7 @@ if [[ ! -x "$MAIN_BIN" ]]; then
   exit 1
 fi
 for arch in $ARCHES; do
-  lipo -verify_arch "$arch" "$MAIN_BIN"
+  lipo "$MAIN_BIN" -verify_arch "$arch"
 done
 
 echo "Building backend runtimes (${ARCHES})..."
