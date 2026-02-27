@@ -149,6 +149,7 @@ If commands fail with `bad interpreter` pointing to an old path, treat the venv 
 - When adding/moving Swift files in `StopmoXcodeGUI.xcodeproj`, preserve visible folder groups in Xcode.
 - Prefer real parent groups (for example `DeliveryDayWrap`) with child file entries, instead of flattened path-based entries like `DeliveryDayWrap/Foo.swift` at the root group.
 - Keep project navigator structure aligned to on-disk subfolders so future refactors remain discoverable.
+- Regenerate after file moves/additions with `macos/StopmoXcodeGUI/scripts/generate_xcodeproj.py` (the generator now emits nested source groups from folder structure).
 
 ## Known Drift Notes
 

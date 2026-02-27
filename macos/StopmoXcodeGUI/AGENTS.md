@@ -11,7 +11,9 @@ Use this guide when working inside `/Users/kyle/Developer/stopmo-xcode/macos/Sto
 ## High-Level Structure
 
 - App entry: `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/StopmoXcodeGUIApp.swift`
-- App state + bridge orchestration: `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/AppState.swift`
+- App state orchestration facade: `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/AppState.swift`
+- AppState domain modules (services/reducers/planners):
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/AppStateDomain/`
 - Root shell coordinator: `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootView.swift`
 - Root shell subviews:
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootSidebarView.swift`
@@ -19,7 +21,23 @@ Use this guide when working inside `/Users/kyle/Developer/stopmo-xcode/macos/Sto
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootStatusBarView.swift`
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/NotificationViews.swift`
 - Shared UI primitives and styling:
-  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/DesignSystem.swift`
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/DesignSystem/`
+  - Compatibility shim: `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/DesignSystem.swift`
+- Delivery workspace modules:
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/DeliveryDayWrap/`
+- Tools workspace modules:
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/ToolsWorkspace/`
+- Triage operational modules:
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/TriageWorkspace/`
+- Capture console modules:
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/CaptureConsole/`
+
+## Lifecycle IA Baseline (Current)
+
+- Hubs are lifecycle-first: `Configure -> Capture -> Triage -> Deliver`.
+- Triage primary surface is `TriageShotHealthBoardView`; `QueueView` and `LogsDiagnosticsView` are advanced workspaces.
+- Deliver primary surface is `DeliveryDayWrapView` (+ `Run History` tab).
+- `ShotsView.swift` is removed from active code paths and should not be reintroduced without explicit product direction.
 
 ## Project Editor Architecture (Important)
 
@@ -46,13 +64,19 @@ Use this guide when working inside `/Users/kyle/Developer/stopmo-xcode/macos/Sto
 ## UI Refactor Rules
 
 - Keep `RootView` as coordinator; put UI details in focused files.
-- Prefer adding reusable controls to `DesignSystem.swift` when behavior/styling repeats.
+- Prefer adding reusable controls to `DesignSystem/` modules when behavior/styling repeats.
 - Preserve current toolbar/notification spacing unless user requests visual changes.
+- When adding filter/pagination/search logic for Queue/Diagnostics-style screens, prefer pure reducers in `TriageWorkspace/*/*Reducer.swift`.
 
 ## Tests To Run For UI/Core State Refactors
 
 - Full package tests: `swift test`
 - Focused tests:
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/AppStateBridgeOrchestrationTests.swift`
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/LiveRefreshPlannerTests.swift`
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/WorkspaceConfigServiceTests.swift`
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/QueueFilterReducerTests.swift`
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/DiagnosticsFilterReducerTests.swift`
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/ProjectEditorViewModelTests.swift`
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/NotificationPresenterStateTests.swift`
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/Phase0SmokeTests.swift`
@@ -62,3 +86,4 @@ Use this guide when working inside `/Users/kyle/Developer/stopmo-xcode/macos/Sto
 - Project wrapper: `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/StopmoXcodeGUI.xcodeproj`
 - If Swift files are added/removed, regenerate project wrapper:
   - `./scripts/generate_xcodeproj.py`
+- The project generator now emits nested source groups from on-disk folders. Keep files in real subfolders (`AppStateDomain`, `DeliveryDayWrap`, `DesignSystem`, `ToolsWorkspace`, `TriageWorkspace`, `CaptureConsole`) so navigator structure stays clean.

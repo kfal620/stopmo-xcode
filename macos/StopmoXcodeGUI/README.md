@@ -15,6 +15,10 @@ Focused regression tests for recent UI refactors:
 
 - `Tests/StopmoXcodeGUITests/ProjectEditorViewModelTests.swift`
 - `Tests/StopmoXcodeGUITests/NotificationPresenterStateTests.swift`
+- `Tests/StopmoXcodeGUITests/DeliveryRunReducerTests.swift`
+- `Tests/StopmoXcodeGUITests/ToolsWorkspaceViewModelTests.swift`
+- `Tests/StopmoXcodeGUITests/QueueFilterReducerTests.swift`
+- `Tests/StopmoXcodeGUITests/DiagnosticsFilterReducerTests.swift`
 
 ## Xcode Project Wrapper
 
@@ -73,6 +77,13 @@ STOPMO_XCODE_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
     - Deliver
       - Day Wrap (DPX to ProRes batch-first)
       - Run History (run summary and compare)
+  - Refactored GUI module layout under `Sources/StopmoXcodeGUI/`:
+    - `AppStateDomain` (reducers/services for `AppState` orchestration)
+    - `CaptureConsole` (live capture-focused components)
+    - `DeliveryDayWrap` (day-wrap shipping workspace components)
+    - `DesignSystem` (tokenized visuals, surfaces, controls)
+    - `ToolsWorkspace` (tabbed tools workspace + reducers/services)
+    - `TriageWorkspace` (triage board + queue/diagnostics reducers)
   - Resilience hardening:
     - Config validation panel in Configure
     - Watch preflight/blocker checks before start

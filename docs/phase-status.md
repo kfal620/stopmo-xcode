@@ -65,6 +65,14 @@
 - GUI phase-11 performance/resilience hardening is now in place (adaptive live-poll backoff and recovery state, safe watch restart semantics with monitoring suspension, bridge command timeouts to prevent hangs, and pagination for queue/shots/logs/history heavy lists).
 - GUI phase-12 lifecycle IA overhaul is now in place (4 top-level hubs: Configure/Capture/Triage/Deliver; panelized workflows; tools split into Calibration and Day Wrap; and command/menu/navigation updates aligned to production lifecycle mental model).
 - GUI phase-13 pipeline surface refactor is now in place (Capture active-shot console, Triage shot-health board with recovery drawer, and Deliver shipping surface combining day-wrap batch + per-shot ProRes CTAs, with advanced diagnostics preserved under collapsed disclosures).
+- GUI phase-13.1 density/hierarchy pass is now in place (compact stage headers, reduced vertical noise, relative timestamp labels, and one-primary-action card rhythm).
+- GUI phase-13.3 premium visual pass is now in place (tokenized surface levels, cinematic dark polish, progressive sidebar detail behavior, and calmer command rail styling).
+- GUI phase-13.4 delivery workspace redesign is now in place (two-column Day Wrap workspace, selectable ready-shot batch delivery, and always-visible run status/events panels).
+- GUI phase-13.5 delivery modularization is now in place (`DeliveryDayWrap` split into focused pane/layout/formatting components with behavior parity).
+- GUI phase-E tools workspace unification is now in place (`ToolsWorkspace` tabbed IA + extracted mapper/preflight/timeline/runner/viewmodel layers while preserving `ToolsView` compatibility API).
+- GUI phase-F design-system modularization is now in place (`DesignSystem` split into token/component/style-focused files with contracts tests preserved).
+- GUI phase-G app-state domain extraction is now in place (`AppStateDomain` reducers/services isolate monitoring, telemetry, notifications, and bridge orchestration helpers).
+- GUI phase-H triage/capture modular follow-up is now in place (`TriageWorkspace` queue/diagnostics reducers extracted, capture sparkline component extracted, and legacy `ShotsView.swift` removed).
 - macOS GUI shell now exposes lifecycle panels wired to `gui_bridge`, while preserving all prior feature capabilities and resilience checks (config validation, watch preflight, crash-recovery surfacing, safer watch start semantics).
 - Phase-9 distribution scaffolding is added for macOS packaging/signing/notarization (`.app` bundle + zip, Developer ID codesign, notarytool submission/stapling scripts).
 - Phase-10 parity/signoff harness is added under `qa/phase10_parity_signoff.py`, generating reproducible CLI-vs-GUI parity reports (`qa/reports/.../parity_signoff.md` + `.json`).
