@@ -144,6 +144,12 @@ If commands fail with `bad interpreter` pointing to an old path, treat the venv 
   - follow `macos/StopmoXcodeGUI/AGENTS.md`
   - run `swift test` from `macos/StopmoXcodeGUI`
 
+## Xcode Project Grouping
+
+- When adding/moving Swift files in `StopmoXcodeGUI.xcodeproj`, preserve visible folder groups in Xcode.
+- Prefer real parent groups (for example `DeliveryDayWrap`) with child file entries, instead of flattened path-based entries like `DeliveryDayWrap/Foo.swift` at the root group.
+- Keep project navigator structure aligned to on-disk subfolders so future refactors remain discoverable.
+
 ## Known Drift Notes
 
 - Some docs still contain old absolute path examples under `/Users/kyle/Documents/Coding/stopmo-xcode`; prefer repo-relative commands or `--repo-root "$PWD"`.

@@ -44,6 +44,18 @@
 		EB013BE49848FC1BB04B588F /* NotificationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0EBAC0E1E89F9A0C523ED77 /* NotificationViews.swift */; };
 		EE0131F56E1D1455264B0FA4 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CD56ABF65C1E7B861D4F2F9 /* SetupView.swift */; };
 		EE9EF4FDC880E05C1E9FC12E /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */; };
+		AA5000010000000000000001 /* ToolsWorkspace/ToolsDpxPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000001 /* ToolsDpxPane.swift */; };
+		AA5000010000000000000002 /* ToolsWorkspace/ToolsMatrixPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000002 /* ToolsMatrixPane.swift */; };
+		AA5000010000000000000003 /* ToolsWorkspace/ToolsPreflightReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000003 /* ToolsPreflightReducer.swift */; };
+		AA5000010000000000000004 /* ToolsWorkspace/ToolsRunnerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000004 /* ToolsRunnerService.swift */; };
+		AA5000010000000000000005 /* ToolsWorkspace/ToolsTimelineReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000005 /* ToolsTimelineReducer.swift */; };
+		AA5000010000000000000006 /* ToolsWorkspace/ToolsTranscodePane.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000006 /* ToolsTranscodePane.swift */; };
+		AA5000010000000000000007 /* ToolsWorkspace/ToolsWorkspaceDiagnosticsPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000007 /* ToolsWorkspaceDiagnosticsPane.swift */; };
+		AA5000010000000000000008 /* ToolsWorkspace/ToolsWorkspaceHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000008 /* ToolsWorkspaceHeaderView.swift */; };
+		AA5000010000000000000009 /* ToolsWorkspace/ToolsWorkspaceMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6000010000000000000009 /* ToolsWorkspaceMapper.swift */; };
+		AA500001000000000000000A /* ToolsWorkspace/ToolsWorkspaceTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA600001000000000000000A /* ToolsWorkspaceTabBarView.swift */; };
+		AA500001000000000000000B /* ToolsWorkspace/ToolsWorkspaceTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA600001000000000000000B /* ToolsWorkspaceTypes.swift */; };
+		AA500001000000000000000C /* ToolsWorkspace/ToolsWorkspaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA600001000000000000000C /* ToolsWorkspaceViewModel.swift */; };
 		EF9DCE84CBD6AE7F1A9BF744 /* TriageShotHealthBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C738BE541F738155C20C7C2F /* TriageShotHealthBoardView.swift */; };
 		F73AC6A906A75D4BDCCB40DF /* ShotsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7542F43972FC8A8F86041336 /* ShotsView.swift */; };
 		F73B7C5C2A799063856995AB /* ProjectEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2390058DD0F9C45F7479EC13 /* ProjectEditorViewModel.swift */; };
@@ -66,7 +78,7 @@
 		3AA8C29F2890A8B9B00E7003 /* MonitoringReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringReducer.swift; sourceTree = "<group>"; };
 		3AA8C29F2890A8B9B00E7004 /* LiveTelemetryReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveTelemetryReducer.swift; sourceTree = "<group>"; };
 		502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsDiagnosticsView.swift; sourceTree = "<group>"; };
-		5BCC4BFBC596A6D73FFAA397 /* DeliveryDayWrap/DeliveryFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryFormatting.swift; sourceTree = "<group>"; };
+		5BCC4BFBC596A6D73FFAA397 /* DeliveryFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryFormatting.swift; sourceTree = "<group>"; };
 		624D6464AFF1F9AF0857113A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		637ACA3538B5D28B71230F87 /* ShotHealthModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotHealthModel.swift; sourceTree = "<group>"; };
 		675733F70C6A47729E2C036B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
@@ -79,17 +91,29 @@
 		9224EAA88378396F8FB7C33F /* DeliveryRunReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryRunReducer.swift; sourceTree = "<group>"; };
 		9AB5C1CB812516A120B00D2C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		9DEA61BC00F196FAF17B8EE4 /* ProjectWatchSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectWatchSectionView.swift; sourceTree = "<group>"; };
-		A7F04DFB9E34FBD68B3CBFDA /* DeliveryDayWrap/DeliveryLayoutMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryLayoutMetrics.swift; sourceTree = "<group>"; };
+		A7F04DFB9E34FBD68B3CBFDA /* DeliveryLayoutMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryLayoutMetrics.swift; sourceTree = "<group>"; };
 		A9D1977BF837AF172307DE8C /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		B0EBAC0E1E89F9A0C523ED77 /* NotificationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationViews.swift; sourceTree = "<group>"; };
-		B14FE43E0F8FEE6CD3212FBA /* DeliveryDayWrap/DeliveryControlPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryControlPane.swift; sourceTree = "<group>"; };
+		B14FE43E0F8FEE6CD3212FBA /* DeliveryControlPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryControlPane.swift; sourceTree = "<group>"; };
 		B82040E2F9D62C84D64DA85B /* RootCommandBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootCommandBarView.swift; sourceTree = "<group>"; };
 		C1FC346494D54C1501C505F3 /* RootStatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootStatusBarView.swift; sourceTree = "<group>"; };
 		C738BE541F738155C20C7C2F /* TriageShotHealthBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriageShotHealthBoardView.swift; sourceTree = "<group>"; };
 		CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+		AA6000010000000000000001 /* ToolsDpxPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsDpxPane.swift; sourceTree = "<group>"; };
+		AA6000010000000000000002 /* ToolsMatrixPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsMatrixPane.swift; sourceTree = "<group>"; };
+		AA6000010000000000000003 /* ToolsPreflightReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsPreflightReducer.swift; sourceTree = "<group>"; };
+		AA6000010000000000000004 /* ToolsRunnerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsRunnerService.swift; sourceTree = "<group>"; };
+		AA6000010000000000000005 /* ToolsTimelineReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsTimelineReducer.swift; sourceTree = "<group>"; };
+		AA6000010000000000000006 /* ToolsTranscodePane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsTranscodePane.swift; sourceTree = "<group>"; };
+		AA6000010000000000000007 /* ToolsWorkspaceDiagnosticsPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceDiagnosticsPane.swift; sourceTree = "<group>"; };
+		AA6000010000000000000008 /* ToolsWorkspaceHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceHeaderView.swift; sourceTree = "<group>"; };
+		AA6000010000000000000009 /* ToolsWorkspaceMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceMapper.swift; sourceTree = "<group>"; };
+		AA600001000000000000000A /* ToolsWorkspaceTabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceTabBarView.swift; sourceTree = "<group>"; };
+		AA600001000000000000000B /* ToolsWorkspaceTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceTypes.swift; sourceTree = "<group>"; };
+		AA600001000000000000000C /* ToolsWorkspaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceViewModel.swift; sourceTree = "<group>"; };
 		D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
 		D22997BC57AA2C16218C09EB /* ConfigureHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureHubView.swift; sourceTree = "<group>"; };
-		D243223FB1F8844E862F81F8 /* DeliveryDayWrap/DeliveryShotListPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryDayWrap/DeliveryShotListPane.swift; sourceTree = "<group>"; };
+		D243223FB1F8844E862F81F8 /* DeliveryShotListPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryShotListPane.swift; sourceTree = "<group>"; };
 		D662ACD216A62BCF6E159964 /* ProjectPresetsSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPresetsSectionView.swift; sourceTree = "<group>"; };
 		EF431FED19380A0D7D5E65CE /* packaging/Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = packaging/Info.plist; sourceTree = "<group>"; };
 		F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopmoXcodeGUIApp.swift; sourceTree = "<group>"; };
@@ -134,6 +158,36 @@
 			);
 			sourceTree = "<group>";
 		};
+		3AA8C29F2890A8B9B00E8001 /* DeliveryDayWrap */ = {
+			isa = PBXGroup;
+			children = (
+				B14FE43E0F8FEE6CD3212FBA /* DeliveryControlPane.swift */,
+				5BCC4BFBC596A6D73FFAA397 /* DeliveryFormatting.swift */,
+				A7F04DFB9E34FBD68B3CBFDA /* DeliveryLayoutMetrics.swift */,
+				D243223FB1F8844E862F81F8 /* DeliveryShotListPane.swift */,
+			);
+			path = DeliveryDayWrap;
+			sourceTree = "<group>";
+		};
+		AA7000010000000000000001 /* ToolsWorkspace */ = {
+			isa = PBXGroup;
+			children = (
+				AA6000010000000000000001 /* ToolsDpxPane.swift */,
+				AA6000010000000000000002 /* ToolsMatrixPane.swift */,
+				AA6000010000000000000003 /* ToolsPreflightReducer.swift */,
+				AA6000010000000000000004 /* ToolsRunnerService.swift */,
+				AA6000010000000000000005 /* ToolsTimelineReducer.swift */,
+				AA6000010000000000000006 /* ToolsTranscodePane.swift */,
+				AA6000010000000000000007 /* ToolsWorkspaceDiagnosticsPane.swift */,
+				AA6000010000000000000008 /* ToolsWorkspaceHeaderView.swift */,
+				AA6000010000000000000009 /* ToolsWorkspaceMapper.swift */,
+				AA600001000000000000000A /* ToolsWorkspaceTabBarView.swift */,
+				AA600001000000000000000B /* ToolsWorkspaceTypes.swift */,
+				AA600001000000000000000C /* ToolsWorkspaceViewModel.swift */,
+			);
+			path = ToolsWorkspace;
+			sourceTree = "<group>";
+		};
 		A7D8CE70846932FEE851CAD6 /* StopmoXcodeGUI */ = {
 			isa = PBXGroup;
 			children = (
@@ -142,10 +196,7 @@
 				83CCF08D56FC31A7E74E914B /* CaptureHubView.swift */,
 				D22997BC57AA2C16218C09EB /* ConfigureHubView.swift */,
 				FF97F8E99FD6D31438D9E56E /* DeliverHubView.swift */,
-				B14FE43E0F8FEE6CD3212FBA /* DeliveryDayWrap/DeliveryControlPane.swift */,
-				5BCC4BFBC596A6D73FFAA397 /* DeliveryDayWrap/DeliveryFormatting.swift */,
-				A7F04DFB9E34FBD68B3CBFDA /* DeliveryDayWrap/DeliveryLayoutMetrics.swift */,
-				D243223FB1F8844E862F81F8 /* DeliveryDayWrap/DeliveryShotListPane.swift */,
+				3AA8C29F2890A8B9B00E8001 /* DeliveryDayWrap */,
 				FF5C31137C8AF36D1AAF0C40 /* DeliveryDayWrapView.swift */,
 				9224EAA88378396F8FB7C33F /* DeliveryRunReducer.swift */,
 				624D6464AFF1F9AF0857113A /* DesignSystem.swift */,
@@ -175,6 +226,7 @@
 				7542F43972FC8A8F86041336 /* ShotsView.swift */,
 				F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */,
 				CBDF3374C8FCC7A4CCD305D4 /* ToolsView.swift */,
+				AA7000010000000000000001 /* ToolsWorkspace */,
 				F9AF4EE0973ACECA2B711E21 /* TriageHubView.swift */,
 				C738BE541F738155C20C7C2F /* TriageShotHealthBoardView.swift */,
 				3AA8C29F2890A8B9B00E7002 /* WorkspaceIOService.swift */,
@@ -298,6 +350,18 @@
 				F73AC6A906A75D4BDCCB40DF /* ShotsView.swift in Sources */,
 				5A25EFDD290F8CF773FC8B6E /* StopmoXcodeGUIApp.swift in Sources */,
 				EE9EF4FDC880E05C1E9FC12E /* ToolsView.swift in Sources */,
+				AA5000010000000000000001 /* ToolsWorkspace/ToolsDpxPane.swift in Sources */,
+				AA5000010000000000000002 /* ToolsWorkspace/ToolsMatrixPane.swift in Sources */,
+				AA5000010000000000000003 /* ToolsWorkspace/ToolsPreflightReducer.swift in Sources */,
+				AA5000010000000000000004 /* ToolsWorkspace/ToolsRunnerService.swift in Sources */,
+				AA5000010000000000000005 /* ToolsWorkspace/ToolsTimelineReducer.swift in Sources */,
+				AA5000010000000000000006 /* ToolsWorkspace/ToolsTranscodePane.swift in Sources */,
+				AA5000010000000000000007 /* ToolsWorkspace/ToolsWorkspaceDiagnosticsPane.swift in Sources */,
+				AA5000010000000000000008 /* ToolsWorkspace/ToolsWorkspaceHeaderView.swift in Sources */,
+				AA5000010000000000000009 /* ToolsWorkspace/ToolsWorkspaceMapper.swift in Sources */,
+				AA500001000000000000000A /* ToolsWorkspace/ToolsWorkspaceTabBarView.swift in Sources */,
+				AA500001000000000000000B /* ToolsWorkspace/ToolsWorkspaceTypes.swift in Sources */,
+				AA500001000000000000000C /* ToolsWorkspace/ToolsWorkspaceViewModel.swift in Sources */,
 				DE554A10F22E3C5E2FCB285C /* TriageHubView.swift in Sources */,
 				EF9DCE84CBD6AE7F1A9BF744 /* TriageShotHealthBoardView.swift in Sources */,
 				3AA8C29F2890A8B9B00E6002 /* WorkspaceIOService.swift in Sources */,
