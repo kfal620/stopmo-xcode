@@ -86,7 +86,7 @@ enum DeliverPanel: String, CaseIterable, Identifiable {
     var iconName: String {
         switch self {
         case .dayWrap:
-            return "film.badge.plus"
+            return "film"
         case .runHistory:
             return "clock.arrow.circlepath"
         }
