@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Data/view model for tools matrix pane.
 struct ToolsMatrixPane: View {
     @Binding var inputPath: String
     @Binding var cameraMake: String

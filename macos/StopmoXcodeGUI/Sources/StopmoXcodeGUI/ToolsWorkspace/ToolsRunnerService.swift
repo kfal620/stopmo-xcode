@@ -1,5 +1,6 @@
 import Foundation
 
+/// Service type for tools runner service.
 struct ToolsRunnerService {
     typealias TranscodeRunner = @Sendable (_ repoRoot: String, _ configPath: String, _ inputPath: String, _ outputDir: String?) async throws -> ToolOperationEnvelope
     typealias MatrixRunner = @Sendable (_ repoRoot: String, _ inputPath: String, _ cameraMake: String?, _ cameraModel: String?, _ writeJson: String?) async throws -> ToolOperationEnvelope

@@ -1,5 +1,6 @@
 import Foundation
 
+/// Data/view model for app state dependencies.
 struct AppStateDependencies {
     let bridgeService: BridgeServicing
     let workspaceConfigService: WorkspaceConfigServicing

@@ -1,5 +1,6 @@
 import Foundation
 
+/// Maps tools mode/presentation choices into visible tabs and header copy.
 enum ToolsWorkspaceMapper {
     static func map(mode: ToolsMode, deliveryPresentation: DeliveryPresentation) -> ToolsWorkspaceContext {
         switch mode {

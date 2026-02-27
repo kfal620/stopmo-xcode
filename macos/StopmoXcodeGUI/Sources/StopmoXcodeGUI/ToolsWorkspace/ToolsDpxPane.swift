@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Data/view model for tools dpx pane.
 struct ToolsDpxPane: View {
     @Binding var inputDir: String
     @Binding var outputDir: String

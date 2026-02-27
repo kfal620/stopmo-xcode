@@ -1,5 +1,6 @@
 import Foundation
 
+/// Timeline/event projection helpers for tools operation surfaces.
 enum ToolsTimelineReducer {
     static func toneForOperationStatus(_ status: String) -> StatusTone {
         let s = status.lowercased()

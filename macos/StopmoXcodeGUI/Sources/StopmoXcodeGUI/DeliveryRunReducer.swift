@@ -1,5 +1,6 @@
 import Foundation
 
+/// Pure helpers for evolving delivery run state and event history.
 enum DeliveryRunReducer {
     static func begin(kind: DeliveryRunKind, total: Int, label: String, nowUtc: String) -> DeliveryRunState {
         let clampedTotal = max(0, total)

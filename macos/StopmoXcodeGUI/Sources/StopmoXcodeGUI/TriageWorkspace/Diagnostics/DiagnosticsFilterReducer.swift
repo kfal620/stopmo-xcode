@@ -1,5 +1,6 @@
 import Foundation
 
+/// Severity filters applied to parsed log-entry rows.
 enum LogSeverityFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case errorsAndWarnings = "Error+Warn"
@@ -10,6 +11,7 @@ enum LogSeverityFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Severity filters applied to derived diagnostic warning rows.
 enum DiagnosticSeverityFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case errorsOnly = "Errors"
@@ -18,6 +20,7 @@ enum DiagnosticSeverityFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Pure filtering helpers for diagnostics log and warning tables.
 enum DiagnosticsFilterReducer {
     static func filteredWarnings(
         warnings: [DiagnosticWarningRecord],

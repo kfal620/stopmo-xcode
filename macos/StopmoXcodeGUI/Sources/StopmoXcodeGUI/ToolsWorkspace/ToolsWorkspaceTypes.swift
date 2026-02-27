@@ -1,22 +1,26 @@
 import Foundation
 
+/// Backend tool operation kinds supported by the tools workspace.
 enum ToolKind: String, CaseIterable {
     case transcodeOne = "Transcode One"
     case suggestMatrix = "Suggest Matrix"
     case dpxToProres = "DPX To ProRes"
 }
 
+/// High-level tools workspace modes used by hosting screens.
 enum ToolsMode: String, CaseIterable {
     case all
     case utilitiesOnly
     case deliveryOnly
 }
 
+/// Delivery workspace presentation variants for tools embedding.
 enum DeliveryPresentation: String, CaseIterable {
     case full
     case diagnosticsOnly
 }
 
+/// Tab identifiers available within the tools workspace UI.
 enum ToolsTab: String, CaseIterable, Identifiable {
     case transcode = "Transcode"
     case matrix = "Matrix"
@@ -39,6 +43,7 @@ enum ToolsTab: String, CaseIterable, Identifiable {
     }
 }
 
+/// Last-run status used for tool execution indicators.
 enum ToolRunStatus: Equatable {
     case idle
     case running
@@ -72,6 +77,7 @@ enum ToolRunStatus: Equatable {
     }
 }
 
+/// Event stream filters used in tools diagnostics timeline.
 enum ToolEventFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case milestones = "Milestones"
@@ -80,6 +86,7 @@ enum ToolEventFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Preflight validation output containing blockers and warnings.
 struct ToolPreflight {
     let blockers: [String]
     let warnings: [String]
@@ -87,6 +94,7 @@ struct ToolPreflight {
     var ok: Bool { blockers.isEmpty }
 }
 
+/// Render-ready timeline row for tools operation history.
 struct ToolTimelineItem: Identifiable {
     let id = UUID()
     let timestampLabel: String
@@ -95,6 +103,7 @@ struct ToolTimelineItem: Identifiable {
     let tone: StatusTone
 }
 
+/// Resolved tab/header context for current tools workspace mode.
 struct ToolsWorkspaceContext {
     let tabs: [ToolsTab]
     let defaultTab: ToolsTab

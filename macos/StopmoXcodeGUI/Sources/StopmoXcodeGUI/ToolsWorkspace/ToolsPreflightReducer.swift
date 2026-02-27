@@ -1,5 +1,6 @@
 import Foundation
 
+/// Preflight validators for tools workspace inputs and path assumptions.
 enum ToolsPreflightReducer {
     static func transcode(
         inputPath: String,

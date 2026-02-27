@@ -1,6 +1,7 @@
 import SwiftUI
 
 @main
+/// Data/view model for stopmo xcode guiapp.
 struct StopmoXcodeGUIApp: App {
     @StateObject private var state = AppState()
 

@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+/// View rendering delivery day wrap view.
 struct DeliveryDayWrapView: View {
     @EnvironmentObject private var state: AppState
 
@@ -275,6 +276,7 @@ struct DeliveryDayWrapView: View {
     }
 }
 
+/// Data/view model for delivery day wrap workspace.
 private struct DeliveryDayWrapWorkspace<Primary: View, Secondary: View>: View {
     @ViewBuilder let primary: Primary
     @ViewBuilder let secondary: Secondary

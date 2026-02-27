@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering project presets section view.
 struct ProjectPresetsSectionView: View {
     @Binding var presetNameInput: String
     @Binding var selectedPresetName: String

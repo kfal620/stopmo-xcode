@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering root status bar view.
 struct RootStatusBarView: View {
     @EnvironmentObject private var state: AppState
 

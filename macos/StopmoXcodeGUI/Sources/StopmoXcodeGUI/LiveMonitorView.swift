@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Enumeration for activity filter.
 private enum ActivityFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case warnings = "Warnings"
@@ -9,6 +10,7 @@ private enum ActivityFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// View rendering live monitor view.
 struct LiveMonitorView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

@@ -1,6 +1,7 @@
 import Foundation
 
 @MainActor
+/// Protocol defining live monitoring coordinating behavior.
 protocol LiveMonitoringCoordinating: AnyObject {
     var sessionToken: UUID { get }
     var isRunning: Bool { get }
@@ -15,6 +16,7 @@ protocol LiveMonitoringCoordinating: AnyObject {
 }
 
 @MainActor
+/// Coordinator for live monitoring coordinator.
 final class LiveMonitoringCoordinator: LiveMonitoringCoordinating {
     private var monitorTask: Task<Void, Never>?
     private(set) var sessionToken = UUID()

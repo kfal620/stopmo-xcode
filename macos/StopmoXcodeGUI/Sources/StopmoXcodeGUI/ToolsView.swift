@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// View rendering tools view.
 struct ToolsView: View {
     @EnvironmentObject private var state: AppState
 

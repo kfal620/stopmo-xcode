@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering project logging section view.
 struct ProjectLoggingSectionView: View {
     @Binding var logLevel: String
     @Binding var logFile: String?

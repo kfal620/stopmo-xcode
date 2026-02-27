@@ -1,6 +1,8 @@
 import SwiftUI
 
+/// Global design-scale constants shared across layout and controls.
 enum StopmoUI {
+    /// Spacing scale used by the app design system.
     enum Spacing {
         static let xxs: CGFloat = 4
         static let xs: CGFloat = 6
@@ -9,23 +11,27 @@ enum StopmoUI {
         static let lg: CGFloat = 20
     }
 
+    /// Corner radius scale for cards and chips.
     enum Radius {
         static let card: CGFloat = 12
         static let chip: CGFloat = 7
     }
 
+    /// Common width constants for labels and icon hit targets.
     enum Width {
         static let keyColumn: CGFloat = 150
         static let formLabel: CGFloat = 220
         static let iconTapTarget: CGFloat = 30
     }
 
+    /// Animation timing constants used for interactive affordances.
     enum Motion {
         static let hover: Double = 0.14
         static let disclosure: Double = 0.18
     }
 }
 
+/// Layering levels used to derive fill/border/shadow treatment.
 enum SurfaceLevel {
     case canvas
     case panel
@@ -59,23 +65,27 @@ enum SurfaceLevel {
     }
 }
 
+/// Card border style variants for emphasis control.
 enum CardChrome {
     case standard
     case quiet
     case outlined
 }
 
+/// Sidebar subtitle visibility strategy based on available width.
 enum SidebarDetailMode {
     case always
     case progressive
     case hidden
 }
 
+/// Secondary text intensity options for metadata labels.
 enum MetadataTone {
     case secondary
     case tertiary
 }
 
+/// Semantic status palette used by chips and diagnostics accents.
 enum StatusTone {
     case neutral
     case success
@@ -109,6 +119,7 @@ enum StatusTone {
     }
 }
 
+/// Computed visual styling parameters for one rendered surface.
 struct SurfaceVisualSpec: Equatable {
     let fillOpacity: Double
     let borderOpacity: Double
@@ -119,6 +130,7 @@ struct SurfaceVisualSpec: Equatable {
     let shadowY: CGFloat
 }
 
+/// Centralized color/gradient/border/shadow tokens for the app shell.
 enum AppVisualTokens {
     static let backgroundCanvas = LinearGradient(
         colors: [

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering setup view.
 struct SetupView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false
@@ -557,6 +558,7 @@ struct SetupView: View {
     }
 }
 
+/// Data/view model for dependency row.
 private struct DependencyRow {
     let name: String
     let ok: Bool

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering deliver hub view.
 struct DeliverHubView: View {
     @EnvironmentObject private var state: AppState
 

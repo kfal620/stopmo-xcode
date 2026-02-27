@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Environment/preference key for root detail width preference key.
 private struct RootDetailWidthPreferenceKey: PreferenceKey {
     static let defaultValue: CGFloat = 0
 
@@ -8,6 +9,7 @@ private struct RootDetailWidthPreferenceKey: PreferenceKey {
     }
 }
 
+/// View rendering root view.
 struct RootView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

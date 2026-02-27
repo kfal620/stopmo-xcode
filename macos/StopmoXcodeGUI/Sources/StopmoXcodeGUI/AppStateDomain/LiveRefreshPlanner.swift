@@ -1,5 +1,6 @@
 import Foundation
 
+/// Data/view model for live snapshot fetch limits.
 struct LiveSnapshotFetchLimits: Equatable {
     let queueLimit: Int
     let logTailLines: Int
@@ -7,6 +8,7 @@ struct LiveSnapshotFetchLimits: Equatable {
     let shotsLimit: Int
 }
 
+/// Enumeration for live refresh planner.
 enum LiveRefreshPlanner {
     static func refreshKind(
         selectedHub: LifecycleHub,

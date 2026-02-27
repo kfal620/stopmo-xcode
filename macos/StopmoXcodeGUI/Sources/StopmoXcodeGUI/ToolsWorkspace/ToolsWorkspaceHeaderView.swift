@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering tools workspace header view.
 struct ToolsWorkspaceHeaderView: View {
     let title: String
     let subtitle: String

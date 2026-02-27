@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering delivery control pane view.
 struct DeliveryControlPaneView: View {
     let availableHeight: CGFloat
     let runState: DeliveryRunState
@@ -116,6 +117,7 @@ struct DeliveryControlPaneView: View {
     }
 }
 
+/// Data/view model for delivery run status panel.
 private struct DeliveryRunStatusPanel: View {
     let runState: DeliveryRunState
     let openLatestOutput: () -> Void
@@ -186,6 +188,7 @@ private struct DeliveryRunStatusPanel: View {
     }
 }
 
+/// Data/view model for delivery run events panel.
 private struct DeliveryRunEventsPanel: View {
     @Binding var isExpanded: Bool
     let events: [DeliveryRunEvent]
@@ -262,6 +265,7 @@ private struct DeliveryRunEventsPanel: View {
     }
 }
 
+/// Data/view model for delivery event tone badge.
 private struct DeliveryEventToneBadge: View {
     let tone: StatusTone
     let symbolName: String
@@ -283,6 +287,7 @@ private struct DeliveryEventToneBadge: View {
     }
 }
 
+/// Data/view model for batch config disclosure panel.
 private struct BatchConfigDisclosurePanel: View {
     @Binding var isExpanded: Bool
     @Binding var dpxInputDir: String
@@ -373,6 +378,7 @@ private struct BatchConfigDisclosurePanel: View {
     }
 }
 
+/// Data/view model for delivery advanced diagnostics panel.
 private struct DeliveryAdvancedDiagnosticsPanel: View {
     let envelope: ToolOperationEnvelope?
     let runEvents: [DeliveryRunEvent]

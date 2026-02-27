@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering tools workspace tab bar view.
 struct ToolsWorkspaceTabBarView: View {
     let tabs: [ToolsTab]
     @Binding var selectedTab: ToolsTab

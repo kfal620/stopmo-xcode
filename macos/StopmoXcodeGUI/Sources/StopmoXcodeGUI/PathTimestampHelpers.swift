@@ -1,5 +1,6 @@
 import Foundation
 
+/// Enumeration for path timestamp helpers.
 enum PathTimestampHelpers {
     static func trimmedOrNil(_ value: String?) -> String? {
         guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {

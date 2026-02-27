@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering project output section view.
 struct ProjectOutputSectionView: View {
     @Binding var output: StopmoConfigDocument.Output
     @State private var showAdvancedFramePackaging: Bool = false

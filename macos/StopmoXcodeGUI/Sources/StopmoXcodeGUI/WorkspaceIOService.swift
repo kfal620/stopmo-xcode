@@ -2,12 +2,14 @@ import AppKit
 import Foundation
 import UniformTypeIdentifiers
 
+/// Result payload for path open result.
 enum PathOpenResult {
     case openedTarget
     case openedParent
     case missing
 }
 
+/// Data/view model for workspace access resolution.
 struct WorkspaceAccessResolution {
     let url: URL
     let bookmarkWasStale: Bool
@@ -15,6 +17,7 @@ struct WorkspaceAccessResolution {
 }
 
 @MainActor
+/// Service type for workspace ioservice.
 struct WorkspaceIOService {
     func chooseWorkspaceDirectory(initialPath: String) -> URL? {
         let panel = NSOpenPanel()

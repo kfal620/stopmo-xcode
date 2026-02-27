@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering triage hub view.
 struct TriageHubView: View {
     @EnvironmentObject private var state: AppState
 

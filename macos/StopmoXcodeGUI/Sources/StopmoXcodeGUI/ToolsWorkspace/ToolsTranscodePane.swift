@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Data/view model for tools transcode pane.
 struct ToolsTranscodePane: View {
     @Binding var inputPath: String
     @Binding var outputDir: String

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View modifier for consistent secondary/tertiary metadata text styling.
 struct MetadataTextStyle: ViewModifier {
     let tone: MetadataTone
 
@@ -16,6 +17,7 @@ extension View {
     }
 }
 
+/// Compact semantic badge used for state and health summaries.
 struct StatusChip: View {
     let label: String
     let tone: StatusTone
@@ -36,6 +38,7 @@ struct StatusChip: View {
     }
 }
 
+/// Header chip indicating currently active workspace section.
 struct CurrentSectionChip: View {
     let title: String
     let iconName: String
@@ -59,6 +62,7 @@ struct CurrentSectionChip: View {
     }
 }
 
+/// Two-column key/value row used in diagnostics and detail panels.
 struct KeyValueRow: View {
     let key: String
     let value: String
@@ -77,6 +81,7 @@ struct KeyValueRow: View {
     }
 }
 
+/// Labeled filesystem path field with browse affordance.
 struct LabeledPathField: View {
     let label: String
     let placeholder: String
@@ -129,6 +134,7 @@ struct LabeledPathField: View {
     }
 }
 
+/// Reusable empty-state card for sparse panel content.
 struct EmptyStateCard: View {
     let message: String
 
@@ -143,6 +149,7 @@ struct EmptyStateCard: View {
     }
 }
 
+/// Animated live/idle status indicator chip for capture surfaces.
 struct LiveStateChip: View {
     let isRunning: Bool
     var runningLabel: String = "Live"

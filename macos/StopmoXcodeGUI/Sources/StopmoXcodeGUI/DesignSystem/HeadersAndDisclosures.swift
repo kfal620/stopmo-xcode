@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Page-level title/subtitle header used at workspace roots.
 struct ScreenHeader<Trailing: View>: View {
     let title: String
     let subtitle: String?
@@ -29,11 +30,13 @@ struct ScreenHeader<Trailing: View>: View {
     }
 }
 
+/// Density variant for lifecycle-stage header presentation.
 enum StageHeaderStyle {
     case expanded
     case compact
 }
 
+/// Branded lifecycle stage header with accent styling and optional trailing content.
 struct LifecycleStageHeader<Trailing: View>: View {
     let hub: LifecycleHub
     let title: String
@@ -148,6 +151,7 @@ struct LifecycleStageHeader<Trailing: View>: View {
     }
 }
 
+/// Capsule-styled panel selector chip used for sub-panel switching.
 struct PanelChipButton: View {
     let label: String
     let iconName: String
@@ -182,6 +186,7 @@ struct PanelChipButton: View {
     }
 }
 
+/// Lightweight disclosure label row used for expandable sections.
 struct DisclosureToggleLabel: View {
     let title: String
     @Binding var isExpanded: Bool
@@ -204,6 +209,7 @@ struct DisclosureToggleLabel: View {
     }
 }
 
+/// Interactive disclosure row label with optional trailing controls.
 struct DisclosureRowLabel<Trailing: View>: View {
     let title: String
     @Binding var isExpanded: Bool

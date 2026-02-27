@@ -1,5 +1,6 @@
 import Foundation
 
+/// Pure notification-list and badge-state helpers plus error hint mapping.
 enum NotificationReducer {
     static func badgeText(for notifications: [NotificationRecord]) -> String? {
         guard !notifications.isEmpty else {

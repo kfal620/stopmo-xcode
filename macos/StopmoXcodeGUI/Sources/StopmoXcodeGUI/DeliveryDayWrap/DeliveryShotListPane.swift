@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Data/view model for delivery shot list pane.
 struct DeliveryShotListPane: View {
     let readyShotEvaluations: [ShotHealthEvaluation]
     let notReadyShotEvaluations: [ShotHealthEvaluation]
@@ -192,6 +193,7 @@ struct DeliveryShotListPane: View {
     }
 }
 
+/// Data/view model for deliverable shots pane.
 private struct DeliverableShotsPane<Rows: View>: View {
     let readyCount: Int
     let selectedCount: Int

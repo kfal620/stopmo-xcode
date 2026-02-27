@@ -1,14 +1,17 @@
 import SwiftUI
 
+/// Enumeration for logs focus field.
 private enum LogsFocusField: Hashable {
     case search
 }
 
+/// Data/view model for diagnostic hint.
 private struct DiagnosticHint {
     let likelyCause: String
     let suggestedAction: String
 }
 
+/// View rendering logs diagnostics view.
 struct LogsDiagnosticsView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

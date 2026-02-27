@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Small icon-only action button with explicit accessibility labels/hints.
 struct IconActionButton: View {
     let systemName: String
     let accessibilityLabel: String
@@ -38,6 +39,7 @@ struct IconActionButton: View {
     }
 }
 
+/// Compact visual grouping for clusters of command-bar actions.
 struct ToolbarActionCluster<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -61,6 +63,7 @@ struct ToolbarActionCluster<Content: View>: View {
     }
 }
 
+/// Hover-aware context chip used to show current workspace/config context.
 struct CommandContextChip: View {
     let icon: String
     let value: String
@@ -133,6 +136,7 @@ struct CommandContextChip: View {
     }
 }
 
+/// Command-bar icon button with optional badge and hover tooltip.
 struct CommandIconButton: View {
     let systemImage: String
     let tooltip: String

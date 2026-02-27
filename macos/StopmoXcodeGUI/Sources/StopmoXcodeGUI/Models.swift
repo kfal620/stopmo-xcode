@@ -287,6 +287,7 @@ extension StopmoConfigDocument {
     }
 }
 
+/// Data/view model for queue job record.
 struct QueueJobRecord: Codable, Sendable, Identifiable {
     var id: Int
     var state: String
@@ -300,6 +301,7 @@ struct QueueJobRecord: Codable, Sendable, Identifiable {
     var updatedAt: String
 }
 
+/// Data/view model for queue snapshot.
 struct QueueSnapshot: Codable, Sendable {
     var dbPath: String
     var counts: [String: Int]
@@ -307,6 +309,7 @@ struct QueueSnapshot: Codable, Sendable {
     var recent: [QueueJobRecord]
 }
 
+/// Result payload for queue retry result.
 struct QueueRetryResult: Codable, Sendable {
     var retried: Int
     var requestedIds: [Int]
@@ -315,6 +318,7 @@ struct QueueRetryResult: Codable, Sendable {
     var queue: QueueSnapshot
 }
 
+/// Data/view model for shot summary row.
 struct ShotSummaryRow: Codable, Sendable, Identifiable {
     var shotName: String
     var state: String
@@ -334,13 +338,16 @@ struct ShotSummaryRow: Codable, Sendable, Identifiable {
     var id: String { shotName }
 }
 
+/// Data/view model for shots summary snapshot.
 struct ShotsSummarySnapshot: Codable, Sendable {
     var dbPath: String
     var count: Int
     var shots: [ShotSummaryRow]
 }
 
+/// State model for watch service state.
 struct WatchServiceState: Codable, Sendable {
+    /// Data/view model for crash recovery.
     struct CrashRecovery: Codable, Sendable {
         var lastStartupUtc: String?
         var lastShutdownUtc: String?
@@ -365,6 +372,7 @@ struct WatchServiceState: Codable, Sendable {
     var crashRecovery: CrashRecovery?
 }
 
+/// Data/view model for operation event record.
 struct OperationEventRecord: Codable, Sendable, Identifiable {
     var seq: Int
     var operationId: String
@@ -376,6 +384,7 @@ struct OperationEventRecord: Codable, Sendable, Identifiable {
     var id: Int { seq }
 }
 
+/// Data/view model for operation snapshot record.
 struct OperationSnapshotRecord: Codable, Sendable {
     var id: String
     var kind: String
@@ -391,12 +400,14 @@ struct OperationSnapshotRecord: Codable, Sendable {
     var result: [String: JSONValue]?
 }
 
+/// Data/view model for tool operation envelope.
 struct ToolOperationEnvelope: Codable, Sendable {
     var operationId: String
     var operation: OperationSnapshotRecord
     var events: [OperationEventRecord]
 }
 
+/// Data/view model for log entry record.
 struct LogEntryRecord: Codable, Sendable, Identifiable {
     var timestamp: String?
     var severity: String
@@ -407,6 +418,7 @@ struct LogEntryRecord: Codable, Sendable, Identifiable {
     var id: String { "\(timestamp ?? "none")|\(logger)|\(raw)" }
 }
 
+/// Data/view model for diagnostic warning record.
 struct DiagnosticWarningRecord: Codable, Sendable, Identifiable {
     var code: String
     var severity: String
@@ -417,6 +429,7 @@ struct DiagnosticWarningRecord: Codable, Sendable, Identifiable {
     var id: String { "\(code)|\(timestamp ?? "none")|\(message)" }
 }
 
+/// Data/view model for logs diagnostics snapshot.
 struct LogsDiagnosticsSnapshot: Codable, Sendable {
     var configPath: String
     var logSources: [String]
@@ -427,6 +440,7 @@ struct LogsDiagnosticsSnapshot: Codable, Sendable {
     var watchPid: Int?
 }
 
+/// Data/view model for history run record.
 struct HistoryRunRecord: Codable, Sendable, Identifiable {
     var runId: String
     var startUtc: String
@@ -443,6 +457,7 @@ struct HistoryRunRecord: Codable, Sendable, Identifiable {
     var id: String { runId }
 }
 
+/// Data/view model for history summary snapshot.
 struct HistorySummarySnapshot: Codable, Sendable {
     var configPath: String
     var dbPath: String
@@ -450,12 +465,14 @@ struct HistorySummarySnapshot: Codable, Sendable {
     var runs: [HistoryRunRecord]
 }
 
+/// Result payload for diagnostics bundle result.
 struct DiagnosticsBundleResult: Codable, Sendable {
     var bundlePath: String
     var createdAtUtc: String
     var sizeBytes: Int
 }
 
+/// Data/view model for validation item.
 struct ValidationItem: Codable, Sendable, Identifiable {
     var code: String
     var message: String
@@ -464,6 +481,7 @@ struct ValidationItem: Codable, Sendable, Identifiable {
     var id: String { "\(code)|\(field)|\(message)" }
 }
 
+/// Data/view model for config validation snapshot.
 struct ConfigValidationSnapshot: Codable, Sendable {
     var configPath: String
     var ok: Bool
@@ -471,6 +489,7 @@ struct ConfigValidationSnapshot: Codable, Sendable {
     var warnings: [ValidationItem]
 }
 
+/// Data/view model for watch preflight.
 struct WatchPreflight: Codable, Sendable {
     var configPath: String
     var ok: Bool
@@ -479,6 +498,7 @@ struct WatchPreflight: Codable, Sendable {
     var healthChecks: [String: Bool]
 }
 
+/// Enumeration for jsonvalue.
 enum JSONValue: Codable, Sendable {
     case string(String)
     case number(Double)

@@ -22,6 +22,7 @@ enum BridgeError: Error, LocalizedError {
     }
 }
 
+/// Thread-safe byte accumulator for incremental bridge process output reads.
 private final class BridgeOutputAccumulator: @unchecked Sendable {
     private let lock = NSLock()
     private var storage = Data()

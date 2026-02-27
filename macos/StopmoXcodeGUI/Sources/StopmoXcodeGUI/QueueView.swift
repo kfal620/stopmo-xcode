@@ -1,9 +1,11 @@
 import SwiftUI
 
+/// Enumeration for queue focus field.
 private enum QueueFocusField: Hashable {
     case search
 }
 
+/// View rendering queue view.
 struct QueueView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

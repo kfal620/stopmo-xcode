@@ -1,6 +1,7 @@
 import Foundation
 import CoreGraphics
 
+/// Enumeration for delivery layout metrics.
 enum DeliveryLayoutMetrics {
     static let minViewportHeight: CGFloat = 420
     static let viewportTopBottomInsetCompensation: CGFloat = 8

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering root sidebar view.
 struct RootSidebarView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -136,6 +137,7 @@ struct RootSidebarView: View {
     }
 }
 
+/// Data/view model for sidebar badge.
 private struct SidebarBadge {
     let label: String
     let tone: StatusTone

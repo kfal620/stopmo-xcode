@@ -1,5 +1,6 @@
 import Foundation
 
+/// Enumeration for tools recents store.
 enum ToolsRecentsStore {
     static let maxEntries = 8
 

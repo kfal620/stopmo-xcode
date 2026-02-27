@@ -1,11 +1,13 @@
 import Foundation
 
+/// Monitoring transition output after a successful poll cycle.
 struct MonitoringSuccessState {
     let consecutiveFailures: Int
     let pollIntervalSeconds: Double
     let lastSuccessAt: Date
 }
 
+/// Monitoring transition output after a failed poll cycle.
 struct MonitoringFailureState {
     let consecutiveFailures: Int
     let pollIntervalSeconds: Double
@@ -13,6 +15,7 @@ struct MonitoringFailureState {
     let shouldEmitDegradedWarning: Bool
 }
 
+/// Polling/backoff policy helpers for live monitoring state transitions.
 enum MonitoringReducer {
     static func successTransition(
         watchState: WatchServiceState,

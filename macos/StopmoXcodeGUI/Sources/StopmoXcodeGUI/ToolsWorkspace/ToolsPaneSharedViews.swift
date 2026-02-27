@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering tools preflight summary view.
 struct ToolsPreflightSummaryView: View {
     let preflight: ToolPreflight
     let context: ToolKind
@@ -28,6 +29,7 @@ struct ToolsPreflightSummaryView: View {
     }
 }
 
+/// Data/view model for tools recents menu row.
 struct ToolsRecentsMenuRow: View {
     let title: String
     let values: [String]

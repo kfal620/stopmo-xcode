@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 
+/// Enumeration for project editor section.
 private enum ProjectEditorSection: String, CaseIterable, Identifiable {
     case watch = "Watch"
     case pipeline = "Pipeline"
@@ -41,6 +42,7 @@ private enum ProjectEditorSection: String, CaseIterable, Identifiable {
     }
 }
 
+/// View rendering project view.
 struct ProjectView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

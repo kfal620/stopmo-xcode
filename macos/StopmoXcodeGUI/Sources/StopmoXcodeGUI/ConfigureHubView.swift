@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering configure hub view.
 struct ConfigureHubView: View {
     @EnvironmentObject private var state: AppState
 

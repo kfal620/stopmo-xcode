@@ -1,5 +1,6 @@
 import Foundation
 
+/// Derived telemetry values produced from one monitoring refresh sample.
 struct LiveTelemetryUpdate {
     let throughputFramesPerMinute: Double
     let lastFrameAt: Date?
@@ -8,6 +9,7 @@ struct LiveTelemetryUpdate {
     let queueDepthTrend: [Int]
 }
 
+/// Pure helpers for throughput, queue depth trend, and live-event timeline updates.
 enum LiveTelemetryReducer {
     static func updateTelemetry(
         watchState: WatchServiceState,

@@ -318,6 +318,7 @@ final class AppState: ObservableObject {
         )
     }
 
+    /// Enumeration for refresh kind.
     enum RefreshKind: Equatable {
         case health
         case config
@@ -961,6 +962,7 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Enumeration for live refresh source.
     private enum LiveRefreshSource {
         case manual
         case monitor

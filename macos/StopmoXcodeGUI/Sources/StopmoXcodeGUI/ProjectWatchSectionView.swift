@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering project watch section view.
 struct ProjectWatchSectionView: View {
     @Binding var watch: StopmoConfigDocument.Watch
     @State private var showAdvancedTiming: Bool = false

@@ -1,10 +1,12 @@
 import SwiftUI
 
+/// Density presets used to tune card spacing and typography.
 enum CardDensity {
     case regular
     case compact
 }
 
+/// Responsive two-column layout that collapses to a vertical stack on narrow widths.
 struct AdaptiveColumns<Primary: View, Secondary: View>: View {
     @Environment(\.hubContentWidth) private var hubContentWidth
 
@@ -45,6 +47,7 @@ struct AdaptiveColumns<Primary: View, Secondary: View>: View {
     }
 }
 
+/// Shared constants for compact shot-row presentation.
 struct DenseShotRowStyle {
     static let minHeight: CGFloat = 56
     static let horizontalPadding: CGFloat = 8
@@ -53,6 +56,7 @@ struct DenseShotRowStyle {
     static let cornerRadius: CGFloat = 10
 }
 
+/// Reusable toolbar surface wrapper for grouped top-of-panel controls.
 struct ToolbarStrip<Content: View>: View {
     let title: String?
     @ViewBuilder let content: Content
@@ -81,6 +85,7 @@ struct ToolbarStrip<Content: View>: View {
     }
 }
 
+/// Adaptive metrics container built on an `adaptive` lazy grid column.
 struct MetricWrap<Content: View>: View {
     let minItemWidth: CGFloat
     let spacing: CGFloat
@@ -110,6 +115,7 @@ struct MetricWrap<Content: View>: View {
     }
 }
 
+/// Base rounded surface container that applies tokenized fill/border/shadow chrome.
 struct SurfaceContainer<Content: View>: View {
     let level: SurfaceLevel
     let chrome: CardChrome
@@ -165,6 +171,7 @@ struct SurfaceContainer<Content: View>: View {
     }
 }
 
+/// Standard section-card shell with optional title/subtitle header.
 struct SectionCard<Content: View>: View {
     let title: String
     let subtitle: String?

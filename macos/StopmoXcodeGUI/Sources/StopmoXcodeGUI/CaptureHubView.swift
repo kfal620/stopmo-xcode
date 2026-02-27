@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering capture hub view.
 struct CaptureHubView: View {
     @EnvironmentObject private var state: AppState
 

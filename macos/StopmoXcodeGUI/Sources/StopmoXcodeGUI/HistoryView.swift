@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Enumeration for history sort option.
 private enum HistorySortOption: String, CaseIterable, Identifiable {
     case startNewest = "Start (Newest)"
     case failedHighest = "Failed (Highest)"
@@ -9,10 +10,12 @@ private enum HistorySortOption: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Enumeration for history focus field.
 private enum HistoryFocusField: Hashable {
     case search
 }
 
+/// Data/view model for compare row model.
 private struct CompareRowModel: Identifiable {
     let id = UUID()
     let label: String
@@ -21,6 +24,7 @@ private struct CompareRowModel: Identifiable {
     let changed: Bool
 }
 
+/// View rendering history view.
 struct HistoryView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Data/view model for queue depth sparkline.
 struct QueueDepthSparkline: View {
     let values: [Int]
 

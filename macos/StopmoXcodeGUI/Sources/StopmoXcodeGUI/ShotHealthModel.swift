@@ -1,5 +1,6 @@
 import Foundation
 
+/// State model for shot health state.
 enum ShotHealthState: String, CaseIterable, Identifiable {
     case clean = "Clean"
     case issues = "Issues"
@@ -22,6 +23,7 @@ enum ShotHealthState: String, CaseIterable, Identifiable {
     }
 }
 
+/// Data/view model for shot health evaluation.
 struct ShotHealthEvaluation: Identifiable {
     let shot: ShotSummaryRow
     let healthState: ShotHealthState
@@ -32,6 +34,7 @@ struct ShotHealthEvaluation: Identifiable {
     var id: String { shot.id }
 }
 
+/// Enumeration for shot health model.
 enum ShotHealthModel {
     static func evaluate(_ shot: ShotSummaryRow) -> ShotHealthEvaluation {
         let healthState = healthState(for: shot)

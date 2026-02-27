@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Data/view model for notification bell button.
 struct NotificationBellButton: View {
     @EnvironmentObject private var state: AppState
 
@@ -19,6 +20,7 @@ struct NotificationBellButton: View {
     }
 }
 
+/// View rendering notification dock view.
 struct NotificationDockView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -42,6 +44,7 @@ struct NotificationDockView: View {
     }
 }
 
+/// Data/view model for notification presentation modifier.
 private struct NotificationPresentationModifier: ViewModifier {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -64,6 +67,7 @@ extension View {
     }
 }
 
+/// View rendering notification toast view.
 private struct NotificationToastView: View {
     let notification: NotificationRecord
     let dismiss: () -> Void
@@ -154,6 +158,7 @@ private struct NotificationToastView: View {
     }
 }
 
+/// Data/view model for notifications center panel.
 struct NotificationsCenterPanel: View {
     @EnvironmentObject private var state: AppState
 

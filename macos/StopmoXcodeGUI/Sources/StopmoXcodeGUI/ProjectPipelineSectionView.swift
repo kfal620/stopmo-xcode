@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering project pipeline section view.
 struct ProjectPipelineSectionView: View {
     @Binding var pipeline: StopmoConfigDocument.Pipeline
     let isBusy: Bool

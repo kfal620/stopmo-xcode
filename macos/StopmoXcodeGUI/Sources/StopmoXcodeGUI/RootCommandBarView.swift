@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// View rendering root command bar view.
 struct RootCommandBarView: View {
     @EnvironmentObject private var state: AppState
 

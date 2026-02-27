@@ -1,5 +1,6 @@
 import Foundation
 
+/// Draft-based editor model for staging, validating, and discarding config edits.
 @MainActor
 final class ProjectEditorViewModel: ObservableObject {
     @Published var draftConfig: StopmoConfigDocument = .empty

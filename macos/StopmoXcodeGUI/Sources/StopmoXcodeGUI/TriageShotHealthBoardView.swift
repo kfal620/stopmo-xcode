@@ -1,5 +1,6 @@
 import SwiftUI
 
+/// Enumeration for triage recovery mode.
 private enum TriageRecoveryMode: String, CaseIterable, Identifiable {
     case queue = "Queue Recovery"
     case diagnostics = "Diagnostics"
@@ -7,6 +8,7 @@ private enum TriageRecoveryMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Enumeration for triage shot filter.
 private enum TriageShotFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case issues = "Issues"
@@ -16,6 +18,7 @@ private enum TriageShotFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// View rendering triage shot health board view.
 struct TriageShotHealthBoardView: View {
     @EnvironmentObject private var state: AppState
 

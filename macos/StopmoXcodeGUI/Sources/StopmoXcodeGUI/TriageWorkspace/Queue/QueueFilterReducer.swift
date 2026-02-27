@@ -1,5 +1,6 @@
 import Foundation
 
+/// Queue-state filters for triage queue table views.
 enum QueueStateFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case failed = "Failed"
@@ -10,6 +11,7 @@ enum QueueStateFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Sort modes available for queue triage rows.
 enum QueueSortOption: String, CaseIterable, Identifiable {
     case updatedDesc = "Updated (Newest)"
     case attemptsDesc = "Attempts (Highest)"
@@ -20,12 +22,14 @@ enum QueueSortOption: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Pagination metadata returned for current queue table slice.
 struct QueuePaginationResult: Equatable {
     let safePageIndex: Int
     let pageCount: Int
     let pageRangeLabel: String
 }
 
+/// Pure filtering, sorting, and pagination helpers for queue rows.
 enum QueueFilterReducer {
     static func filteredJobs(
         jobs: [QueueJobRecord],
