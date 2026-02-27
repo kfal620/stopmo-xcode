@@ -23,6 +23,13 @@
 		41BDDBDD67846EDB3E49F880 /* RootSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A9FA764D88BFB34448FA570 /* RootSidebarView.swift */; };
 		42CCCA538C95B1971841A013 /* PathTimestampHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A831E44F415723F03A6F83 /* PathTimestampHelpers.swift */; };
 		4EE8C8C0ADCAE07F67608551 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 624D6464AFF1F9AF0857113A /* DesignSystem.swift */; };
+		AB1000010000000000000001 /* DesignSystem/CommandControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000010000000000000001 /* CommandControls.swift */; };
+		AB1000010000000000000002 /* DesignSystem/CoreControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000010000000000000002 /* CoreControls.swift */; };
+		AB1000010000000000000003 /* DesignSystem/DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000010000000000000003 /* DesignTokens.swift */; };
+		AB1000010000000000000004 /* DesignSystem/EnvironmentKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000010000000000000004 /* EnvironmentKeys.swift */; };
+		AB1000010000000000000005 /* DesignSystem/HeadersAndDisclosures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000010000000000000005 /* HeadersAndDisclosures.swift */; };
+		AB1000010000000000000006 /* DesignSystem/HubStyling.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000010000000000000006 /* HubStyling.swift */; };
+		AB1000010000000000000007 /* DesignSystem/LayoutPrimitives.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000010000000000000007 /* LayoutPrimitives.swift */; };
 		5A25EFDD290F8CF773FC8B6E /* StopmoXcodeGUIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */; };
 		64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */; };
 		6FD9932D64B1D1C29D753DCF /* ConfigureHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D22997BC57AA2C16218C09EB /* ConfigureHubView.swift */; };
@@ -82,6 +89,13 @@
 		502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsDiagnosticsView.swift; sourceTree = "<group>"; };
 		5BCC4BFBC596A6D73FFAA397 /* DeliveryFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryFormatting.swift; sourceTree = "<group>"; };
 		624D6464AFF1F9AF0857113A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		AB2000010000000000000001 /* CommandControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandControls.swift; sourceTree = "<group>"; };
+		AB2000010000000000000002 /* CoreControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreControls.swift; sourceTree = "<group>"; };
+		AB2000010000000000000003 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
+		AB2000010000000000000004 /* EnvironmentKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentKeys.swift; sourceTree = "<group>"; };
+		AB2000010000000000000005 /* HeadersAndDisclosures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeadersAndDisclosures.swift; sourceTree = "<group>"; };
+		AB2000010000000000000006 /* HubStyling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubStyling.swift; sourceTree = "<group>"; };
+		AB2000010000000000000007 /* LayoutPrimitives.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutPrimitives.swift; sourceTree = "<group>"; };
 		637ACA3538B5D28B71230F87 /* ShotHealthModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotHealthModel.swift; sourceTree = "<group>"; };
 		675733F70C6A47729E2C036B /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		6851888A471B45F362B9E693 /* packaging/entitlements.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.plist; sourceTree = "<group>"; };
@@ -173,6 +187,20 @@
 			path = DeliveryDayWrap;
 			sourceTree = "<group>";
 		};
+		AB3000010000000000000001 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				AB2000010000000000000001 /* CommandControls.swift */,
+				AB2000010000000000000002 /* CoreControls.swift */,
+				AB2000010000000000000003 /* DesignTokens.swift */,
+				AB2000010000000000000004 /* EnvironmentKeys.swift */,
+				AB2000010000000000000005 /* HeadersAndDisclosures.swift */,
+				AB2000010000000000000006 /* HubStyling.swift */,
+				AB2000010000000000000007 /* LayoutPrimitives.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
 		AA7000010000000000000001 /* ToolsWorkspace */ = {
 			isa = PBXGroup;
 			children = (
@@ -206,6 +234,7 @@
 				FF5C31137C8AF36D1AAF0C40 /* DeliveryDayWrapView.swift */,
 				9224EAA88378396F8FB7C33F /* DeliveryRunReducer.swift */,
 				624D6464AFF1F9AF0857113A /* DesignSystem.swift */,
+				AB3000010000000000000001 /* DesignSystem */,
 				9AB5C1CB812516A120B00D2C /* HistoryView.swift */,
 				3AA8C29F2890A8B9B00E7004 /* LiveTelemetryReducer.swift */,
 				2661854D098998B2EA8E7B34 /* LiveMonitorView.swift */,
@@ -330,6 +359,13 @@
 				E4D06FD8A41D8BBF5757BD6A /* DeliveryDayWrapView.swift in Sources */,
 				2F1A2041FB46702C782E5C98 /* DeliveryRunReducer.swift in Sources */,
 				4EE8C8C0ADCAE07F67608551 /* DesignSystem.swift in Sources */,
+				AB1000010000000000000001 /* DesignSystem/CommandControls.swift in Sources */,
+				AB1000010000000000000002 /* DesignSystem/CoreControls.swift in Sources */,
+				AB1000010000000000000003 /* DesignSystem/DesignTokens.swift in Sources */,
+				AB1000010000000000000004 /* DesignSystem/EnvironmentKeys.swift in Sources */,
+				AB1000010000000000000005 /* DesignSystem/HeadersAndDisclosures.swift in Sources */,
+				AB1000010000000000000006 /* DesignSystem/HubStyling.swift in Sources */,
+				AB1000010000000000000007 /* DesignSystem/LayoutPrimitives.swift in Sources */,
 				A5DC539A64BD86625DC80324 /* HistoryView.swift in Sources */,
 				3AA8C29F2890A8B9B00E6004 /* LiveTelemetryReducer.swift in Sources */,
 				157A5419C022C0B3ABD5CDD2 /* LiveMonitorView.swift in Sources */,
