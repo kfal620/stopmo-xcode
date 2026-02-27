@@ -1,3 +1,5 @@
+"""Optional debug image writer helpers."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,6 +8,8 @@ import numpy as np
 
 
 def write_linear_debug_tiff(path: Path, rgb: np.ndarray) -> None:
+    """Write float linear RGB array to TIFF when debug output is enabled."""
+
     try:
         import tifffile  # type: ignore
     except Exception as exc:  # pragma: no cover - optional dependency

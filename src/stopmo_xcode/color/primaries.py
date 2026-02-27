@@ -1,3 +1,5 @@
+"""Color primary/white-point matrix math utilities for reference conversions."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -12,11 +14,15 @@ AWG_WHITE = np.array([0.3127, 0.3290], dtype=np.float64)  # D65
 
 
 def _xy_to_xyz(xy: np.ndarray) -> np.ndarray:
+    """Convert xy chromaticity coordinates to normalized XYZ."""
+
     x, y = float(xy[0]), float(xy[1])
     return np.array([x / y, 1.0, (1.0 - x - y) / y], dtype=np.float64)
 
 
 def rgb_to_xyz_matrix(primaries: np.ndarray, white_xy: np.ndarray) -> np.ndarray:
+    """Compute RGB-to-XYZ matrix from primaries and white chromaticity."""
+
     xr, yr = primaries[0]
     xg, yg = primaries[1]
     xb, yb = primaries[2]
@@ -32,6 +38,8 @@ def rgb_to_xyz_matrix(primaries: np.ndarray, white_xy: np.ndarray) -> np.ndarray
 
 
 def _bradford_adaptation(src_white_xy: np.ndarray, dst_white_xy: np.ndarray) -> np.ndarray:
+    """Build Bradford adaptation matrix between two chromaticities."""
+
     # Bradford CAT.
     m = np.array(
         [[0.8951, 0.2664, -0.1614], [-0.7502, 1.7135, 0.0367], [0.0389, -0.0685, 1.0296]],
@@ -50,6 +58,8 @@ def _bradford_adaptation(src_white_xy: np.ndarray, dst_white_xy: np.ndarray) -> 
 
 
 def matrix_aces_to_awg_linear() -> np.ndarray:
+    """Return linear matrix from ACES AP0 (D60) to ARRI Wide Gamut (D65)."""
+
     m_ap0_to_xyz = rgb_to_xyz_matrix(AP0_PRIMARIES, AP0_WHITE)
     m_xyz_to_awg = np.linalg.inv(rgb_to_xyz_matrix(AWG_PRIMARIES, AWG_WHITE))
     adapt = _bradford_adaptation(AP0_WHITE, AWG_WHITE)

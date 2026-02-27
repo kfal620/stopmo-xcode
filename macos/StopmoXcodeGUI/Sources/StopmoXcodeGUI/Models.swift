@@ -1,5 +1,6 @@
 import Foundation
 
+/// Top-level lifecycle navigation hubs for the desktop app.
 enum LifecycleHub: String, CaseIterable, Identifiable {
     case configure = "Configure"
     case capture = "Capture"
@@ -35,6 +36,7 @@ enum LifecycleHub: String, CaseIterable, Identifiable {
     }
 }
 
+/// Configure workspace sub-panels.
 enum ConfigurePanel: String, CaseIterable, Identifiable {
     case projectSettings = "Project Settings"
     case workspaceHealth = "Workspace & Health"
@@ -54,6 +56,7 @@ enum ConfigurePanel: String, CaseIterable, Identifiable {
     }
 }
 
+/// Triage workspace sub-panels.
 enum TriagePanel: String, CaseIterable, Identifiable {
     case shots = "Shots"
     case queue = "Queue"
@@ -73,6 +76,7 @@ enum TriagePanel: String, CaseIterable, Identifiable {
     }
 }
 
+/// Deliver workspace sub-panels.
 enum DeliverPanel: String, CaseIterable, Identifiable {
     case dayWrap = "Day Wrap"
     case runHistory = "Run History"
@@ -89,6 +93,7 @@ enum DeliverPanel: String, CaseIterable, Identifiable {
     }
 }
 
+/// Aggregated delivery run status presented in the deliver workspace.
 enum DeliveryRunStatus: String, Codable, Sendable {
     case idle = "Idle"
     case running = "Running"
@@ -97,11 +102,13 @@ enum DeliveryRunStatus: String, Codable, Sendable {
     case failed = "Failed"
 }
 
+/// Delivery run mode for either explicit selection or full day-wrap batch.
 enum DeliveryRunKind: String, Codable, Sendable {
     case selectedShots = "Selected Shots"
     case dayWrapBatch = "Day Wrap Batch"
 }
 
+/// Visual tone used for per-event delivery run timeline rows.
 enum DeliveryRunEventTone: String, Codable, Sendable {
     case neutral
     case success
@@ -109,6 +116,7 @@ enum DeliveryRunEventTone: String, Codable, Sendable {
     case danger
 }
 
+/// Individual delivery run event row rendered in operation history UI.
 struct DeliveryRunEvent: Identifiable, Codable, Sendable {
     var id: String
     var timestampUtc: String
@@ -118,6 +126,7 @@ struct DeliveryRunEvent: Identifiable, Codable, Sendable {
     var shotName: String?
 }
 
+/// Summary state for active/last delivery run progress and events.
 struct DeliveryRunState: Codable, Sendable {
     var kind: DeliveryRunKind
     var status: DeliveryRunStatus
@@ -148,6 +157,7 @@ struct DeliveryRunState: Codable, Sendable {
     }
 }
 
+/// Runtime/backend health payload returned by Python bridge health command.
 struct BridgeHealth: Codable, Sendable {
     var backendMode: String?
     var backendRoot: String?
@@ -167,7 +177,9 @@ struct BridgeHealth: Codable, Sendable {
     var watchDbPath: String?
 }
 
+/// Editable project config document mirrored between bridge JSON and Swift UI.
 struct StopmoConfigDocument: Codable, Sendable {
+    /// Watch section values controlling source ingest and queue worker behavior.
     struct Watch: Codable, Sendable {
         var sourceDir: String
         var workingDir: String
@@ -182,6 +194,7 @@ struct StopmoConfigDocument: Codable, Sendable {
         var shotRegex: String?
     }
 
+    /// Pipeline section values controlling deterministic color/exposure behavior.
     struct Pipeline: Codable, Sendable {
         var cameraToReferenceMatrix: [[Double]]
         var exposureOffsetStops: Double
@@ -203,6 +216,7 @@ struct StopmoConfigDocument: Codable, Sendable {
         var ocioOutputSpace: String
     }
 
+    /// Output section values controlling sidecars, debug artifacts, and delivery.
     struct Output: Codable, Sendable {
         var emitPerFrameJson: Bool
         var emitTruthFramePack: Bool

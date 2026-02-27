@@ -1,3 +1,5 @@
+"""EXIF extraction helpers for deterministic metadata-based exposure terms."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,12 +12,16 @@ import subprocess
 
 @dataclass
 class ExifMetadata:
+    """Subset of EXIF fields needed for optional deterministic compensation."""
+
     iso: float | None = None
     shutter_s: float | None = None
     aperture_f: float | None = None
 
 
 def _ratio_like_to_float(value: Any) -> float | None:
+    """Normalize EXIF numeric encodings (ratio/list/scalar) to float."""
+
     if value is None:
         return None
 
@@ -36,6 +42,8 @@ def _ratio_like_to_float(value: Any) -> float | None:
 
 
 def _extract_with_exifread(path: Path) -> ExifMetadata:
+    """Extract metadata via `exifread` when format support is reliable."""
+
     try:
         import exifread  # type: ignore
     except Exception:
@@ -60,6 +68,8 @@ def _extract_with_exifread(path: Path) -> ExifMetadata:
 
 
 def _extract_with_exiftool(path: Path) -> ExifMetadata:
+    """Extract metadata via exiftool CLI as fallback for unsupported containers."""
+
     exiftool = shutil.which("exiftool")
     if exiftool is None:
         return ExifMetadata()

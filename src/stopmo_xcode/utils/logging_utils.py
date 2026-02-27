@@ -1,3 +1,5 @@
+"""Logging setup helpers for CLI, service, and app API entrypoints."""
+
 from __future__ import annotations
 
 import logging
@@ -5,6 +7,8 @@ from pathlib import Path
 
 
 def configure_logging(level: str, log_file: Path | None = None) -> None:
+    """Configure consistent root logging handlers and format for runtime tools."""
+
     resolved_level = getattr(logging, level.upper(), logging.INFO)
     handlers: list[logging.Handler] = [logging.StreamHandler()]
 

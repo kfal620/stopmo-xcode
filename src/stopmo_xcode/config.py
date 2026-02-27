@@ -1,3 +1,5 @@
+"""Load and validate project configuration for pipeline, watch, and output behavior."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -7,6 +9,8 @@ from typing import Any
 
 @dataclass
 class WatchConfig:
+    """Runtime watch settings for source ingest, polling, and worker concurrency."""
+
     source_dir: Path
     working_dir: Path
     output_dir: Path
@@ -22,6 +26,8 @@ class WatchConfig:
 
 @dataclass
 class PipelineConfig:
+    """Deterministic color/exposure settings shared by worker and tool commands."""
+
     camera_to_reference_matrix: tuple[tuple[float, float, float], ...] = (
         (1.0, 0.0, 0.0),
         (0.0, 1.0, 0.0),
@@ -48,6 +54,8 @@ class PipelineConfig:
 
 @dataclass
 class OutputConfig:
+    """Output-side toggles for sidecars, truth packs, and delivery artifacts."""
+
     emit_per_frame_json: bool = True
     emit_truth_frame_pack: bool = True
     truth_frame_index: int = 1
@@ -59,6 +67,8 @@ class OutputConfig:
 
 @dataclass
 class AppConfig:
+    """Top-level app configuration loaded from YAML and normalized to typed values."""
+
     watch: WatchConfig
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
@@ -67,12 +77,16 @@ class AppConfig:
 
 
 def _as_tuple_matrix(raw: list[list[float]]) -> tuple[tuple[float, float, float], ...]:
+    """Validate and normalize a 3x3 matrix payload into an immutable tuple form."""
+
     if len(raw) != 3 or any(len(row) != 3 for row in raw):
         raise ValueError("camera_to_reference_matrix must be 3x3")
     return tuple(tuple(float(v) for v in row) for row in raw)
 
 
 def _expand_path(value: str | None, base: Path) -> Path | None:
+    """Resolve relative paths against config location; preserve missing optional values."""
+
     if value in (None, ""):
         return None
     path = Path(value)
@@ -82,12 +96,16 @@ def _expand_path(value: str | None, base: Path) -> Path | None:
 
 
 def _require(data: dict[str, Any], key: str) -> Any:
+    """Fetch a required key from a config section or raise a structured error."""
+
     if key not in data:
         raise ValueError(f"missing required config key: {key}")
     return data[key]
 
 
 def load_config(path: str | Path) -> AppConfig:
+    """Load YAML config and materialize normalized typed config with defaults."""
+
     try:
         import yaml  # type: ignore
     except Exception as exc:
@@ -169,6 +187,8 @@ def load_config(path: str | Path) -> AppConfig:
 
 
 def ensure_dirs(config: AppConfig) -> None:
+    """Create required runtime directories referenced by the active configuration."""
+
     config.watch.source_dir.mkdir(parents=True, exist_ok=True)
     config.watch.working_dir.mkdir(parents=True, exist_ok=True)
     config.watch.output_dir.mkdir(parents=True, exist_ok=True)

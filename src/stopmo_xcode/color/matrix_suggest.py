@@ -1,3 +1,5 @@
+"""Camera matrix suggestion heuristics for camera-linear to ACES reference mapping."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -31,6 +33,8 @@ KNOWN_CAMERA_TO_XYZ_D65: dict[str, np.ndarray] = {
 
 @dataclass
 class MatrixSuggestion:
+    """Structured matrix suggestion report for CLI and GUI payloads."""
+
     input_path: Path
     camera_make: str | None
     camera_model: str | None
@@ -43,6 +47,8 @@ class MatrixSuggestion:
     notes: tuple[str, ...]
 
     def to_json_dict(self) -> dict[str, Any]:
+        """Serialize suggestion report into JSON-compatible primitives."""
+
         return {
             "input_path": str(self.input_path),
             "camera_make": self.camera_make,
@@ -57,6 +63,8 @@ class MatrixSuggestion:
         }
 
     def to_yaml_block(self) -> str:
+        """Render matrix suggestion as `pipeline.camera_to_reference_matrix` YAML snippet."""
+
         rows = [
             f"    - [{row[0]:.8f}, {row[1]:.8f}, {row[2]:.8f}]"
             for row in self.camera_to_reference_matrix
@@ -65,6 +73,8 @@ class MatrixSuggestion:
 
 
 def _normalize_camera_key(make: str | None, model: str | None) -> str | None:
+    """Normalize make/model text to lookup key for known-camera table."""
+
     text = " ".join([v for v in [make, model] if v]).strip().lower()
     if not text:
         return None
@@ -73,6 +83,8 @@ def _normalize_camera_key(make: str | None, model: str | None) -> str | None:
 
 
 def lookup_known_camera_to_xyz_d65(make: str | None, model: str | None) -> np.ndarray | None:
+    """Return known camera->XYZ(D65) matrix for a make/model pair when available."""
+
     key = _normalize_camera_key(make, model)
     if key is None:
         return None
@@ -88,11 +100,15 @@ def lookup_known_camera_to_xyz_d65(make: str | None, model: str | None) -> np.nd
 
 
 def _xy_to_xyz(xy: np.ndarray) -> np.ndarray:
+    """Convert xy chromaticity to unit-luminance XYZ vector."""
+
     x, y = float(xy[0]), float(xy[1])
     return np.array([x / y, 1.0, (1.0 - x - y) / y], dtype=np.float64)
 
 
 def _bradford_adaptation(src_white_xy: np.ndarray, dst_white_xy: np.ndarray) -> np.ndarray:
+    """Build Bradford chromatic adaptation matrix between source and destination white."""
+
     m = np.array(
         [
             [0.8951, 0.2664, -0.1614],
@@ -113,12 +129,16 @@ def _bradford_adaptation(src_white_xy: np.ndarray, dst_white_xy: np.ndarray) -> 
 
 
 def _camera_xyz_d65_to_aces2065_1(camera_to_xyz_d65: np.ndarray) -> np.ndarray:
+    """Convert camera->XYZ(D65) matrix to camera->ACES2065-1 matrix."""
+
     xyz_d65_to_xyz_d60 = _bradford_adaptation(D65_WHITE, AP0_WHITE)
     xyz_d60_to_ap0 = np.linalg.inv(rgb_to_xyz_matrix(AP0_PRIMARIES, AP0_WHITE))
     return xyz_d60_to_ap0 @ xyz_d65_to_xyz_d60 @ camera_to_xyz_d65
 
 
 def _coerce_to_3x3(value: Any) -> tuple[np.ndarray | None, list[str]]:
+    """Normalize matrix-like metadata payloads into finite 3x3 matrix when possible."""
+
     notes: list[str] = []
     if value is None:
         return None, notes
@@ -158,6 +178,8 @@ def _coerce_to_3x3(value: Any) -> tuple[np.ndarray | None, list[str]]:
 
 
 def _extract_make_model_exiftool(path: Path) -> tuple[str | None, str | None]:
+    """Read camera make/model via exiftool when rawpy metadata is missing."""
+
     exiftool = shutil.which("exiftool")
     if exiftool is None:
         return None, None
@@ -188,6 +210,8 @@ def suggest_camera_to_reference_matrix(
     camera_make_override: str | None = None,
     camera_model_override: str | None = None,
 ) -> MatrixSuggestion:
+    """Suggest camera-to-reference matrix with provenance, confidence, and notes."""
+
     if reference_space != "ACES2065-1":
         raise ValueError("Only ACES2065-1 reference is currently supported.")
 

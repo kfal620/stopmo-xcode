@@ -1,3 +1,5 @@
+"""SQLite-backed queue and shot-state persistence for deterministic frame processing."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -11,6 +13,8 @@ from typing import Any
 
 
 class JobState(str, enum.Enum):
+    """Canonical queue lifecycle states for frame jobs."""
+
     DETECTED = "detected"
     DECODING = "decoding"
     XFORM = "xform"
@@ -24,6 +28,8 @@ INFLIGHT_STATES = (JobState.DECODING.value, JobState.XFORM.value, JobState.DPX_W
 
 @dataclass
 class Job:
+    """Queue job row representing one source frame through the processing lifecycle."""
+
     id: int
     source_path: str
     shot_name: str
@@ -37,6 +43,8 @@ class Job:
 
     @classmethod
     def from_row(cls, row: sqlite3.Row) -> "Job":
+        """Materialize a typed job from a SQLite row payload."""
+
         return cls(
             id=row["id"],
             source_path=row["source_path"],
@@ -53,6 +61,8 @@ class Job:
 
 @dataclass
 class ShotSettings:
+    """Per-shot locked settings used to keep WB and exposure deterministic."""
+
     shot_name: str
     wb_multipliers: tuple[float, float, float, float]
     exposure_offset_stops: float
@@ -61,7 +71,11 @@ class ShotSettings:
 
 
 class QueueDB:
+    """Queue persistence API used by watcher, workers, service, and bridge surfaces."""
+
     def __init__(self, db_path: Path) -> None:
+        """Open queue database connection and ensure required schema exists."""
+
         self.db_path = db_path
         self._conn = sqlite3.connect(str(db_path), timeout=30, isolation_level=None, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
@@ -70,13 +84,19 @@ class QueueDB:
         self.init_schema()
 
     def close(self) -> None:
+        """Close the underlying SQLite connection."""
+
         self._conn.close()
 
     @staticmethod
     def _now() -> str:
+        """Return current UTC timestamp for row update metadata."""
+
         return datetime.now(timezone.utc).isoformat()
 
     def init_schema(self) -> None:
+        """Create queue, shot settings, and assembly tracking tables if missing."""
+
         self._conn.executescript(
             """
             CREATE TABLE IF NOT EXISTS jobs (
@@ -123,6 +143,8 @@ class QueueDB:
         )
 
     def enqueue_detected(self, source_path: Path, shot_name: str, frame_number: int) -> bool:
+        """Insert a newly detected frame job if it does not already exist."""
+
         now = self._now()
         try:
             self._conn.execute(
@@ -137,6 +159,8 @@ class QueueDB:
             return False
 
     def force_detected(self, source_path: Path, shot_name: str, frame_number: int) -> None:
+        """Upsert a source job back to `detected` for one-shot transcode workflows."""
+
         now = self._now()
         self._conn.execute(
             """
@@ -156,6 +180,8 @@ class QueueDB:
         )
 
     def reset_inflight_to_detected(self) -> int:
+        """Crash-recovery reset for inflight jobs back to `detected` on startup."""
+
         now = self._now()
         cur = self._conn.execute(
             f"""
@@ -168,6 +194,8 @@ class QueueDB:
         return int(cur.rowcount)
 
     def lease_next_job(self, worker_id: str) -> Job | None:
+        """Atomically lease the oldest detected job and transition it to `decoding`."""
+
         now = self._now()
         self._conn.execute("BEGIN IMMEDIATE")
         row = self._conn.execute(
@@ -208,6 +236,8 @@ class QueueDB:
         return Job.from_row(leased)
 
     def lease_job_for_source(self, source_path: Path, worker_id: str) -> Job | None:
+        """Atomically lease a specific source-path job for targeted debug processing."""
+
         now = self._now()
         self._conn.execute("BEGIN IMMEDIATE")
         row = self._conn.execute(
@@ -247,6 +277,8 @@ class QueueDB:
         return Job.from_row(leased)
 
     def transition(self, job_id: int, from_state: JobState, to_state: JobState, last_error: str | None = None) -> None:
+        """Move a job between adjacent lifecycle states with optimistic-state guard."""
+
         now = self._now()
         self._conn.execute(
             """
@@ -258,6 +290,8 @@ class QueueDB:
         )
 
     def mark_done(self, job_id: int, output_path: Path, source_sha256: str | None = None) -> None:
+        """Finalize a job as done and persist output traceability metadata."""
+
         now = self._now()
         self._conn.execute(
             """
@@ -269,6 +303,8 @@ class QueueDB:
         )
 
     def mark_failed(self, job_id: int, error: str) -> None:
+        """Finalize a job as failed with last-error payload for diagnostics."""
+
         now = self._now()
         self._conn.execute(
             """
@@ -280,12 +316,16 @@ class QueueDB:
         )
 
     def stats(self) -> dict[str, int]:
+        """Return counts per queue state for status and monitoring surfaces."""
+
         rows = self._conn.execute(
             "SELECT state, COUNT(*) AS n FROM jobs GROUP BY state ORDER BY state"
         ).fetchall()
         return {row["state"]: int(row["n"]) for row in rows}
 
     def recent_jobs(self, limit: int = 20) -> list[Job]:
+        """Fetch most recently updated jobs for CLI/GUI inspection."""
+
         rows = self._conn.execute(
             """
             SELECT *
@@ -298,12 +338,16 @@ class QueueDB:
         return [Job.from_row(r) for r in rows]
 
     def get_output_path(self, job_id: int) -> str | None:
+        """Get output DPX path associated with a finished job."""
+
         row = self._conn.execute("SELECT output_path FROM jobs WHERE id = ?", (job_id,)).fetchone()
         if row is None:
             return None
         return row["output_path"]
 
     def get_shot_settings(self, shot_name: str) -> ShotSettings | None:
+        """Read deterministic per-shot settings if already locked for that shot."""
+
         row = self._conn.execute(
             "SELECT * FROM shot_settings WHERE shot_name = ?",
             (shot_name,),
@@ -326,6 +370,8 @@ class QueueDB:
         exposure_offset_stops: float,
         reference_source_path: Path,
     ) -> None:
+        """Persist shot-level WB/exposure lock values derived from first frame."""
+
         now = self._now()
         self._conn.execute(
             """
@@ -344,6 +390,8 @@ class QueueDB:
         )
 
     def mark_shot_frame_done(self, shot_name: str) -> None:
+        """Update last-done timestamp for shot assembly staleness tracking."""
+
         now = self._now()
         self._conn.execute(
             """
@@ -358,6 +406,8 @@ class QueueDB:
         )
 
     def shots_ready_for_assembly(self, stale_seconds: float) -> list[str]:
+        """List shots with no recent completed frames and pending assembly work."""
+
         rows = self._conn.execute(
             """
             SELECT shot_name
@@ -376,6 +426,8 @@ class QueueDB:
         output_mov_path: Path,
         review_mov_path: Path | None,
     ) -> None:
+        """Mark shot assembly completion and persist resulting media paths."""
+
         now = self._now()
         self._conn.execute(
             """
@@ -387,6 +439,8 @@ class QueueDB:
         )
 
     def mark_shot_assembly_failed(self, shot_name: str) -> None:
+        """Mark shot assembly failure so loops can retry and diagnostics can surface it."""
+
         now = self._now()
         self._conn.execute(
             """
@@ -399,4 +453,6 @@ class QueueDB:
 
 
 def asdict(job: Job) -> dict[str, Any]:
+    """Convert a typed job row to a plain dictionary payload."""
+
     return dataclasses.asdict(job)

@@ -26,3 +26,10 @@ Thanks for contributing to `stopmo-xcode`.
 - Keep docs/config/tests updated with behavior changes.
 - Preserve deterministic pipeline invariants documented in `docs/interpretation-contract.md`.
 - Include concise test notes in PR descriptions (what ran, what changed).
+- Follow project commenting guidance in `docs/commenting-standards.md`.
+
+## Commenting Expectations
+
+- Add module/type/function docs for touched production code when intent is non-obvious.
+- Prioritize comments on invariants, contracts, and edge-case handling.
+- Avoid comments that merely restate syntax.

@@ -1,3 +1,5 @@
+"""JSON bridge between GUI/automation surfaces and Python backend operations."""
+
 from __future__ import annotations
 
 import argparse
@@ -22,6 +24,8 @@ from stopmo_xcode.queue import JobState, QueueDB
 
 
 def _cfg_to_dict(config: AppConfig) -> dict[str, object]:
+    """Serialize typed config dataclasses into bridge-friendly JSON payload shape."""
+
     return {
         "watch": {
             "source_dir": str(config.watch.source_dir),
@@ -75,6 +79,8 @@ def _cfg_to_dict(config: AppConfig) -> dict[str, object]:
 
 
 def _read_json_stdin() -> dict[str, Any]:
+    """Read and validate JSON object payload from stdin."""
+
     raw = sys.stdin.read()
     if not raw.strip():
         raise ValueError("expected JSON payload on stdin")
@@ -85,6 +91,8 @@ def _read_json_stdin() -> dict[str, Any]:
 
 
 def _pick(data: dict[str, Any], *keys: str) -> Any:
+    """Return first present key from aliases or raise if none exist."""
+
     for key in keys:
         if key in data:
             return data[key]
@@ -92,6 +100,8 @@ def _pick(data: dict[str, Any], *keys: str) -> Any:
 
 
 def _optional(data: dict[str, Any], *keys: str, default: Any = None) -> Any:
+    """Return first present key from aliases, otherwise a provided default."""
+
     for key in keys:
         if key in data:
             return data[key]
@@ -99,6 +109,8 @@ def _optional(data: dict[str, Any], *keys: str, default: Any = None) -> Any:
 
 
 def _to_bool(value: Any) -> bool:
+    """Normalize booleans from bool/number/string bridge payload values."""
+
     if isinstance(value, bool):
         return value
     if isinstance(value, (int, float)):
@@ -113,18 +125,24 @@ def _to_bool(value: Any) -> bool:
 
 
 def _to_path(value: Any) -> Path:
+    """Resolve required path-like value to absolute `Path`."""
+
     if value in (None, ""):
         raise ValueError("required path value is missing")
     return Path(str(value)).expanduser().resolve()
 
 
 def _to_optional_path(value: Any) -> Path | None:
+    """Resolve optional path-like value to absolute `Path` when provided."""
+
     if value in (None, ""):
         return None
     return Path(str(value)).expanduser().resolve()
 
 
 def _to_float(value: Any, *, default: float | None = None) -> float:
+    """Normalize required numeric payload field into float."""
+
     if value in (None, ""):
         if default is not None:
             return float(default)
@@ -133,12 +151,16 @@ def _to_float(value: Any, *, default: float | None = None) -> float:
 
 
 def _to_optional_float(value: Any) -> float | None:
+    """Normalize optional numeric payload field into float."""
+
     if value in (None, ""):
         return None
     return float(value)
 
 
 def _to_int(value: Any, *, default: int | None = None) -> int:
+    """Normalize required integer payload field into int."""
+
     if value in (None, ""):
         if default is not None:
             return int(default)
@@ -147,6 +169,8 @@ def _to_int(value: Any, *, default: int | None = None) -> int:
 
 
 def _to_matrix(raw: Any) -> tuple[tuple[float, float, float], ...]:
+    """Validate and normalize camera matrix payload into a typed 3x3 tuple."""
+
     if not isinstance(raw, list) or len(raw) != 3:
         raise ValueError("camera_to_reference_matrix must be a 3x3 list")
     out: list[tuple[float, float, float]] = []
@@ -158,6 +182,8 @@ def _to_matrix(raw: Any) -> tuple[tuple[float, float, float], ...]:
 
 
 def _payload_to_config(payload: dict[str, Any]) -> AppConfig:
+    """Convert bridge JSON payload into normalized typed app config."""
+
     watch_raw = _pick(payload, "watch")
     pipeline_raw = _pick(payload, "pipeline")
     output_raw = _pick(payload, "output")
@@ -267,6 +293,8 @@ def _payload_to_config(payload: dict[str, Any]) -> AppConfig:
 
 
 def _config_to_yaml_payload(config: AppConfig) -> dict[str, object]:
+    """Convert typed config into YAML-compatible primitive payload."""
+
     return {
         "watch": {
             "source_dir": str(config.watch.source_dir),
@@ -316,6 +344,8 @@ def _config_to_yaml_payload(config: AppConfig) -> dict[str, object]:
 
 
 def read_config_payload(config_path: str | Path) -> dict[str, object]:
+    """Load config and return a GUI-friendly JSON payload."""
+
     cfg = load_config(config_path)
     payload = _cfg_to_dict(cfg)
     payload["config_path"] = str(Path(config_path).expanduser().resolve())
@@ -323,6 +353,8 @@ def read_config_payload(config_path: str | Path) -> dict[str, object]:
 
 
 def write_config_payload(config_path: str | Path, payload: dict[str, Any]) -> dict[str, object]:
+    """Validate and save config payload, returning resolved persisted config."""
+
     try:
         import yaml  # type: ignore
     except Exception as exc:
@@ -344,6 +376,8 @@ def write_config_payload(config_path: str | Path, payload: dict[str, Any]) -> di
 
 
 def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
+    """Return runtime health/dependency diagnostics for GUI preflight surfaces."""
+
     runtime_mode = str(os.environ.get("STOPMO_XCODE_RUNTIME_MODE", "external") or "external").strip().lower()
     backend_root_env = os.environ.get("STOPMO_XCODE_BACKEND_ROOT")
     backend_root = Path(backend_root_env).expanduser().resolve() if backend_root_env else Path.cwd().resolve()
@@ -417,10 +451,14 @@ def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
 
 
 def _now_utc_iso() -> str:
+    """Return UTC timestamp string for bridge state payloads."""
+
     return datetime.now(timezone.utc).isoformat()
 
 
 def _queue_status_from_config(config_path: str | Path, limit: int = 200) -> dict[str, object]:
+    """Collect queue counts and recent job rows for a given config."""
+
     cfg = load_config(config_path)
     db = QueueDB(cfg.watch.db_path)
     try:
@@ -451,10 +489,14 @@ def _queue_status_from_config(config_path: str | Path, limit: int = 200) -> dict
 
 
 def queue_status_payload(config_path: str | Path, limit: int = 200) -> dict[str, object]:
+    """Public queue-status payload wrapper used by CLI bridge command."""
+
     return _queue_status_from_config(config_path=config_path, limit=limit)
 
 
 def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = None) -> dict[str, object]:
+    """Reset failed jobs to detected state, optionally scoped to specific ids."""
+
     cfg = load_config(config_path)
     db = QueueDB(cfg.watch.db_path)
     try:
@@ -508,6 +550,8 @@ def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = 
 
 
 def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str, object]:
+    """Aggregate per-shot queue/assembly summary rows for triage surfaces."""
+
     cfg = load_config(config_path)
     conn = sqlite3.connect(str(cfg.watch.db_path), timeout=30, isolation_level=None)
     conn.row_factory = sqlite3.Row
@@ -585,11 +629,15 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
 
 
 def _watch_state_file(config_path: str | Path) -> Path:
+    """Return GUI watch-state sidecar path under config working directory."""
+
     cfg = load_config(config_path)
     return cfg.watch.working_dir / ".stopmo_gui_watch.json"
 
 
 def _read_watch_state(path: Path) -> dict[str, Any] | None:
+    """Best-effort read of watch-state sidecar; return `None` when unavailable."""
+
     if not path.exists():
         return None
     try:
@@ -602,11 +650,15 @@ def _read_watch_state(path: Path) -> dict[str, Any] | None:
 
 
 def _write_watch_state(path: Path, payload: dict[str, Any]) -> None:
+    """Persist watch-state sidecar consumed by GUI watch controls."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _is_pid_running(pid: int | None) -> bool:
+    """Check whether a pid currently appears alive from this process context."""
+
     if pid is None or pid <= 0:
         return False
     try:
@@ -621,6 +673,8 @@ def _is_pid_running(pid: int | None) -> bool:
 
 
 def _tail_lines(path: Path | None, max_lines: int = 40) -> list[str]:
+    """Read trailing log lines without loading full files into memory."""
+
     if path is None or not path.exists():
         return []
     if max_lines <= 0:
@@ -660,6 +714,8 @@ _LOG_LINE_RE = re.compile(
 
 
 def _parse_log_lines(lines: list[str], severity_filter: set[str] | None = None) -> list[dict[str, object]]:
+    """Parse log lines into structured records with optional severity filtering."""
+
     out: list[dict[str, object]] = []
     for line in lines:
         m = _LOG_LINE_RE.match(line)
@@ -688,6 +744,8 @@ def _parse_log_lines(lines: list[str], severity_filter: set[str] | None = None) 
 
 
 def _collect_diagnostic_warnings(log_entries: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Extract known warning signatures from parsed logs for UI diagnostics."""
+
     warnings: list[dict[str, object]] = []
     patterns: tuple[tuple[str, str], ...] = (
         ("clipping", "high pre-log clipping ratio"),
@@ -715,23 +773,31 @@ def _collect_diagnostic_warnings(log_entries: list[dict[str, object]]) -> list[d
 
 
 def _read_log_lines(log_path: Path, limit: int = 400) -> list[str]:
+    """Read bounded tail of a log file for diagnostics payloads."""
+
     if not log_path.exists():
         return []
     return _tail_lines(log_path, max_lines=max(1, int(limit)))
 
 
 def _load_cfg_for_path(config_path: str | Path) -> tuple[Path, AppConfig]:
+    """Resolve config path and load typed config in one helper."""
+
     cfg_path = Path(config_path).expanduser().resolve()
     cfg = load_config(cfg_path)
     return cfg_path, cfg
 
 
 def _runtime_state_file(config_path: str | Path) -> Path:
+    """Return service runtime-state sidecar path."""
+
     cfg = load_config(config_path)
     return cfg.watch.working_dir / ".stopmo_runtime_state.json"
 
 
 def _read_runtime_state(path: Path) -> dict[str, object]:
+    """Best-effort read of watch service runtime-state payload."""
+
     if not path.exists():
         return {}
     try:
@@ -744,6 +810,8 @@ def _read_runtime_state(path: Path) -> dict[str, object]:
 
 
 def validate_config_payload(config_path: str | Path) -> dict[str, object]:
+    """Validate config semantics and path accessibility for watch readiness."""
+
     cfg_path, cfg = _load_cfg_for_path(config_path)
     errors: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
@@ -846,6 +914,8 @@ def validate_config_payload(config_path: str | Path) -> dict[str, object]:
 
 
 def watch_preflight_payload(config_path: str | Path) -> dict[str, object]:
+    """Combine config validation and runtime checks into start-blocker result."""
+
     cfg_path, cfg = _load_cfg_for_path(config_path)
     validation = validate_config_payload(cfg_path)
     health = health_payload(cfg_path)
@@ -872,6 +942,8 @@ def watch_preflight_payload(config_path: str | Path) -> dict[str, object]:
 
 
 def watch_start_payload(config_path: str | Path) -> dict[str, object]:
+    """Start background watch process when preflight passes and persist state."""
+
     cfg_path = Path(config_path).expanduser().resolve()
     cfg = load_config(cfg_path)
     preflight = watch_preflight_payload(cfg_path)
@@ -926,6 +998,8 @@ def watch_start_payload(config_path: str | Path) -> dict[str, object]:
 
 
 def watch_stop_payload(config_path: str | Path, timeout_seconds: float = 5.0) -> dict[str, object]:
+    """Request graceful watch stop and escalate to terminate when needed."""
+
     cfg_path = Path(config_path).expanduser().resolve()
     state_file = _watch_state_file(cfg_path)
     state = _read_watch_state(state_file)
@@ -955,6 +1029,8 @@ def watch_stop_payload(config_path: str | Path, timeout_seconds: float = 5.0) ->
 
 
 def watch_state_payload(config_path: str | Path, queue_limit: int = 200, log_tail_lines: int = 40) -> dict[str, object]:
+    """Return combined process/queue/progress/watch-runtime state payload."""
+
     cfg_path = Path(config_path).expanduser().resolve()
     state_file = _watch_state_file(cfg_path)
     state = _read_watch_state(state_file) or {}
@@ -1009,6 +1085,8 @@ def logs_diagnostics_payload(
     severity: str | None = None,
     limit: int = 400,
 ) -> dict[str, object]:
+    """Return structured logs and derived diagnostic warning summaries."""
+
     cfg_path, cfg = _load_cfg_for_path(config_path)
     watch_state = watch_state_payload(cfg_path, queue_limit=200, log_tail_lines=max(1, int(limit)))
 
@@ -1049,6 +1127,8 @@ def logs_diagnostics_payload(
 
 
 def history_summary_payload(config_path: str | Path, *, limit: int = 30, gap_minutes: int = 30) -> dict[str, object]:
+    """Build grouped run-history snapshots using queue timestamps and gap heuristic."""
+
     cfg_path, cfg = _load_cfg_for_path(config_path)
     conn = sqlite3.connect(str(cfg.watch.db_path), timeout=30, isolation_level=None)
     conn.row_factory = sqlite3.Row
@@ -1166,6 +1246,8 @@ def copy_diagnostics_bundle_payload(
     out_dir: str | Path | None = None,
     log_limit: int = 400,
 ) -> dict[str, object]:
+    """Write a diagnostics bundle JSON with health, queue, logs, and history data."""
+
     cfg_path, cfg = _load_cfg_for_path(config_path)
     now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     base_dir = Path(out_dir).expanduser().resolve() if out_dir else (cfg.watch.working_dir / "diagnostics")
@@ -1191,6 +1273,8 @@ def copy_diagnostics_bundle_payload(
 
 
 def _wait_operation_with_events(operation_id: str, timeout_seconds: float | None = None) -> dict[str, object]:
+    """Wait for an async operation and return snapshot plus full event stream."""
+
     snapshot = app_api.wait_for_operation(operation_id, timeout_seconds=timeout_seconds)
     if snapshot is None:
         raise RuntimeError(f"operation not found: {operation_id}")
@@ -1206,6 +1290,8 @@ def transcode_one_payload(
     input_path: str | Path,
     output_dir: str | Path | None = None,
 ) -> dict[str, object]:
+    """Run transcode-one operation via app API and return operation envelope."""
+
     op_id = app_api.start_transcode_one_operation(
         config_path=Path(config_path).expanduser().resolve(),
         input_path=Path(input_path).expanduser().resolve(),
@@ -1222,6 +1308,8 @@ def suggest_matrix_payload(
     camera_model_override: str | None = None,
     write_json_path: str | Path | None = None,
 ) -> dict[str, object]:
+    """Run matrix suggestion operation via app API and return operation envelope."""
+
     op_id = app_api.start_suggest_matrix_operation(
         input_path=Path(input_path).expanduser().resolve(),
         camera_make_override=camera_make_override,
@@ -1239,6 +1327,8 @@ def dpx_to_prores_payload(
     framerate: int = 24,
     overwrite: bool = True,
 ) -> dict[str, object]:
+    """Run DPX-to-ProRes operation via app API and return operation envelope."""
+
     op_id = app_api.start_dpx_to_prores_operation(
         input_dir=Path(input_dir).expanduser().resolve(),
         output_dir=Path(output_dir).expanduser().resolve() if output_dir else None,
@@ -1251,6 +1341,8 @@ def dpx_to_prores_payload(
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    """Build JSON bridge CLI parser and command contracts."""
+
     parser = argparse.ArgumentParser(prog="stopmo-xcode-gui-bridge")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -1339,6 +1431,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Dispatch bridge command handlers and print JSON responses."""
+
     parser = _build_parser()
     args = parser.parse_args(argv)
 

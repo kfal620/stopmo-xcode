@@ -1,6 +1,7 @@
 import Foundation
 
 @MainActor
+/// Async bridge API surface consumed by `AppState` and workspace view models.
 protocol BridgeServicing {
     func health(repoRoot: String, configPath: String) async throws -> BridgeHealth
     func readConfig(repoRoot: String, configPath: String) async throws -> StopmoConfigDocument
@@ -40,6 +41,7 @@ protocol BridgeServicing {
 }
 
 @MainActor
+/// Live bridge implementation that executes backend calls off the main actor.
 struct LiveBridgeService: BridgeServicing {
     func health(repoRoot: String, configPath: String) async throws -> BridgeHealth {
         try await Task.detached(priority: .userInitiated) {

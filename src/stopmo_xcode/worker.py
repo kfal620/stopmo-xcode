@@ -1,3 +1,5 @@
+"""Worker pipeline that transforms RAW frames into deterministic LogC3/AWG outputs."""
+
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -30,29 +32,39 @@ logger = logging.getLogger(__name__)
 
 
 def _warn_nan_inf(rgb: np.ndarray, source_path: Path) -> None:
+    """Emit warning if decode output contains non-finite pixel values."""
+
     if not np.isfinite(rgb).all():
         logger.warning("non-finite values detected in decoded frame: %s", source_path)
 
 
 def _warn_clipping(rgb: np.ndarray, source_path: Path, threshold: float = 0.01) -> None:
+    """Emit warning when pre-transform clipping exceeds a coarse threshold."""
+
     clipped = np.mean(rgb >= 1.0)
     if clipped > threshold:
         logger.warning("high pre-log clipping ratio %.2f%% in %s", clipped * 100.0, source_path)
 
 
 def _wb_delta(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
+    """Return max absolute channel delta between two white-balance multiplier sets."""
+
     av = np.array(a, dtype=np.float32)
     bv = np.array(b, dtype=np.float32)
     return float(np.max(np.abs(av - bv)))
 
 
 def _iso_compensation_stops(iso: float | None, target_ei: int) -> float | None:
+    """Compute deterministic ISO-based exposure compensation term in stops."""
+
     if iso is None or iso <= 0.0 or target_ei <= 0:
         return None
     return float(math.log2(float(target_ei) / float(iso)))
 
 
 def _shutter_compensation_stops(frame_shutter_s: float | None, target_shutter_s: float | None) -> float | None:
+    """Compute deterministic shutter compensation term in stops."""
+
     if frame_shutter_s is None or frame_shutter_s <= 0.0:
         return None
     if target_shutter_s is None or target_shutter_s <= 0.0:
@@ -61,6 +73,8 @@ def _shutter_compensation_stops(frame_shutter_s: float | None, target_shutter_s:
 
 
 def _aperture_compensation_stops(frame_aperture_f: float | None, target_aperture_f: float | None) -> float | None:
+    """Compute deterministic aperture compensation term in stops."""
+
     if frame_aperture_f is None or frame_aperture_f <= 0.0:
         return None
     if target_aperture_f is None or target_aperture_f <= 0.0:
@@ -81,6 +95,12 @@ def _effective_exposure_offset_stops(
     frame_aperture_f: float | None,
     locked_shot_offset_stops: float | None,
 ) -> tuple[float, tuple[str, ...]]:
+    """Resolve effective exposure offset and report missing metadata terms.
+
+    This keeps exposure deterministic: either use explicit shot lock value or use
+    formula-based compensation terms enabled in config.
+    """
+
     auto_enabled = bool(auto_exposure_from_iso or auto_exposure_from_shutter or auto_exposure_from_aperture)
     if auto_enabled:
         out = float(base_offset_stops)
@@ -121,6 +141,8 @@ def _write_truth_pack(
     logc: np.ndarray,
     dpx_path: Path,
 ) -> None:
+    """Write optional truth-frame QC artifacts beside primary DPX output."""
+
     truth_dir = shot_dir / "truth_frame"
     truth_dir.mkdir(parents=True, exist_ok=True)
 
@@ -145,6 +167,8 @@ def _write_truth_pack(
 
 
 def _metadata_for_frame(meta: Any) -> dict[str, Any]:
+    """Serialize decode metadata and normalize shutter formatting for JSON sidecars."""
+
     data = asdict(meta)
     data["source_path"] = str(meta.source_path)
     data["shutter_s"] = shutter_seconds_to_fraction(meta.shutter_s)
@@ -152,7 +176,11 @@ def _metadata_for_frame(meta: Any) -> dict[str, Any]:
 
 
 class JobProcessor:
+    """Process queue jobs through decode, xform, write, and sidecar persistence."""
+
     def __init__(self, config: AppConfig, db: QueueDB) -> None:
+        """Initialize decoder and color pipeline dependencies for worker execution."""
+
         self.config = config
         self.db = db
         self.decoder: DecoderRegistry | None = None
@@ -164,6 +192,8 @@ class JobProcessor:
         self.color = ColorPipeline(config.pipeline)
 
     def process_job(self, job: Job) -> None:
+        """Process one leased job through canonical queue lifecycle transitions."""
+
         source_path = Path(job.source_path)
         logger.info("processing job=%s source=%s", job.id, source_path)
 
@@ -278,6 +308,8 @@ class JobProcessor:
         metadata: dict[str, Any],
         effective_offset_stops: float,
     ) -> None:
+        """Persist per-frame metadata and per-shot manifest records."""
+
         shot_dir = self.config.watch.output_dir / job.shot_name
         shot_dir.mkdir(parents=True, exist_ok=True)
 

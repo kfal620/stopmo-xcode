@@ -1,3 +1,5 @@
+"""Deterministic color pipeline from camera-linear decode to LogC3/AWG output."""
+
 from __future__ import annotations
 
 import hashlib
@@ -47,6 +49,8 @@ class ColorPipeline:
             )
 
     def transform(self, linear_camera_rgb: np.ndarray, exposure_offset_stops: float | None = None) -> np.ndarray:
+        """Transform camera-linear RGB into configured output encoding."""
+
         x = np.asarray(linear_camera_rgb, dtype=np.float32)
 
         if self._ocio is not None:
@@ -73,6 +77,8 @@ class ColorPipeline:
         return logc
 
     def version_hash(self) -> str:
+        """Return stable short hash for effective color-pipeline configuration."""
+
         payload: dict[str, Any] = {
             "camera_to_reference_matrix": [[float(v) for v in row] for row in self.cfg.camera_to_reference_matrix],
             "exposure_offset_stops": float(self.cfg.exposure_offset_stops),

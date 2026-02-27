@@ -1,3 +1,5 @@
+"""Typed decode result payloads passed from decoders into worker pipeline."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,6 +10,8 @@ import numpy as np
 
 @dataclass
 class RawMetadata:
+    """RAW metadata fields needed for deterministic processing and sidecars."""
+
     source_path: Path
     wb_multipliers: tuple[float, float, float, float]
     as_shot_wb_multipliers: tuple[float, float, float, float] | None
@@ -21,5 +25,7 @@ class RawMetadata:
 
 @dataclass
 class DecodedFrame:
+    """Decoded frame pixels plus associated metadata from source decoder."""
+
     linear_camera_rgb: np.ndarray
     metadata: RawMetadata

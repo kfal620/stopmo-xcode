@@ -1,3 +1,5 @@
+"""3D LUT parsing and trilinear application for optional match transforms."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -8,12 +10,16 @@ import numpy as np
 
 @dataclass
 class CubeLUT:
+    """In-memory 3D LUT representation with domain normalization metadata."""
+
     size: int
     table: np.ndarray
     domain_min: np.ndarray
     domain_max: np.ndarray
 
     def apply(self, image: np.ndarray) -> np.ndarray:
+        """Apply trilinear LUT interpolation to an RGB image array."""
+
         x = np.asarray(image, dtype=np.float32)
         dom_min = self.domain_min.astype(np.float32)
         dom_max = self.domain_max.astype(np.float32)
@@ -53,6 +59,8 @@ class CubeLUT:
 
 
 def load_cube(path: Path) -> CubeLUT:
+    """Load an Iridas `.cube` 3D LUT file into `CubeLUT` representation."""
+
     size = None
     domain_min = np.array([0.0, 0.0, 0.0], dtype=np.float32)
     domain_max = np.array([1.0, 1.0, 1.0], dtype=np.float32)

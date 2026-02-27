@@ -1,3 +1,5 @@
+"""File stability tracker used to detect when incoming files are fully written."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,6 +9,8 @@ import time
 
 @dataclass
 class Snapshot:
+    """Observed file state snapshot used for readiness decisions."""
+
     size: int
     mtime: float
     last_change_monotonic: float

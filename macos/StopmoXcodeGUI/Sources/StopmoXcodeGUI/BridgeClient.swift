@@ -1,6 +1,7 @@
 import Foundation
 import Darwin
 
+/// Errors surfaced when bridge process launch, routing, or decoding fails.
 enum BridgeError: Error, LocalizedError {
     case missingWorkspaceRoot(String)
     case missingRepoRoot(String)
@@ -39,12 +40,14 @@ private final class BridgeOutputAccumulator: @unchecked Sendable {
     }
 }
 
+/// Bridge transport client that shells out to `gui_bridge.py` JSON commands.
 struct BridgeClient: Sendable {
     private enum BridgeRuntimeMode: String, Sendable {
         case bundled
         case external
     }
 
+    /// Resolved launch details for either bundled or external bridge mode.
     private struct BridgeLaunchContext: Sendable {
         var currentDirectory: String
         var executable: String
@@ -52,12 +55,14 @@ struct BridgeClient: Sendable {
         var environmentOverrides: [String: String]
     }
 
+    /// Decode bridge JSON response into typed Swift payload.
     private func decodeJSON<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(T.self, from: data)
     }
 
+    /// Encode typed Swift payload into bridge JSON request body.
     private func encodeJSON<T: Encodable>(_ value: T) throws -> Data {
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -65,6 +70,7 @@ struct BridgeClient: Sendable {
         return try encoder.encode(value)
     }
 
+    /// Prefer venv Python from repo root, fallback to system python for bootstrap.
     private func pythonExecutable(repoRoot: String) -> String {
         let venv = "\(repoRoot)/.venv/bin/python"
         if FileManager.default.isExecutableFile(atPath: venv) {
@@ -73,6 +79,7 @@ struct BridgeClient: Sendable {
         return "/usr/bin/python3"
     }
 
+    /// Heuristic for repo root detection used by external runtime mode.
     private func isRepoRoot(_ path: String) -> Bool {
         let fm = FileManager.default
         let pyproject = (path as NSString).appendingPathComponent("pyproject.toml")
@@ -80,6 +87,7 @@ struct BridgeClient: Sendable {
         return fm.fileExists(atPath: pyproject) && fm.fileExists(atPath: bridgeScript)
     }
 
+    /// Walk parent directories to discover a valid backend repository root.
     private func discoverRepoRoot(startingAt path: String) -> String? {
         var url = URL(fileURLWithPath: path).standardizedFileURL
         if !url.hasDirectoryPath {
@@ -99,6 +107,7 @@ struct BridgeClient: Sendable {
         return nil
     }
 
+    /// Resolve backend root using env overrides then filesystem discovery fallback.
     private func resolveRepoRoot(_ repoRoot: String) -> String {
         let env = ProcessInfo.processInfo.environment
         for key in ["STOPMO_XCODE_BACKEND_ROOT", "STOPMO_XCODE_ROOT"] {
@@ -121,6 +130,7 @@ struct BridgeClient: Sendable {
         return repoRoot
     }
 
+    /// Resolve workspace root for sandbox/permission-safe bridge launches.
     private func resolveWorkspaceRoot(_ workspaceRoot: String) -> String {
         let trimmed = workspaceRoot.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
@@ -133,6 +143,7 @@ struct BridgeClient: Sendable {
         return FileManager.default.currentDirectoryPath
     }
 
+    /// Return packaged bridge launcher path when app is running in bundled mode.
     private func bundledLauncherPath() -> String? {
         let fm = FileManager.default
         var candidates: [String] = []
@@ -148,6 +159,7 @@ struct BridgeClient: Sendable {
         return nil
     }
 
+    /// Build launch context for either bundled runtime or editable external backend.
     private func resolveLaunchContext(workspaceRoot: String) throws -> BridgeLaunchContext {
         let resolvedWorkspace = resolveWorkspaceRoot(workspaceRoot)
         var isDir: ObjCBool = false
@@ -202,6 +214,7 @@ struct BridgeClient: Sendable {
         stdin: Data? = nil,
         timeoutSeconds: TimeInterval = 20.0
     ) throws -> Data {
+        // Execute one bridge command and return merged stdout/stderr JSON payload.
         let launch = try resolveLaunchContext(workspaceRoot: repoRoot)
 
         let process = Process()

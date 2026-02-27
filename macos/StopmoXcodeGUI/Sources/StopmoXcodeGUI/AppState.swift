@@ -3,18 +3,21 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
+/// User-facing error payload for modal/alert presentation.
 struct PresentedError: Identifiable {
     let id = UUID()
     let title: String
     let message: String
 }
 
+/// Notification severity used across toasts and notification center rows.
 enum NotificationKind: String, Sendable {
     case info
     case warning
     case error
 }
 
+/// Notification center record shared by toast and full-history presentation.
 struct NotificationRecord: Identifiable, Sendable {
     let id = UUID()
     let kind: NotificationKind
@@ -36,6 +39,7 @@ struct NotificationRecord: Identifiable, Sendable {
 }
 
 @MainActor
+/// Main UI state orchestrator that coordinates bridge calls and workspace flows.
 final class AppState: ObservableObject {
     @Published var selectedHub: LifecycleHub = .configure
     @Published var selectedConfigurePanel: ConfigurePanel = .projectSettings
@@ -99,6 +103,8 @@ final class AppState: ObservableObject {
     private let workspaceIO: WorkspaceIOService
     private let monitoringCoordinator: LiveMonitoringCoordinating
 
+    // MARK: - Lifecycle
+
     init(dependencies: AppStateDependencies = .live) {
         bridgeService = dependencies.bridgeService
         workspaceConfigService = dependencies.workspaceConfigService
@@ -155,11 +161,15 @@ final class AppState: ObservableObject {
         "\(selectedHub.rawValue) / \(currentPanelLabel)"
     }
 
+    // MARK: - Monitoring Controls
+
+    /// Restart the live monitoring loop using current panel and polling settings.
     func restartMonitoringLoop() {
         stopMonitoringLoop()
         startMonitoringLoop(force: true)
     }
 
+    /// Refresh backend/runtime health checks and update status messaging.
     func refreshHealth() async {
         await runBlockingTask(label: "Checking runtime health") {
             let repoRoot = self.repoRoot
@@ -170,6 +180,7 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Load config from bridge and replace current editable in-memory state.
     func loadConfig() async {
         await runBlockingTask(label: "Loading config") {
             let repoRoot = self.repoRoot
@@ -183,6 +194,7 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Persist current (or override) config document through bridge write flow.
     func saveConfig(config overrideConfig: StopmoConfigDocument? = nil) async {
         await runBlockingTask(label: "Saving config") {
             let repoRoot = self.repoRoot
@@ -198,6 +210,7 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Start watch service, apply live snapshots, and surface preflight/start errors.
     func startWatchService() async {
         let shouldResumeMonitoring = monitoringCoordinator.isRunning
         if shouldResumeMonitoring {
@@ -237,6 +250,7 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Stop watch service and rehydrate state snapshots after shutdown completes.
     func stopWatchService() async {
         let shouldResumeMonitoring = monitoringCoordinator.isRunning
         if shouldResumeMonitoring {

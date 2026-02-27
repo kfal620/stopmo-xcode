@@ -1,3 +1,5 @@
+"""DPX writer for LogC3/AWG 10-bit RGB output plates."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -11,6 +13,8 @@ HEADER_SIZE = 2048
 
 
 def _to_ascii_bytes(value: str, length: int) -> bytes:
+    """Encode and null-pad ASCII field content for DPX header slots."""
+
     b = value.encode("ascii", errors="ignore")[: length - 1]
     return b + b"\x00" * (length - len(b))
 
@@ -25,6 +29,8 @@ def _build_header(
     project: str,
     description: str,
 ) -> bytes:
+    """Build minimal DPX v2 header payload for RGB10 image data."""
+
     header = bytearray(HEADER_SIZE)
 
     struct.pack_into(">4s", header, 0, b"SDPX")
@@ -71,6 +77,8 @@ def _build_header(
 
 
 def _pack_rgb10(image: np.ndarray) -> bytes:
+    """Pack normalized float RGB into big-endian packed 10-bit DPX words."""
+
     rgb = np.asarray(image, dtype=np.float32)
     rgb = np.nan_to_num(rgb, nan=0.0, posinf=1.0, neginf=0.0)
     rgb = np.clip(rgb, 0.0, 1.0)
@@ -85,6 +93,8 @@ def _pack_rgb10(image: np.ndarray) -> bytes:
 
 
 def write_dpx10_logc_awg(path: Path, logc_awg_rgb: np.ndarray, creator: str = "stopmo-xcode") -> None:
+    """Write HxWx3 LogC3/AWG float image to DPX RGB10 file on disk."""
+
     if logc_awg_rgb.ndim != 3 or logc_awg_rgb.shape[2] != 3:
         raise ValueError(f"expected HxWx3 RGB image, got {logc_awg_rgb.shape}")
 

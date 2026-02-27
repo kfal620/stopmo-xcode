@@ -1,3 +1,5 @@
+"""Optional OCIO-based image processor for pipeline color transforms."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,11 +14,17 @@ except Exception:  # pragma: no cover - optional
 
 
 class OcioUnavailableError(RuntimeError):
+    """Raised when OCIO processing is requested without PyOpenColorIO installed."""
+
     pass
 
 
 class OcioImageProcessor:
+    """CPU OCIO processor wrapper for RGB image arrays."""
+
     def __init__(self, config_path: Path, input_space: str, output_space: str) -> None:
+        """Initialize OCIO config and processor for input/output space pair."""
+
         if ocio is None:
             raise OcioUnavailableError("PyOpenColorIO not installed. Install with: pip install '.[ocio]'")
 
@@ -25,6 +33,8 @@ class OcioImageProcessor:
         self._cpu = self._processor.getDefaultCPUProcessor()
 
     def apply(self, rgb: np.ndarray) -> np.ndarray:
+        """Apply configured OCIO transform to HxWx3 float RGB array."""
+
         out = np.asarray(rgb, dtype=np.float32).copy()
         h, w, c = out.shape
         if c != 3:

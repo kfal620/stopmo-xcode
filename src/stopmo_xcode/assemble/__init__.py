@@ -1,3 +1,5 @@
+"""Public assembly APIs for DPX sequence discovery and ProRes conversion."""
+
 from .prores import (
     AssemblyError,
     DpxSequence,

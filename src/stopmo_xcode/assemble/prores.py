@@ -1,3 +1,5 @@
+"""DPX sequence discovery and ProRes assembly helpers."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,11 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 class AssemblyError(RuntimeError):
+    """Raised when sequence discovery or ffmpeg assembly fails."""
+
     pass
 
 
 @dataclass
 class DpxSequence:
+    """Description of one detected DPX sequence group in source tree."""
+
     shot_name: str
     dpx_dir: Path
     raw_prefix: str
@@ -30,6 +36,8 @@ _TRAILING_FRAME_RE = re.compile(r"^(?P<prefix>.*?)(?P<frame>\d+)$")
 
 
 def _require_ffmpeg() -> str:
+    """Resolve executable ffmpeg path from env/PATH or bundled fallback."""
+
     env_ffmpeg = os.environ.get("STOPMO_XCODE_FFMPEG")
     if env_ffmpeg:
         candidate = Path(env_ffmpeg).expanduser()
@@ -58,6 +66,8 @@ def _require_ffmpeg() -> str:
 
 
 def _run_ffmpeg(cmd: list[str], context: str) -> None:
+    """Run ffmpeg command and raise `AssemblyError` on non-zero exit."""
+
     proc = subprocess.run(
         cmd,
         stdout=subprocess.DEVNULL,
@@ -73,6 +83,8 @@ def assemble_logc_prores_4444(
     out_mov: Path,
     framerate: int,
 ) -> None:
+    """Assemble one DPX sequence glob into ProRes 4444 master movie."""
+
     ffmpeg = _require_ffmpeg()
     out_mov.parent.mkdir(parents=True, exist_ok=True)
 
@@ -105,6 +117,8 @@ def assemble_rec709_review(
     out_mov: Path,
     show_lut_cube: Path,
 ) -> None:
+    """Create Rec709 review movie from master movie and show LUT."""
+
     ffmpeg = _require_ffmpeg()
     out_mov.parent.mkdir(parents=True, exist_ok=True)
     cmd = [
@@ -128,6 +142,8 @@ def assemble_rec709_review(
 
 
 def _sequence_parts_from_stem(stem: str) -> tuple[str, str] | None:
+    """Extract raw prefix and normalized sequence name from frame stem."""
+
     m = _TRAILING_FRAME_RE.match(stem)
     if m is None:
         return None
@@ -143,6 +159,8 @@ def _sequence_parts_from_stem(stem: str) -> tuple[str, str] | None:
 
 
 def discover_dpx_sequences(root_dir: Path) -> list[DpxSequence]:
+    """Discover DPX sequences under a root directory for batch conversion."""
+
     sequences: list[DpxSequence] = []
     grouped_dirs: dict[Path, list[Path]] = {}
 
@@ -186,6 +204,8 @@ def convert_dpx_sequences_to_prores(
     on_sequence_complete: Callable[[DpxSequence, Path], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
 ) -> list[Path]:
+    """Convert discovered DPX sequences into flattened ProRes outputs."""
+
     if output_root is None:
         output_root = input_root / "PRORES"
 
@@ -237,6 +257,8 @@ def convert_dpx_sequences_to_prores(
 
 
 def write_handoff_readme(path: Path) -> None:
+    """Write delivery handoff note describing interpretation contract."""
+
     text = (
         "STOPMO-XCODE HANDOFF\n"
         "====================\n\n"

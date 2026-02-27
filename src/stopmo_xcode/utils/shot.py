@@ -1,3 +1,5 @@
+"""Shot/frame name inference helpers used during ingest enqueueing."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -10,6 +12,8 @@ _GENERIC_PARENT_NAMES = {"incoming", "source", "sources", "capture", "captures",
 
 
 def infer_shot_name(path: Path, shot_regex: str | None = None) -> str:
+    """Infer shot name from regex override, filename stem, or parent folder."""
+
     if shot_regex:
         m = re.search(shot_regex, str(path))
         if m:
@@ -31,6 +35,8 @@ def infer_shot_name(path: Path, shot_regex: str | None = None) -> str:
 
 
 def infer_frame_number(path: Path) -> int:
+    """Infer trailing frame number from filename stem when present."""
+
     m = _FRAME_RE.search(path.stem)
     if m:
         return int(m.group(1))

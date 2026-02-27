@@ -1,6 +1,7 @@
 import Foundation
 
 @MainActor
+/// View-model for tools workspace operations and operation timeline projection.
 final class ToolsWorkspaceViewModel: ObservableObject {
     @Published var selectedTab: ToolsTab
     @Published var latestEvents: [OperationEventRecord] = []
@@ -21,6 +22,8 @@ final class ToolsWorkspaceViewModel: ObservableObject {
 
     private var lastAppliedSharedDeliveryOperationId: String?
     private let runner: ToolsRunnerService
+
+    // MARK: - Lifecycle
 
     init(defaultTab: ToolsTab, runner: ToolsRunnerService = ToolsRunnerService()) {
         selectedTab = defaultTab
@@ -50,6 +53,9 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         return out
     }
 
+    // MARK: - Timeline
+
+    /// Clear local timeline/event diagnostics and update status message.
     func clearDiagnostics(statusMessage: inout String) {
         latestEvents = []
         toolTimeline = []
@@ -57,6 +63,7 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         statusMessage = "Tool events cleared"
     }
 
+    /// Append a formatted timeline row with current local timestamp.
     func appendTimeline(title: String, detail: String, tone: StatusTone) {
         ToolsTimelineReducer.appendTimeline(
             items: &toolTimeline,
@@ -68,6 +75,7 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         )
     }
 
+    /// Ingest operation envelope emitted by backend operation APIs.
     func ingestToolEnvelope(_ envelope: ToolOperationEnvelope) {
         latestEvents = envelope.events.reversed()
         appendTimeline(
@@ -84,6 +92,7 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         }
     }
 
+    /// Sync shared delivery operation results into local tools workspace state.
     func applySharedDeliveryOperationIfAvailable(
         mode: ToolsMode,
         envelope: ToolOperationEnvelope?
@@ -109,6 +118,9 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         dpxOutputs = envelope.operation.result?["outputs"]?.arrayValue?.compactMap(\.stringValue) ?? []
     }
 
+    // MARK: - Tool Actions
+
+    /// Run transcode-one tool and project results into timeline and output state.
     func runTranscodeOne(
         state: AppState,
         inputPath: String,
@@ -133,6 +145,7 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         }
     }
 
+    /// Run matrix suggestion tool and project returned payload for UI actions.
     func runSuggestMatrix(
         state: AppState,
         inputPath: String,
@@ -162,6 +175,7 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         }
     }
 
+    /// Run DPX-to-ProRes tool and sync delivery operation state.
     func runDpxToProres(
         state: AppState,
         inputDir: String,
@@ -189,6 +203,7 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         }
     }
 
+    /// Apply the last suggested matrix directly to current project draft config.
     func applySuggestedMatrixToProject(state: AppState) {
         guard let matrix = latestMatrix else { return }
         state.config.pipeline.cameraToReferenceMatrix = matrix
@@ -196,6 +211,7 @@ final class ToolsWorkspaceViewModel: ObservableObject {
         appendTimeline(title: "Config", detail: "Applied suggested matrix to project", tone: .success)
     }
 
+    /// Copy the latest suggested matrix to pasteboard in readable row format.
     func copySuggestedMatrix(state: AppState) {
         guard let matrix = latestMatrix else { return }
         let text = matrix

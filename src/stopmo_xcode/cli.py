@@ -1,3 +1,5 @@
+"""CLI entrypoints for watch, queue inspection, matrix suggestion, and delivery tooling."""
+
 from __future__ import annotations
 
 import argparse
@@ -15,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    """Build the top-level CLI parser and subcommand contracts."""
+
     parser = argparse.ArgumentParser(prog="stopmo-xcode")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -63,6 +67,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_watch(args: argparse.Namespace) -> int:
+    """Run the continuous watch service with config-driven worker orchestration."""
+
     from stopmo_xcode.service import run_watch_service
 
     config = load_config(args.config)
@@ -72,6 +78,8 @@ def _cmd_watch(args: argparse.Namespace) -> int:
 
 
 def _cmd_transcode_one(args: argparse.Namespace) -> int:
+    """Transcode one source frame through the same deterministic worker pipeline."""
+
     from stopmo_xcode.service import transcode_one
 
     config = load_config(args.config)
@@ -86,6 +94,8 @@ def _cmd_transcode_one(args: argparse.Namespace) -> int:
 
 
 def _cmd_status(args: argparse.Namespace) -> int:
+    """Emit queue state counts and recent jobs for operational triage."""
+
     config = load_config(args.config)
     configure_logging(config.log_level, config.log_file)
 
@@ -136,6 +146,8 @@ def _cmd_status(args: argparse.Namespace) -> int:
 
 
 def _cmd_suggest_matrix(args: argparse.Namespace) -> int:
+    """Suggest a camera-to-reference matrix using metadata heuristics and fallbacks."""
+
     from stopmo_xcode.color.matrix_suggest import suggest_camera_to_reference_matrix
 
     input_path = Path(args.input).expanduser().resolve()
@@ -180,6 +192,8 @@ def _cmd_suggest_matrix(args: argparse.Namespace) -> int:
 
 
 def _cmd_dpx_to_prores(args: argparse.Namespace) -> int:
+    """Batch-convert nested DPX shot folders into ProRes outputs."""
+
     from stopmo_xcode.assemble import convert_dpx_sequences_to_prores
 
     input_dir = Path(args.input_dir).expanduser().resolve()
@@ -210,6 +224,8 @@ def _cmd_dpx_to_prores(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse args, dispatch command handlers, and normalize fatal error reporting."""
+
     parser = _build_parser()
     args = parser.parse_args(argv)
 

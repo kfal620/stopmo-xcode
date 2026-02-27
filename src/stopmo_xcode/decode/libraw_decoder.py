@@ -1,3 +1,5 @@
+"""LibRaw/rawpy-based RAW decoder implementation."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -17,6 +19,8 @@ except Exception:  # pragma: no cover - dependency is optional
 
 
 def _safe_meta_from_rawpy(raw: Any, key: str) -> float | None:
+    """Safely read scalar metadata field from rawpy metadata object."""
+
     meta = getattr(raw, "metadata", None)
     if meta is None:
         return None
@@ -30,6 +34,8 @@ def _safe_meta_from_rawpy(raw: Any, key: str) -> float | None:
 
 
 def _cfa_pattern(raw: Any) -> str | None:
+    """Normalize CFA pattern payload into compact string representation."""
+
     pattern = getattr(raw, "raw_pattern", None)
     if pattern is None:
         return None
@@ -40,6 +46,8 @@ def _cfa_pattern(raw: Any) -> str | None:
 
 
 def _normalize_wb(values: Any) -> tuple[float, float, float, float]:
+    """Normalize WB multipliers to RGGB-ordered 4-channel tuple."""
+
     raw = [float(v) for v in list(values or [1.0, 1.0, 1.0, 1.0])]
     if len(raw) >= 4:
         return (raw[0], raw[1], raw[2], raw[3])

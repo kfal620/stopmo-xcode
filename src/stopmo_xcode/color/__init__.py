@@ -1,3 +1,5 @@
+"""Public color pipeline and LogC3 helpers used by worker and tests."""
+
 from .arri_logc3 import decode_logc3_ei800, encode_logc3_ei800
 from .pipeline import ColorPipeline
 

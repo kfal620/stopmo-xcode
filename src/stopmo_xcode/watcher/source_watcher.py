@@ -1,3 +1,5 @@
+"""Polling-based source watcher that emits stable candidate files for enqueueing."""
+
 from __future__ import annotations
 
 import logging
@@ -14,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 
 class _NoopEventStream:
+    """Placeholder event stream implementation used by polling watcher mode."""
+
     def start(self) -> None:
         return None
 
@@ -22,6 +26,8 @@ class _NoopEventStream:
 
 
 class SourceWatcher:
+    """Track candidate files and emit them after stability checks pass."""
+
     def __init__(
         self,
         source_dir: Path,
@@ -31,6 +37,8 @@ class SourceWatcher:
         scan_interval_seconds: float,
         on_ready_file: Callable[[Path], None],
     ) -> None:
+        """Configure polling/stability behavior and ready-file callback."""
+
         self.source_dir = source_dir
         self.include_extensions = tuple(e.lower() for e in include_extensions)
         self.poll_interval_seconds = poll_interval_seconds
@@ -42,17 +50,25 @@ class SourceWatcher:
         self._event_stream = _NoopEventStream()
 
     def stop(self) -> None:
+        """Request watcher loop shutdown."""
+
         self._stop_event.set()
 
     def _is_candidate(self, path: Path) -> bool:
+        """Return whether a path matches extension and file checks."""
+
         return path.is_file() and path.suffix.lower() in self.include_extensions
 
     def _scan_tree(self) -> None:
+        """Scan source tree and register candidate files with completion tracker."""
+
         for path in self.source_dir.rglob("*"):
             if self._is_candidate(path):
                 self._tracker.mark_candidate(path)
 
     def run_forever(self, external_stop_event: threading.Event | None = None) -> None:
+        """Run polling loop until local or external stop event is set."""
+
         logger.info("watching source directory: %s", self.source_dir)
         last_scan = 0.0
         while not self._stop_event.is_set():
@@ -79,5 +95,7 @@ class SourceWatcher:
             time.sleep(self.poll_interval_seconds)
 
     def poll_once(self) -> list[Path]:
+        """Run one scan + completion pass and return newly ready files."""
+
         self._scan_tree()
         return self._tracker.collect_ready()

@@ -1,3 +1,5 @@
+"""Programmatic API for queue status and asynchronous long-running operations."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -23,11 +25,15 @@ TERMINAL_OPERATION_STATES = {"succeeded", "failed", "cancelled"}
 
 
 def _utc_now_iso() -> str:
+    """Return UTC timestamp string for operation snapshots and event records."""
+
     return datetime.now(timezone.utc).isoformat()
 
 
 @dataclass(frozen=True)
 class QueueJobStatus:
+    """Serializable job status row used by CLI bridge and GUI surfaces."""
+
     id: int
     state: str
     shot: str
@@ -40,6 +46,8 @@ class QueueJobStatus:
 
 @dataclass(frozen=True)
 class QueueStatus:
+    """Queue-level status payload with per-state counts and recent jobs."""
+
     db_path: str
     counts: dict[str, int]
     recent: tuple[QueueJobStatus, ...]
@@ -47,6 +55,8 @@ class QueueStatus:
 
 @dataclass(frozen=True)
 class MatrixSuggestResult:
+    """Result payload for matrix suggestion plus optional JSON report output path."""
+
     report: MatrixSuggestion
     payload: dict[str, object]
     json_report_path: Path | None
@@ -54,6 +64,8 @@ class MatrixSuggestResult:
 
 @dataclass(frozen=True)
 class DpxToProresResult:
+    """Result payload for DPX-to-ProRes batch conversion operations."""
+
     input_dir: Path
     output_dir: Path
     outputs: tuple[Path, ...]
@@ -61,6 +73,8 @@ class DpxToProresResult:
 
 @dataclass(frozen=True)
 class OperationEvent:
+    """Single append-only operation event emitted during async execution."""
+
     seq: int
     operation_id: str
     timestamp_utc: str
@@ -71,6 +85,8 @@ class OperationEvent:
 
 @dataclass(frozen=True)
 class OperationSnapshot:
+    """Current operation snapshot used by polling and status APIs."""
+
     id: str
     kind: str
     status: str
@@ -87,6 +103,8 @@ class OperationSnapshot:
 
 @dataclass
 class _OperationRuntime:
+    """Mutable runtime record used internally by the operation manager."""
+
     id: str
     kind: str
     status: str
@@ -104,11 +122,17 @@ class _OperationRuntime:
 
 
 class OperationCancelled(RuntimeError):
+    """Internal sentinel for operations cancelled through cooperative stop hooks."""
+
     pass
 
 
 class _OperationManager:
+    """Thread-safe in-memory operation/event registry for GUI and bridge workflows."""
+
     def __init__(self, max_events: int = 5000) -> None:
+        """Initialize operation/event stores with bounded event history."""
+
         self._lock = threading.RLock()
         self._operations: dict[str, _OperationRuntime] = {}
         self._events: list[OperationEvent] = []
@@ -121,6 +145,8 @@ class _OperationManager:
         metadata: dict[str, object] | None = None,
         cancellable: bool = False,
     ) -> _OperationRuntime:
+        """Create a new operation runtime and emit creation event."""
+
         now = _utc_now_iso()
         operation_id = f"op_{uuid.uuid4().hex}"
         runtime = _OperationRuntime(
@@ -139,12 +165,16 @@ class _OperationManager:
         return runtime
 
     def bind_thread(self, operation_id: str, worker_thread: threading.Thread) -> None:
+        """Associate a background worker thread with a tracked operation."""
+
         with self._lock:
             runtime = self._operations.get(operation_id)
             if runtime is not None:
                 runtime.worker_thread = worker_thread
 
     def mark_started(self, operation_id: str) -> None:
+        """Transition operation to running and emit lifecycle event."""
+
         with self._lock:
             runtime = self._operations.get(operation_id)
             if runtime is None:
@@ -160,6 +190,8 @@ class _OperationManager:
         message: str | None = None,
         payload: dict[str, object] | None = None,
     ) -> None:
+        """Emit an event for an operation if it is still tracked."""
+
         with self._lock:
             if operation_id not in self._operations:
                 return
@@ -174,6 +206,8 @@ class _OperationManager:
         message: str | None = None,
         payload: dict[str, object] | None = None,
     ) -> None:
+        """Update clamped progress and optionally emit a typed progress event."""
+
         clamped = max(0.0, min(1.0, float(progress)))
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -187,6 +221,8 @@ class _OperationManager:
                 self._emit_locked(operation_id, event_type, message=message, payload=progress_payload)
 
     def succeed(self, operation_id: str, result: dict[str, object] | None = None) -> None:
+        """Mark operation successful and finalize result payload."""
+
         with self._lock:
             runtime = self._operations.get(operation_id)
             if runtime is None:
@@ -198,6 +234,8 @@ class _OperationManager:
             self._emit_locked(operation_id, "operation_succeeded", payload=result)
 
     def cancel_complete(self, operation_id: str, result: dict[str, object] | None = None) -> None:
+        """Mark operation cancelled and finalize partial result payload."""
+
         with self._lock:
             runtime = self._operations.get(operation_id)
             if runtime is None:
@@ -208,6 +246,8 @@ class _OperationManager:
             self._emit_locked(operation_id, "operation_cancelled", payload=result)
 
     def fail(self, operation_id: str, error: str) -> None:
+        """Mark operation failed and persist a stable error message."""
+
         with self._lock:
             runtime = self._operations.get(operation_id)
             if runtime is None:
@@ -218,6 +258,8 @@ class _OperationManager:
             self._emit_locked(operation_id, "operation_failed", message=runtime.error)
 
     def request_cancel(self, operation_id: str) -> bool:
+        """Request cooperative cancellation for cancellable non-terminal operations."""
+
         with self._lock:
             runtime = self._operations.get(operation_id)
             if runtime is None or not runtime.cancellable:
@@ -231,6 +273,8 @@ class _OperationManager:
             return True
 
     def get(self, operation_id: str) -> OperationSnapshot | None:
+        """Return current operation snapshot for an operation id."""
+
         with self._lock:
             runtime = self._operations.get(operation_id)
             if runtime is None:
@@ -238,6 +282,8 @@ class _OperationManager:
             return self._to_snapshot(runtime)
 
     def list(self, limit: int = 100) -> tuple[OperationSnapshot, ...]:
+        """List newest operations first, bounded by `limit`."""
+
         with self._lock:
             runtimes = sorted(
                 self._operations.values(),
@@ -253,6 +299,8 @@ class _OperationManager:
         operation_id: str | None = None,
         limit: int = 200,
     ) -> tuple[OperationEvent, ...]:
+        """Fetch events after sequence number, optionally scoped to one operation."""
+
         with self._lock:
             out: list[OperationEvent] = []
             for event in self._events:
@@ -266,6 +314,8 @@ class _OperationManager:
             return tuple(out)
 
     def wait(self, operation_id: str, timeout_seconds: float | None = None) -> OperationSnapshot | None:
+        """Join operation worker thread and return the latest snapshot."""
+
         worker: threading.Thread | None = None
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -278,6 +328,8 @@ class _OperationManager:
         return self.get(operation_id)
 
     def _to_snapshot(self, runtime: _OperationRuntime) -> OperationSnapshot:
+        """Convert mutable runtime state into immutable snapshot payload."""
+
         return OperationSnapshot(
             id=runtime.id,
             kind=runtime.kind,
@@ -301,6 +353,8 @@ class _OperationManager:
         message: str | None = None,
         payload: dict[str, object] | None = None,
     ) -> None:
+        """Append an event while lock is held and enforce max event retention."""
+
         event = OperationEvent(
             seq=self._next_seq,
             operation_id=operation_id,
@@ -319,6 +373,8 @@ _OPERATIONS = _OperationManager()
 
 
 def _collect_status_from_db_path(db_path: Path, limit: int = 20) -> QueueStatus:
+    """Collect queue state counts and recent jobs from an explicit DB path."""
+
     db = QueueDB(db_path)
     try:
         counts = db.stats()
@@ -351,6 +407,8 @@ def _start_async_operation(
     cancellable: bool,
     runner: Callable[[_OperationRuntime], dict[str, object] | None],
 ) -> str:
+    """Run a callable in a daemon thread and register full operation lifecycle state."""
+
     runtime = _OPERATIONS.create(kind=kind, metadata=metadata, cancellable=cancellable)
 
     def _target() -> None:
@@ -374,6 +432,8 @@ def _start_async_operation(
 
 
 def run_watch(config_path: str | Path) -> None:
+    """Run watch service in-process using config path input."""
+
     config = load_config(config_path)
     configure_logging(config.log_level, config.log_file)
     run_watch_service(config)
@@ -384,6 +444,8 @@ def run_transcode_one(
     input_path: str | Path,
     output_dir: str | Path | None = None,
 ) -> Path:
+    """Run single-frame transcode in-process and return resulting output path."""
+
     config = load_config(config_path)
     configure_logging(config.log_level, config.log_file)
 
@@ -393,6 +455,8 @@ def run_transcode_one(
 
 
 def get_status(config_path: str | Path, limit: int = 20) -> QueueStatus:
+    """Return current queue status for a config file."""
+
     config = load_config(config_path)
     configure_logging(config.log_level, config.log_file)
     return _collect_status_from_db_path(config.watch.db_path, limit=limit)
@@ -404,6 +468,8 @@ def suggest_matrix(
     camera_model_override: str | None = None,
     write_json_path: str | Path | None = None,
 ) -> MatrixSuggestResult:
+    """Suggest a camera matrix and optionally persist a JSON report payload."""
+
     resolved_input = Path(input_path).expanduser().resolve()
     report = suggest_camera_to_reference_matrix(
         resolved_input,
@@ -428,6 +494,8 @@ def convert_dpx_to_prores(
     framerate: int = 24,
     overwrite: bool = True,
 ) -> DpxToProresResult:
+    """Convert DPX sequences to ProRes and return normalized output metadata."""
+
     resolved_input = Path(input_dir).expanduser().resolve()
     resolved_output = Path(output_dir).expanduser().resolve() if output_dir else None
     outputs = convert_dpx_sequences_to_prores(
@@ -450,6 +518,8 @@ def start_watch_operation(
     status_poll_interval_seconds: float = 1.0,
     recent_limit: int = 20,
 ) -> str:
+    """Start cancellable watch operation with periodic queue-status event emission."""
+
     resolved_config_path = Path(config_path).expanduser().resolve()
 
     def _runner(runtime: _OperationRuntime) -> dict[str, object]:
@@ -520,6 +590,8 @@ def start_transcode_one_operation(
     input_path: str | Path,
     output_dir: str | Path | None = None,
 ) -> str:
+    """Start one-shot transcode operation and publish progress lifecycle events."""
+
     resolved_config_path = Path(config_path).expanduser().resolve()
     resolved_input_path = Path(input_path).expanduser().resolve()
     resolved_output_dir = Path(output_dir).expanduser().resolve() if output_dir else None
@@ -556,6 +628,8 @@ def start_suggest_matrix_operation(
     camera_model_override: str | None = None,
     write_json_path: str | Path | None = None,
 ) -> str:
+    """Start matrix-suggestion operation and publish result payload as operation result."""
+
     resolved_input_path = Path(input_path).expanduser().resolve()
     resolved_write_json = Path(write_json_path).expanduser().resolve() if write_json_path else None
 
@@ -592,6 +666,8 @@ def start_dpx_to_prores_operation(
     framerate: int = 24,
     overwrite: bool = True,
 ) -> str:
+    """Start cancellable DPX-to-ProRes batch operation with per-sequence progress events."""
+
     resolved_input = Path(input_dir).expanduser().resolve()
     resolved_output = Path(output_dir).expanduser().resolve() if output_dir else None
 
@@ -663,10 +739,14 @@ def start_dpx_to_prores_operation(
 
 
 def get_operation(operation_id: str) -> OperationSnapshot | None:
+    """Fetch current snapshot for a tracked operation id."""
+
     return _OPERATIONS.get(operation_id)
 
 
 def list_operations(limit: int = 100) -> tuple[OperationSnapshot, ...]:
+    """List operation snapshots in reverse-chronological creation order."""
+
     return _OPERATIONS.list(limit=limit)
 
 
@@ -676,12 +756,18 @@ def poll_operation_events(
     operation_id: str | None = None,
     limit: int = 200,
 ) -> tuple[OperationEvent, ...]:
+    """Poll operation events after sequence cursor with optional operation filter."""
+
     return _OPERATIONS.poll_events(after_seq=after_seq, operation_id=operation_id, limit=limit)
 
 
 def wait_for_operation(operation_id: str, timeout_seconds: float | None = None) -> OperationSnapshot | None:
+    """Block until operation thread exits (or timeout), then return final snapshot."""
+
     return _OPERATIONS.wait(operation_id, timeout_seconds=timeout_seconds)
 
 
 def cancel_operation(operation_id: str) -> bool:
+    """Request cancellation for a tracked operation, if cancellable."""
+
     return _OPERATIONS.request_cancel(operation_id)

@@ -1,3 +1,5 @@
+"""Watch-service orchestration for queue workers and optional shot assembly loop."""
+
 from __future__ import annotations
 
 import json
@@ -26,14 +28,20 @@ logger = logging.getLogger(__name__)
 
 
 def _utc_now_iso() -> str:
+    """Return a UTC timestamp string used by runtime state sidecars."""
+
     return datetime.now(timezone.utc).isoformat()
 
 
 def _runtime_state_path(config: AppConfig) -> Path:
+    """Return the runtime status sidecar path under the working directory."""
+
     return config.watch.working_dir / ".stopmo_runtime_state.json"
 
 
 def _read_runtime_state(path: Path) -> dict[str, object]:
+    """Best-effort read for runtime state, returning an empty payload on corruption."""
+
     if not path.exists():
         return {}
     try:
@@ -46,11 +54,15 @@ def _read_runtime_state(path: Path) -> dict[str, object]:
 
 
 def _write_runtime_state(path: Path, payload: dict[str, object]) -> None:
+    """Persist runtime state JSON for GUI/bridge health and watch status surfaces."""
+
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _worker_main(config: AppConfig, worker_id: str, stop_event: mp.Event) -> None:
+    """Lease and process jobs until stop is requested for this worker process."""
+
     db = QueueDB(config.watch.db_path)
     processor = JobProcessor(config=config, db=db)
     logger.info("worker %s started", worker_id)
@@ -69,6 +81,8 @@ def _worker_main(config: AppConfig, worker_id: str, stop_event: mp.Event) -> Non
 
 
 def _assembly_loop(config: AppConfig, stop_event: threading.Event) -> None:
+    """Assemble completed shots into delivery media when delivery mode is enabled."""
+
     if not config.output.write_prores_on_shot_complete:
         return
 
@@ -114,6 +128,8 @@ def _assembly_loop(config: AppConfig, stop_event: threading.Event) -> None:
 
 
 def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None = None) -> None:
+    """Run source watching, queue dispatch, and startup crash-recovery reset handling."""
+
     db = QueueDB(config.watch.db_path)
     reset_count = db.reset_inflight_to_detected()
     if reset_count:
@@ -179,6 +195,8 @@ def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None 
 
 
 def transcode_one(config: AppConfig, input_path: Path, output_dir: Path | None = None) -> Path:
+    """Run a single frame through the worker pipeline for deterministic debug output."""
+
     db = QueueDB(config.watch.db_path)
     processor = JobProcessor(config=config, db=db)
 
