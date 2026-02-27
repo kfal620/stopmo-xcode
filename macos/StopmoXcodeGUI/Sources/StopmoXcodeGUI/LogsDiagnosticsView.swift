@@ -1,23 +1,5 @@
 import SwiftUI
 
-private enum LogSeverityFilter: String, CaseIterable, Identifiable {
-    case all = "All"
-    case errorsAndWarnings = "Error+Warn"
-    case errorsOnly = "Errors"
-    case warningsOnly = "Warnings"
-    case infoOnly = "Info"
-
-    var id: String { rawValue }
-}
-
-private enum DiagnosticSeverityFilter: String, CaseIterable, Identifiable {
-    case all = "All"
-    case errorsOnly = "Errors"
-    case warningsOnly = "Warnings"
-
-    var id: String { rawValue }
-}
-
 private enum LogsFocusField: Hashable {
     case search
 }
@@ -483,69 +465,21 @@ struct LogsDiagnosticsView: View {
     }
 
     private func filteredWarnings(from snapshot: LogsDiagnosticsSnapshot) -> [DiagnosticWarningRecord] {
-        let codeFilter = warningCodeFilter.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let textFilter = messageSearch.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return snapshot.warnings.filter { warning in
-            switch diagnosticSeverityFilter {
-            case .all:
-                break
-            case .errorsOnly:
-                if !isErrorSeverity(warning.severity) { return false }
-            case .warningsOnly:
-                if isErrorSeverity(warning.severity) { return false }
-            }
-
-            if !codeFilter.isEmpty, !warning.code.lowercased().contains(codeFilter) {
-                return false
-            }
-
-            if !textFilter.isEmpty {
-                let haystack = [warning.message, warning.logger ?? "", warning.code, warning.timestamp ?? ""]
-                    .joined(separator: " ")
-                    .lowercased()
-                if !haystack.contains(textFilter) {
-                    return false
-                }
-            }
-            return true
-        }
+        DiagnosticsFilterReducer.filteredWarnings(
+            warnings: snapshot.warnings,
+            severityFilter: diagnosticSeverityFilter,
+            warningCodeFilter: warningCodeFilter,
+            messageSearch: messageSearch
+        )
     }
 
     private func filteredEntries(from snapshot: LogsDiagnosticsSnapshot) -> [LogEntryRecord] {
-        let loggerFilterTrimmed = loggerFilter.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let textFilter = messageSearch.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return snapshot.entries.filter { entry in
-            switch logSeverityFilter {
-            case .all:
-                break
-            case .errorsAndWarnings:
-                if !(isErrorSeverity(entry.severity) || isWarningSeverity(entry.severity)) {
-                    return false
-                }
-            case .errorsOnly:
-                if !isErrorSeverity(entry.severity) { return false }
-            case .warningsOnly:
-                if !isWarningSeverity(entry.severity) { return false }
-            case .infoOnly:
-                if !isInfoSeverity(entry.severity) { return false }
-            }
-
-            if !loggerFilterTrimmed.isEmpty,
-               !entry.logger.lowercased().contains(loggerFilterTrimmed)
-            {
-                return false
-            }
-
-            if !textFilter.isEmpty {
-                let haystack = [entry.message, entry.timestamp ?? "", entry.logger, entry.raw]
-                    .joined(separator: " ")
-                    .lowercased()
-                if !haystack.contains(textFilter) {
-                    return false
-                }
-            }
-            return true
-        }
+        DiagnosticsFilterReducer.filteredEntries(
+            entries: snapshot.entries,
+            severityFilter: logSeverityFilter,
+            loggerFilter: loggerFilter,
+            messageSearch: messageSearch
+        )
     }
 
     private func refreshLogsFromToolbar() async {
@@ -612,30 +546,16 @@ struct LogsDiagnosticsView: View {
     }
 
     private func severityTone(_ severity: String) -> StatusTone {
-        if isErrorSeverity(severity) {
+        if DiagnosticsFilterReducer.isErrorSeverity(severity) {
             return .danger
         }
-        if isWarningSeverity(severity) {
+        if DiagnosticsFilterReducer.isWarningSeverity(severity) {
             return .warning
         }
-        if isInfoSeverity(severity) {
+        if DiagnosticsFilterReducer.isInfoSeverity(severity) {
             return .success
         }
         return .neutral
-    }
-
-    private func isErrorSeverity(_ severity: String) -> Bool {
-        let normalized = severity.uppercased()
-        return normalized == "ERROR" || normalized == "CRITICAL"
-    }
-
-    private func isWarningSeverity(_ severity: String) -> Bool {
-        let normalized = severity.uppercased()
-        return normalized == "WARNING" || normalized == "WARN"
-    }
-
-    private func isInfoSeverity(_ severity: String) -> Bool {
-        severity.uppercased() == "INFO"
     }
 
     private func queueTone(for state: String, count: Int) -> StatusTone {
