@@ -56,6 +56,8 @@
 		AA500001000000000000000A /* ToolsWorkspace/ToolsWorkspaceTabBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA600001000000000000000A /* ToolsWorkspaceTabBarView.swift */; };
 		AA500001000000000000000B /* ToolsWorkspace/ToolsWorkspaceTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA600001000000000000000B /* ToolsWorkspaceTypes.swift */; };
 		AA500001000000000000000C /* ToolsWorkspace/ToolsWorkspaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA600001000000000000000C /* ToolsWorkspaceViewModel.swift */; };
+		AA500001000000000000000D /* ToolsWorkspace/ToolsPaneSharedViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA600001000000000000000D /* ToolsPaneSharedViews.swift */; };
+		AA500001000000000000000E /* ToolsWorkspace/ToolsRecentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA600001000000000000000E /* ToolsRecentsStore.swift */; };
 		EF9DCE84CBD6AE7F1A9BF744 /* TriageShotHealthBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C738BE541F738155C20C7C2F /* TriageShotHealthBoardView.swift */; };
 		F73AC6A906A75D4BDCCB40DF /* ShotsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7542F43972FC8A8F86041336 /* ShotsView.swift */; };
 		F73B7C5C2A799063856995AB /* ProjectEditorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2390058DD0F9C45F7479EC13 /* ProjectEditorViewModel.swift */; };
@@ -111,6 +113,8 @@
 		AA600001000000000000000A /* ToolsWorkspaceTabBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceTabBarView.swift; sourceTree = "<group>"; };
 		AA600001000000000000000B /* ToolsWorkspaceTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceTypes.swift; sourceTree = "<group>"; };
 		AA600001000000000000000C /* ToolsWorkspaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsWorkspaceViewModel.swift; sourceTree = "<group>"; };
+		AA600001000000000000000D /* ToolsPaneSharedViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsPaneSharedViews.swift; sourceTree = "<group>"; };
+		AA600001000000000000000E /* ToolsRecentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsRecentsStore.swift; sourceTree = "<group>"; };
 		D1A8E48DAF3643A9CAE60A38 /* BridgeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BridgeClient.swift; sourceTree = "<group>"; };
 		D22997BC57AA2C16218C09EB /* ConfigureHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigureHubView.swift; sourceTree = "<group>"; };
 		D243223FB1F8844E862F81F8 /* DeliveryShotListPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeliveryShotListPane.swift; sourceTree = "<group>"; };
@@ -175,6 +179,8 @@
 				AA6000010000000000000001 /* ToolsDpxPane.swift */,
 				AA6000010000000000000002 /* ToolsMatrixPane.swift */,
 				AA6000010000000000000003 /* ToolsPreflightReducer.swift */,
+				AA600001000000000000000D /* ToolsPaneSharedViews.swift */,
+				AA600001000000000000000E /* ToolsRecentsStore.swift */,
 				AA6000010000000000000004 /* ToolsRunnerService.swift */,
 				AA6000010000000000000005 /* ToolsTimelineReducer.swift */,
 				AA6000010000000000000006 /* ToolsTranscodePane.swift */,
@@ -353,6 +359,8 @@
 				AA5000010000000000000001 /* ToolsWorkspace/ToolsDpxPane.swift in Sources */,
 				AA5000010000000000000002 /* ToolsWorkspace/ToolsMatrixPane.swift in Sources */,
 				AA5000010000000000000003 /* ToolsWorkspace/ToolsPreflightReducer.swift in Sources */,
+				AA500001000000000000000D /* ToolsWorkspace/ToolsPaneSharedViews.swift in Sources */,
+				AA500001000000000000000E /* ToolsWorkspace/ToolsRecentsStore.swift in Sources */,
 				AA5000010000000000000004 /* ToolsWorkspace/ToolsRunnerService.swift in Sources */,
 				AA5000010000000000000005 /* ToolsWorkspace/ToolsTimelineReducer.swift in Sources */,
 				AA5000010000000000000006 /* ToolsWorkspace/ToolsTranscodePane.swift in Sources */,

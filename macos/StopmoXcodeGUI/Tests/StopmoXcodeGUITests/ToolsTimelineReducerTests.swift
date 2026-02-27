@@ -19,6 +19,23 @@ final class ToolsTimelineReducerTests: XCTestCase {
         XCTAssertEqual(filtered.first?.eventType, "worker_fail")
     }
 
+    func testFilteredEventsMilestonesFilterMatchesLifecycleEvents() {
+        let events = [
+            makeEvent(type: "stage_start", message: "begin"),
+            makeEvent(type: "progress_tick", message: "50%"),
+            makeEvent(type: "worker_fail", message: "bad frame"),
+            makeEvent(type: "complete", message: "ok"),
+        ]
+
+        let filtered = ToolsTimelineReducer.filteredEvents(
+            from: events,
+            filter: .milestones,
+            search: ""
+        )
+
+        XCTAssertEqual(filtered.map(\.eventType), ["stage_start", "worker_fail", "complete"])
+    }
+
     func testAppendTimelineHonorsMaxCount() {
         var items: [ToolTimelineItem] = []
         for idx in 0 ..< 5 {
@@ -42,6 +59,16 @@ final class ToolsTimelineReducerTests: XCTestCase {
         XCTAssertEqual(ToolsTimelineReducer.runStatus(from: "running"), .running)
         XCTAssertEqual(ToolsTimelineReducer.runStatus(from: "failed"), .failed)
         XCTAssertEqual(ToolsTimelineReducer.runStatus(from: "idle"), .idle)
+    }
+
+    func testToneMappingUsesExpectedSeverity() {
+        XCTAssertEqual(ToolsTimelineReducer.toneForOperationStatus("succeeded"), .success)
+        XCTAssertEqual(ToolsTimelineReducer.toneForOperationStatus("failed"), .danger)
+        XCTAssertEqual(ToolsTimelineReducer.toneForOperationStatus("running"), .warning)
+
+        XCTAssertEqual(ToolsTimelineReducer.toneForEvent(makeEvent(type: "worker_fail", message: "error")), .danger)
+        XCTAssertEqual(ToolsTimelineReducer.toneForEvent(makeEvent(type: "complete", message: "done")), .success)
+        XCTAssertEqual(ToolsTimelineReducer.toneForEvent(makeEvent(type: "start", message: "go")), .warning)
     }
 
     private func makeEvent(type: String, message: String) -> OperationEventRecord {

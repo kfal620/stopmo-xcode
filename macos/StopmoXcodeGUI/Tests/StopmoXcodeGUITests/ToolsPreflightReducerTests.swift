@@ -35,4 +35,16 @@ final class ToolsPreflightReducerTests: XCTestCase {
         XCTAssertTrue(preflight.blockers.isEmpty)
         XCTAssertEqual(preflight.warnings, ["No .dpx files were found under the input directory."])
     }
+
+    func testDpxPreflightWarnsWhenInputMatchesOutput() {
+        let preflight = ToolsPreflightReducer.dpx(
+            inputDir: "/tmp/shared",
+            outputDir: "/tmp/shared",
+            pathExists: { _ in true },
+            dpxCount: { _ in 10 }
+        )
+
+        XCTAssertTrue(preflight.blockers.isEmpty)
+        XCTAssertEqual(preflight.warnings, ["Input and output directories are the same."])
+    }
 }

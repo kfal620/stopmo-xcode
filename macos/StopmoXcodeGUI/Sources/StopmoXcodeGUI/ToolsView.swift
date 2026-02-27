@@ -108,8 +108,8 @@ struct ToolsView: View {
                 showAdvanced: $showTranscodeAdvanced,
                 isRunningTool: viewModel.isRunningTool,
                 preflight: transcodePreflight,
-                recentInputs: decodeRecentValues(recentTranscodeInputRaw),
-                recentOutputs: decodeRecentValues(recentTranscodeOutputRaw),
+                recentInputs: ToolsRecentsStore.decode(recentTranscodeInputRaw),
+                recentOutputs: ToolsRecentsStore.decode(recentTranscodeOutputRaw),
                 chooseInputFile: { chooseFilePath(allowedExtensions: ["cr2", "cr3", "raw", "dng", "nef", "arw"]) },
                 chooseOutputDirectory: chooseDirectoryPath,
                 clearRecentInputs: { recentTranscodeInputRaw = "" },
@@ -133,8 +133,8 @@ struct ToolsView: View {
                 showAdvanced: $showMatrixAdvanced,
                 isRunningTool: viewModel.isRunningTool,
                 preflight: matrixPreflight,
-                recentInputs: decodeRecentValues(recentMatrixInputRaw),
-                recentReports: decodeRecentValues(recentMatrixReportRaw),
+                recentInputs: ToolsRecentsStore.decode(recentMatrixInputRaw),
+                recentReports: ToolsRecentsStore.decode(recentMatrixReportRaw),
                 latestMatrix: viewModel.latestMatrix,
                 chooseInputFile: { chooseFilePath(allowedExtensions: ["cr2", "cr3", "raw", "dng", "nef", "arw"]) },
                 chooseReportPath: { chooseSaveFilePath(defaultName: "matrix_report.json", contentType: .json) },
@@ -158,8 +158,8 @@ struct ToolsView: View {
                 outputs: $viewModel.dpxOutputs,
                 isRunningTool: viewModel.isRunningTool,
                 preflight: dpxPreflight,
-                recentInputs: decodeRecentValues(recentDpxInputRaw),
-                recentOutputs: decodeRecentValues(recentDpxOutputRaw),
+                recentInputs: ToolsRecentsStore.decode(recentDpxInputRaw),
+                recentOutputs: ToolsRecentsStore.decode(recentDpxOutputRaw),
                 chooseInputDirectory: chooseDirectoryPath,
                 chooseOutputDirectory: chooseDirectoryPath,
                 clearRecentInputs: { recentDpxInputRaw = "" },
@@ -244,9 +244,9 @@ struct ToolsView: View {
             inputPath: transcodeInputPath,
             outputDir: outputDir
         ) { input, output in
-            recentTranscodeInputRaw = updatedRecentRaw(recentTranscodeInputRaw, adding: input)
+            recentTranscodeInputRaw = ToolsRecentsStore.append(input, to: recentTranscodeInputRaw)
             if let output {
-                recentTranscodeOutputRaw = updatedRecentRaw(recentTranscodeOutputRaw, adding: output)
+                recentTranscodeOutputRaw = ToolsRecentsStore.append(output, to: recentTranscodeOutputRaw)
             }
         }
     }
@@ -269,9 +269,9 @@ struct ToolsView: View {
             cameraModel: emptyToNil(matrixCameraModel),
             writeJson: emptyToNil(matrixWriteJsonPath)
         ) { input, report in
-            recentMatrixInputRaw = updatedRecentRaw(recentMatrixInputRaw, adding: input)
+            recentMatrixInputRaw = ToolsRecentsStore.append(input, to: recentMatrixInputRaw)
             if let report {
-                recentMatrixReportRaw = updatedRecentRaw(recentMatrixReportRaw, adding: report)
+                recentMatrixReportRaw = ToolsRecentsStore.append(report, to: recentMatrixReportRaw)
             }
         }
     }
@@ -294,9 +294,9 @@ struct ToolsView: View {
             framerate: dpxFramerate,
             overwrite: dpxOverwrite
         ) { input, output in
-            recentDpxInputRaw = updatedRecentRaw(recentDpxInputRaw, adding: input)
+            recentDpxInputRaw = ToolsRecentsStore.append(input, to: recentDpxInputRaw)
             if let output {
-                recentDpxOutputRaw = updatedRecentRaw(recentDpxOutputRaw, adding: output)
+                recentDpxOutputRaw = ToolsRecentsStore.append(output, to: recentDpxOutputRaw)
             }
         }
     }
@@ -361,27 +361,6 @@ struct ToolsView: View {
         panel.canCreateDirectories = true
         panel.prompt = "Choose"
         return panel.runModal() == .OK ? panel.url?.path : nil
-    }
-
-    private func decodeRecentValues(_ raw: String) -> [String] {
-        raw
-            .split(separator: "\n")
-            .map(String.init)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-    }
-
-    private func updatedRecentRaw(_ currentRaw: String, adding value: String) -> String {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return currentRaw }
-
-        var values = decodeRecentValues(currentRaw)
-        values.removeAll { $0 == trimmed }
-        values.insert(trimmed, at: 0)
-        if values.count > 8 {
-            values = Array(values.prefix(8))
-        }
-        return values.joined(separator: "\n")
     }
 
     private func countDpxFiles(in directoryPath: String) -> Int {
