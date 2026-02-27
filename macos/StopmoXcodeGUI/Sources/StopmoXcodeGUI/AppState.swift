@@ -82,9 +82,7 @@ final class AppState: ObservableObject {
     @Published var monitoringLastFailureAt: Date?
     @Published var monitoringLastFailureMessage: String?
 
-    private var monitorTask: Task<Void, Never>?
     private var toastDismissTask: Task<Void, Never>?
-    private var monitorSessionToken = UUID()
     private var liveRefreshInFlight: Bool = false
     private var hasEmittedMonitoringFailureWarning: Bool = false
     private var lastQueueCounts: [String: Int] = [:]
@@ -95,20 +93,31 @@ final class AppState: ObservableObject {
     private let maxDeliveryRunEvents: Int = 120
     private static let repoRootDefaultsKey = "stopmo_repo_root"
     private static let workspaceBookmarkDefaultsKey = "stopmo_workspace_bookmark"
-    private static let defaultWorkspaceFolderName = "StopmoXcodeWorkspace"
     private var securityScopedWorkspaceURL: URL?
-    private let workspaceIO = WorkspaceIOService()
+    private let bridgeService: BridgeServicing
+    private let workspaceConfigService: WorkspaceConfigServicing
+    private let workspaceIO: WorkspaceIOService
+    private let monitoringCoordinator: LiveMonitoringCoordinating
 
-    init() {
-        let root = Self.resolveInitialRepoRoot()
+    init(dependencies: AppStateDependencies = .live) {
+        bridgeService = dependencies.bridgeService
+        workspaceConfigService = dependencies.workspaceConfigService
+        workspaceIO = dependencies.workspaceIOService
+        monitoringCoordinator = dependencies.monitoringCoordinatorFactory()
+
+        let root = workspaceConfigService.resolveInitialRepoRoot(
+            environment: ProcessInfo.processInfo.environment,
+            rememberedRepoRoot: UserDefaults.standard.string(forKey: Self.repoRootDefaultsKey),
+            bundlePath: Bundle.main.bundleURL.path,
+            currentDirectoryPath: FileManager.default.currentDirectoryPath
+        )
         repoRoot = root
-        configPath = Self.defaultConfigPath(forWorkspaceRoot: root)
+        configPath = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: root)
         restoreWorkspaceAccess()
         bootstrapWorkspaceIfNeeded()
     }
 
     deinit {
-        monitorTask?.cancel()
         toastDismissTask?.cancel()
         if let url = securityScopedWorkspaceURL {
             url.stopAccessingSecurityScopedResource()
@@ -155,9 +164,7 @@ final class AppState: ObservableObject {
         await runBlockingTask(label: "Checking runtime health") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let result = try await Task.detached(priority: .userInitiated) {
-                try BridgeClient().health(repoRoot: repoRoot, configPath: configPath)
-            }.value
+            let result = try await self.bridgeService.health(repoRoot: repoRoot, configPath: configPath)
             self.health = result
             self.statusMessage = "Health check completed"
         }
@@ -167,9 +174,7 @@ final class AppState: ObservableObject {
         await runBlockingTask(label: "Loading config") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let loaded = try await Task.detached(priority: .userInitiated) {
-                try BridgeClient().readConfig(repoRoot: repoRoot, configPath: configPath)
-            }.value
+            let loaded = try await self.bridgeService.readConfig(repoRoot: repoRoot, configPath: configPath)
             self.config = loaded
             if let loadedPath = loaded.configPath {
                 self.configPath = loadedPath
@@ -183,25 +188,25 @@ final class AppState: ObservableObject {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
             let payload = overrideConfig ?? self.config
-            let saved = try await Task.detached(priority: .userInitiated) {
-                try BridgeClient().writeConfig(repoRoot: repoRoot, configPath: configPath, config: payload)
-            }.value
+            let saved = try await self.bridgeService.writeConfig(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                config: payload
+            )
             self.config = saved
             self.statusMessage = "Saved config"
         }
     }
 
     func startWatchService() async {
-        let shouldResumeMonitoring = monitorTask != nil
+        let shouldResumeMonitoring = monitoringCoordinator.isRunning
         if shouldResumeMonitoring {
             stopMonitoringLoop()
         }
         await runBlockingTask(label: "Starting watch service") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let watchState = try await Task.detached(priority: .userInitiated) {
-                try BridgeClient().watchStart(repoRoot: repoRoot, configPath: configPath)
-            }.value
+            let watchState = try await self.bridgeService.watchStart(repoRoot: repoRoot, configPath: configPath)
             self.applyLiveSnapshots(watchState: watchState, shots: self.shotsSnapshot)
             if watchState.startBlocked == true {
                 self.recordLiveEvent("Watch start blocked by preflight")
@@ -233,16 +238,14 @@ final class AppState: ObservableObject {
     }
 
     func stopWatchService() async {
-        let shouldResumeMonitoring = monitorTask != nil
+        let shouldResumeMonitoring = monitoringCoordinator.isRunning
         if shouldResumeMonitoring {
             stopMonitoringLoop()
         }
         await runBlockingTask(label: "Stopping watch service") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let watchState = try await Task.detached(priority: .userInitiated) {
-                try BridgeClient().watchStop(repoRoot: repoRoot, configPath: configPath)
-            }.value
+            let watchState = try await self.bridgeService.watchStop(repoRoot: repoRoot, configPath: configPath)
             self.applyLiveSnapshots(watchState: watchState, shots: self.shotsSnapshot)
             self.recordLiveEvent("Watch service stopped")
             self.statusMessage = "Watch service stopped"
@@ -253,22 +256,15 @@ final class AppState: ObservableObject {
     }
 
     func restartWatchService() async {
-        let shouldResumeMonitoring = monitorTask != nil
+        let shouldResumeMonitoring = monitoringCoordinator.isRunning
         if shouldResumeMonitoring {
             stopMonitoringLoop()
         }
         await runBlockingTask(label: "Restarting watch service") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let client = BridgeClient()
-
-            _ = try await Task.detached(priority: .userInitiated) {
-                try client.watchStop(repoRoot: repoRoot, configPath: configPath)
-            }.value
-
-            let watchState = try await Task.detached(priority: .userInitiated) {
-                try client.watchStart(repoRoot: repoRoot, configPath: configPath)
-            }.value
+            _ = try await self.bridgeService.watchStop(repoRoot: repoRoot, configPath: configPath)
+            let watchState = try await self.bridgeService.watchStart(repoRoot: repoRoot, configPath: configPath)
 
             self.applyLiveSnapshots(watchState: watchState, shots: self.shotsSnapshot)
             if watchState.startBlocked == true {
@@ -304,7 +300,7 @@ final class AppState: ObservableObject {
         _ = await refreshLiveDataInternal(
             silent: silent,
             source: .manual,
-            expectedSessionToken: monitorSessionToken
+            expectedSessionToken: monitoringCoordinator.sessionToken
         )
     }
 
@@ -318,33 +314,12 @@ final class AppState: ObservableObject {
     }
 
     func refreshKindForCurrentSelection() -> RefreshKind {
-        switch selectedHub {
-        case .configure:
-            switch selectedConfigurePanel {
-            case .workspaceHealth:
-                return .health
-            case .projectSettings:
-                return .config
-            case .calibration:
-                return .config
-            }
-        case .capture:
-            return .live
-        case .triage:
-            switch selectedTriagePanel {
-            case .shots, .queue:
-                return .live
-            case .diagnostics:
-                return .logs
-            }
-        case .deliver:
-            switch selectedDeliverPanel {
-            case .dayWrap:
-                return .dayWrap
-            case .runHistory:
-                return .history
-            }
-        }
+        LiveRefreshPlanner.refreshKind(
+            selectedHub: selectedHub,
+            selectedConfigurePanel: selectedConfigurePanel,
+            selectedTriagePanel: selectedTriagePanel,
+            selectedDeliverPanel: selectedDeliverPanel
+        )
     }
 
     func refreshCurrentSelection() async {
@@ -379,7 +354,7 @@ final class AppState: ObservableObject {
         source: LiveRefreshSource,
         expectedSessionToken: UUID
     ) async -> Bool {
-        if source == .monitor, expectedSessionToken != monitorSessionToken {
+        if source == .monitor, expectedSessionToken != monitoringCoordinator.sessionToken {
             return false
         }
         if liveRefreshInFlight {
@@ -414,32 +389,28 @@ final class AppState: ObservableObject {
         }
 
         do {
-            let snapshot = try await Task.detached(priority: .utility) {
-                let client = BridgeClient()
-                let watchState = try client.watchState(
-                    repoRoot: repoRoot,
-                    configPath: configPath,
-                    limit: limits.queueLimit,
-                    tailLines: limits.logTailLines
-                )
-                let shots: ShotsSummarySnapshot? = limits.includeShots
-                    ? try client.shotsSummary(repoRoot: repoRoot, configPath: configPath, limit: limits.shotsLimit)
-                    : nil
-                return (watchState, shots)
-            }.value
+            let watchState = try await bridgeService.watchState(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                limit: limits.queueLimit,
+                tailLines: limits.logTailLines
+            )
+            let shots: ShotsSummarySnapshot? = limits.includeShots
+                ? try await bridgeService.shotsSummary(repoRoot: repoRoot, configPath: configPath, limit: limits.shotsLimit)
+                : nil
 
-            if source == .monitor, expectedSessionToken != monitorSessionToken {
+            if source == .monitor, expectedSessionToken != monitoringCoordinator.sessionToken {
                 return false
             }
 
-            applyLiveSnapshots(watchState: snapshot.0, shots: snapshot.1)
-            watchPreflight = snapshot.0.preflight ?? watchPreflight
-            registerMonitoringSuccess(with: snapshot.0)
+            applyLiveSnapshots(watchState: watchState, shots: shots)
+            watchPreflight = watchState.preflight ?? watchPreflight
+            registerMonitoringSuccess(with: watchState)
             if !silent {
                 statusMessage = "Live status updated"
             }
         } catch {
-            if source == .monitor, expectedSessionToken != monitorSessionToken {
+            if source == .monitor, expectedSessionToken != monitoringCoordinator.sessionToken {
                 return false
             }
 
@@ -454,29 +425,11 @@ final class AppState: ObservableObject {
         return true
     }
 
-    private struct LiveSnapshotFetchLimits {
-        let queueLimit: Int
-        let logTailLines: Int
-        let includeShots: Bool
-        let shotsLimit: Int
-    }
-
     private func snapshotFetchLimitsForCurrentSelection() -> LiveSnapshotFetchLimits {
-        switch selectedHub {
-        case .capture:
-            return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 60, includeShots: true, shotsLimit: 120)
-        case .triage:
-            switch selectedTriagePanel {
-            case .queue:
-                return LiveSnapshotFetchLimits(queueLimit: 350, logTailLines: 40, includeShots: false, shotsLimit: 0)
-            case .shots:
-                return LiveSnapshotFetchLimits(queueLimit: 260, logTailLines: 30, includeShots: true, shotsLimit: 500)
-            case .diagnostics:
-                return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 40, includeShots: false, shotsLimit: 0)
-            }
-        case .configure, .deliver:
-            return LiveSnapshotFetchLimits(queueLimit: 220, logTailLines: 40, includeShots: false, shotsLimit: 0)
-        }
+        LiveRefreshPlanner.snapshotFetchLimits(
+            selectedHub: selectedHub,
+            selectedTriagePanel: selectedTriagePanel
+        )
     }
 
     private func registerMonitoringSuccess(with watchState: WatchServiceState) {
@@ -515,14 +468,12 @@ final class AppState: ObservableObject {
         await runBlockingTask(label: "Refreshing logs and diagnostics") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let snapshot = try await Task.detached(priority: .utility) {
-                try BridgeClient().logsDiagnostics(
-                    repoRoot: repoRoot,
-                    configPath: configPath,
-                    severity: severity,
-                    limit: 500
-                )
-            }.value
+            let snapshot = try await self.bridgeService.logsDiagnostics(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                severity: severity,
+                limit: 500
+            )
             self.logsDiagnostics = snapshot
             self.ingestDiagnosticWarnings(snapshot.warnings)
             self.statusMessage = "Logs/diagnostics updated"
@@ -533,9 +484,7 @@ final class AppState: ObservableObject {
         await runBlockingTask(label: "Validating config") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let snapshot = try await Task.detached(priority: .utility) {
-                try BridgeClient().configValidate(repoRoot: repoRoot, configPath: configPath)
-            }.value
+            let snapshot = try await self.bridgeService.configValidate(repoRoot: repoRoot, configPath: configPath)
             self.configValidation = snapshot
             self.statusMessage = snapshot.ok ? "Config validation passed" : "Config validation failed"
         }
@@ -545,9 +494,7 @@ final class AppState: ObservableObject {
         await runBlockingTask(label: "Running watch preflight") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let snapshot = try await Task.detached(priority: .utility) {
-                try BridgeClient().watchPreflight(repoRoot: repoRoot, configPath: configPath)
-            }.value
+            let snapshot = try await self.bridgeService.watchPreflight(repoRoot: repoRoot, configPath: configPath)
             self.watchPreflight = snapshot
             self.statusMessage = snapshot.ok ? "Watch preflight passed" : "Watch preflight blocked"
         }
@@ -557,14 +504,12 @@ final class AppState: ObservableObject {
         await runBlockingTask(label: "Refreshing history") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let snapshot = try await Task.detached(priority: .utility) {
-                try BridgeClient().historySummary(
-                    repoRoot: repoRoot,
-                    configPath: configPath,
-                    limit: 50,
-                    gapMinutes: 30
-                )
-            }.value
+            let snapshot = try await self.bridgeService.historySummary(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                limit: 50,
+                gapMinutes: 30
+            )
             self.historySummary = snapshot
             self.statusMessage = "History updated"
         }
@@ -674,15 +619,13 @@ final class AppState: ObservableObject {
         }
 
         do {
-            let envelope = try await Task.detached(priority: .userInitiated) {
-                try BridgeClient().dpxToProres(
-                    repoRoot: repoRoot,
-                    inputDir: trimmedInput,
-                    outputDir: (resolvedOutput?.isEmpty == false) ? resolvedOutput : nil,
-                    framerate: max(1, framerate),
-                    overwrite: overwrite
-                )
-            }.value
+            let envelope = try await bridgeService.dpxToProres(
+                repoRoot: repoRoot,
+                inputDir: trimmedInput,
+                outputDir: (resolvedOutput?.isEmpty == false) ? resolvedOutput : nil,
+                framerate: max(1, framerate),
+                overwrite: overwrite
+            )
 
             publishDeliveryOperation(envelope)
             let outputs = Self.outputPaths(from: envelope)
@@ -779,15 +722,13 @@ final class AppState: ObservableObject {
                     shotName: shotLabel
                 )
                 do {
-                    let envelope = try await Task.detached(priority: .userInitiated) {
-                        try BridgeClient().dpxToProres(
-                            repoRoot: repoRoot,
-                            inputDir: inputRoot,
-                            outputDir: resolvedOutput?.isEmpty == false ? resolvedOutput : nil,
-                            framerate: max(1, framerate),
-                            overwrite: overwrite
-                        )
-                    }.value
+                    let envelope = try await self.bridgeService.dpxToProres(
+                        repoRoot: repoRoot,
+                        inputDir: inputRoot,
+                        outputDir: resolvedOutput?.isEmpty == false ? resolvedOutput : nil,
+                        framerate: max(1, framerate),
+                        overwrite: overwrite
+                    )
                     self.publishDeliveryOperation(envelope)
                     let outputs = Self.outputPaths(from: envelope)
                     if outputs.isEmpty {
@@ -898,7 +839,7 @@ final class AppState: ObservableObject {
         }
 
         let currentConfig = configPath.trimmingCharacters(in: .whitespacesAndNewlines)
-        let currentDefaultConfig = Self.defaultConfigPath(forWorkspaceRoot: repoRoot)
+        let currentDefaultConfig = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: repoRoot)
         let currentConfigLooksAutoDefault = currentConfig == currentDefaultConfig
         let currentConfigExists = FileManager.default.fileExists(atPath: currentConfig)
         guard currentConfigLooksAutoDefault, !currentConfigExists else {
@@ -919,13 +860,11 @@ final class AppState: ObservableObject {
         await runBlockingTask(label: "Creating diagnostics bundle") {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
-            let result = try await Task.detached(priority: .userInitiated) {
-                try BridgeClient().copyDiagnosticsBundle(
-                    repoRoot: repoRoot,
-                    configPath: configPath,
-                    outDir: outDir
-                )
-            }.value
+            let result = try await self.bridgeService.copyDiagnosticsBundle(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                outDir: outDir
+            )
             self.lastDiagnosticsBundlePath = result.bundlePath
             self.presentInfo(
                 title: "Diagnostics Bundle Created",
@@ -942,13 +881,11 @@ final class AppState: ObservableObject {
             let repoRoot = self.repoRoot
             let configPath = self.configPath
             let retryIds = jobIds
-            let result = try await Task.detached(priority: .userInitiated) {
-                try BridgeClient().queueRetryFailed(
-                    repoRoot: repoRoot,
-                    configPath: configPath,
-                    jobIds: retryIds
-                )
-            }.value
+            let result = try await self.bridgeService.queueRetryFailed(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                jobIds: retryIds
+            )
             self.queueSnapshot = result.queue
             if var watch = self.watchServiceState {
                 watch.queue = result.queue
@@ -1026,75 +963,54 @@ final class AppState: ObservableObject {
     }
 
     func shouldMonitorCurrentSelection() -> Bool {
-        switch selectedHub {
-        case .capture:
-            return true
-        case .triage:
-            return selectedTriagePanel == .shots || selectedTriagePanel == .queue
-        case .configure, .deliver:
-            return false
-        }
+        LiveRefreshPlanner.shouldMonitor(
+            selectedHub: selectedHub,
+            selectedTriagePanel: selectedTriagePanel
+        )
     }
 
     private func startMonitoringLoop(force: Bool = false) {
-        if monitorTask != nil, !force {
-            return
-        }
-        stopMonitoringLoop()
-        monitorSessionToken = UUID()
-        let sessionToken = monitorSessionToken
-        monitoringEnabled = true
-        monitoringPollIntervalSeconds = 1.0
-        monitoringConsecutiveFailures = 0
-        monitoringNextPollAt = nil
-        monitoringLastFailureMessage = nil
-        hasEmittedMonitoringFailureWarning = false
-
-        monitorTask = Task { [weak self] in
-            guard let self else { return }
-            let firstPass = await self.refreshLiveDataInternal(
-                silent: true,
-                source: .monitor,
-                expectedSessionToken: sessionToken
-            )
-            if !firstPass {
-                return
-            }
-            while !Task.isCancelled {
-                if sessionToken != self.monitorSessionToken {
-                    break
-                }
-                let interval = max(0.5, self.monitoringPollIntervalSeconds)
-                self.monitoringNextPollAt = Date().addingTimeInterval(interval)
-                let nanos = UInt64(interval * 1_000_000_000.0)
-                do {
-                    try await Task.sleep(nanoseconds: nanos)
-                } catch {
-                    break
-                }
-                if Task.isCancelled || sessionToken != self.monitorSessionToken {
-                    break
-                }
-                let shouldContinue = await self.refreshLiveDataInternal(
+        monitoringCoordinator.start(
+            force: force,
+            onStarted: { [weak self] _ in
+                guard let self else { return }
+                self.monitoringEnabled = true
+                self.monitoringPollIntervalSeconds = 1.0
+                self.monitoringConsecutiveFailures = 0
+                self.monitoringNextPollAt = nil
+                self.monitoringLastFailureMessage = nil
+                self.hasEmittedMonitoringFailureWarning = false
+            },
+            onStopped: { [weak self] in
+                guard let self else { return }
+                self.monitoringEnabled = false
+                self.monitoringPollInFlight = false
+                self.monitoringNextPollAt = nil
+            },
+            pollInterval: { [weak self] in
+                guard let self else { return 1.0 }
+                self.monitoringNextPollAt = Date().addingTimeInterval(max(0.5, self.monitoringPollIntervalSeconds))
+                return self.monitoringPollIntervalSeconds
+            },
+            refresh: { [weak self] sessionToken in
+                guard let self else { return false }
+                return await self.refreshLiveDataInternal(
                     silent: true,
                     source: .monitor,
                     expectedSessionToken: sessionToken
                 )
-                if !shouldContinue {
-                    break
-                }
             }
-        }
+        )
         statusMessage = "Live monitoring enabled"
     }
 
     private func stopMonitoringLoop() {
-        monitorTask?.cancel()
-        monitorTask = nil
-        monitorSessionToken = UUID()
-        monitoringEnabled = false
-        monitoringPollInFlight = false
-        monitoringNextPollAt = nil
+        monitoringCoordinator.stop { [weak self] in
+            guard let self else { return }
+            self.monitoringEnabled = false
+            self.monitoringPollInFlight = false
+            self.monitoringNextPollAt = nil
+        }
     }
 
     private func applyLiveSnapshots(watchState: WatchServiceState, shots: ShotsSummarySnapshot?) {
@@ -1186,7 +1102,7 @@ final class AppState: ObservableObject {
             securityScopedWorkspaceURL = selectedURL
             workspaceAccessActive = started
             repoRoot = selectedURL.path
-            configPath = Self.defaultConfigPath(forWorkspaceRoot: selectedURL.path)
+            configPath = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: selectedURL.path)
             bootstrapWorkspaceIfNeeded()
             statusMessage = started ? "Workspace access granted" : "Workspace selected"
         } catch {
@@ -1199,7 +1115,7 @@ final class AppState: ObservableObject {
             return
         }
         repoRoot = selectedURL.path
-        let defaultConfig = Self.defaultConfigPath(forWorkspaceRoot: selectedURL.path)
+        let defaultConfig = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: selectedURL.path)
         if FileManager.default.fileExists(atPath: defaultConfig) {
             configPath = defaultConfig
         } else {
@@ -1221,12 +1137,12 @@ final class AppState: ObservableObject {
         if let bundledSample = bundledSampleConfigPath() {
             return bundledSample
         }
-        return Self.defaultConfigPath(forWorkspaceRoot: repoRoot)
+        return workspaceConfigService.defaultConfigPath(forWorkspaceRoot: repoRoot)
     }
 
     func useSampleConfig() {
-        if !Self.isLikelyRepoRoot(Path: repoRoot) {
-            configPath = Self.defaultConfigPath(forWorkspaceRoot: repoRoot)
+        if !workspaceConfigService.isLikelyRepoRoot(path: repoRoot) {
+            configPath = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: repoRoot)
             if !FileManager.default.fileExists(atPath: configPath) {
                 bootstrapWorkspaceIfNeeded()
             }
@@ -1260,7 +1176,7 @@ final class AppState: ObservableObject {
         let fm = FileManager.default
         let sample = resolvedSampleConfigSourcePath()
         let canCopySample = sample != nil && fm.fileExists(atPath: sample ?? "")
-        if Self.isLikelyRepoRoot(Path: repoRoot), !canCopySample {
+        if workspaceConfigService.isLikelyRepoRoot(path: repoRoot), !canCopySample {
             presentError(
                 title: "Sample Config Missing",
                 message: "Could not find a sample config source."
@@ -1281,10 +1197,10 @@ final class AppState: ObservableObject {
             if !parent.isEmpty, !fm.fileExists(atPath: parent) {
                 try fm.createDirectory(atPath: parent, withIntermediateDirectories: true)
             }
-            if Self.isLikelyRepoRoot(Path: repoRoot) {
+            if workspaceConfigService.isLikelyRepoRoot(path: repoRoot) {
                 try fm.copyItem(atPath: sample ?? "", toPath: destination)
             } else {
-                try Self.writeDefaultConfigTemplate(destination: destination, workspaceRoot: repoRoot)
+                try workspaceConfigService.writeDefaultConfigTemplate(destination: destination, workspaceRoot: repoRoot)
             }
             presentInfo(
                 title: "Config Created",
@@ -1359,156 +1275,34 @@ final class AppState: ObservableObject {
         guard !workspaceRoot.isEmpty else {
             return
         }
-        let fm = FileManager.default
-
         do {
-            if !fm.fileExists(atPath: workspaceRoot) {
-                try fm.createDirectory(atPath: workspaceRoot, withIntermediateDirectories: true)
+            let result = try workspaceConfigService.bootstrapWorkspaceIfNeeded(
+                workspaceRoot: workspaceRoot,
+                configPath: configPath
+            )
+            configPath = result.resolvedConfigPath
+            if result.createdConfig {
+                statusMessage = "Workspace bootstrapped"
             }
-
-            let configDestination = configPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                ? Self.defaultConfigPath(forWorkspaceRoot: workspaceRoot)
-                : configPath
-            configPath = configDestination
-
-            if fm.fileExists(atPath: configDestination) {
-                return
-            }
-
-            let configParent = (configDestination as NSString).deletingLastPathComponent
-            if !configParent.isEmpty, !fm.fileExists(atPath: configParent) {
-                try fm.createDirectory(atPath: configParent, withIntermediateDirectories: true)
-            }
-
-            try Self.writeDefaultConfigTemplate(destination: configDestination, workspaceRoot: workspaceRoot)
-            statusMessage = "Workspace bootstrapped"
         } catch {
             statusMessage = "Workspace bootstrap skipped: \(error.localizedDescription)"
         }
     }
 
     private func bundledSampleConfigPath() -> String? {
-        var candidates: [String] = []
-        if let resourcePath = Bundle.main.resourceURL?.appendingPathComponent("backend/defaults/sample.yaml").path {
-            candidates.append(resourcePath)
-        }
-        candidates.append(Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/backend/defaults/sample.yaml").path)
-        for candidate in candidates {
-            if FileManager.default.fileExists(atPath: candidate) {
-                return candidate
-            }
-        }
-        return nil
+        workspaceConfigService.bundledSampleConfigPath(
+            bundleResourceURL: Bundle.main.resourceURL,
+            bundleURL: Bundle.main.bundleURL
+        )
     }
 
     private func resolvedSampleConfigSourcePath() -> String? {
-        let envRepo = ProcessInfo.processInfo.environment["STOPMO_XCODE_ROOT"] ?? ""
-        var candidates: [String] = [
-            "\(repoRoot)/config/sample.yaml",
-            "\(envRepo)/config/sample.yaml",
-        ]
-        if let bundled = bundledSampleConfigPath() {
-            candidates.append(bundled)
-        }
-        if let discovered = Self.discoverRepoRootNear(path: FileManager.default.currentDirectoryPath) {
-            candidates.append("\(discovered)/config/sample.yaml")
-        }
-        for candidate in candidates.map({ $0.trimmingCharacters(in: .whitespacesAndNewlines) }) {
-            guard !candidate.isEmpty else { continue }
-            if FileManager.default.fileExists(atPath: candidate) {
-                return candidate
-            }
-        }
-        return nil
-    }
-
-    private static func defaultConfigPath(forWorkspaceRoot root: String) -> String {
-        "\(root)/config/sample.yaml"
-    }
-
-    private static func defaultWorkspaceRoot() -> String {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Documents")
-            .appendingPathComponent(defaultWorkspaceFolderName)
-            .path
-    }
-
-    private static func yamlQuote(_ value: String) -> String {
-        let escaped = value
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        return "\"\(escaped)\""
-    }
-
-    private static func writeDefaultConfigTemplate(destination: String, workspaceRoot: String) throws {
-        let incoming = "\(workspaceRoot)/incoming"
-        let working = "\(workspaceRoot)/work"
-        let output = "\(workspaceRoot)/output"
-        let dbPath = "\(working)/queue.sqlite3"
-        let logPath = "\(working)/stopmo-xcode.log"
-
-        let directories = [incoming, working, output, "\(workspaceRoot)/config"]
-        let fm = FileManager.default
-        for dir in directories where !fm.fileExists(atPath: dir) {
-            try fm.createDirectory(atPath: dir, withIntermediateDirectories: true)
-        }
-
-        let yaml = """
-        watch:
-          source_dir: \(yamlQuote(incoming))
-          working_dir: \(yamlQuote(working))
-          output_dir: \(yamlQuote(output))
-          db_path: \(yamlQuote(dbPath))
-          include_extensions:
-          - .cr2
-          - .cr3
-          - .raw
-          stable_seconds: 3.0
-          poll_interval_seconds: 1.0
-          scan_interval_seconds: 5.0
-          max_workers: 2
-          shot_complete_seconds: 30.0
-          shot_regex: null
-        pipeline:
-          camera_to_reference_matrix:
-          - - 1.0
-            - 0.0
-            - 0.0
-          - - 0.0
-            - 1.0
-            - 0.0
-          - - 0.0
-            - 0.0
-            - 1.0
-          exposure_offset_stops: 2.0
-          auto_exposure_from_iso: false
-          auto_exposure_from_shutter: false
-          target_shutter_s: null
-          auto_exposure_from_aperture: false
-          target_aperture_f: null
-          contrast: 1.25
-          contrast_pivot_linear: 0.18
-          lock_wb_from_first_frame: true
-          target_ei: 800
-          apply_match_lut: false
-          match_lut_path: null
-          use_ocio: false
-          ocio_config_path: null
-          ocio_input_space: camera_linear
-          ocio_reference_space: ACES2065-1
-          ocio_output_space: ARRI_LogC3_EI800_AWG
-        output:
-          emit_per_frame_json: true
-          emit_truth_frame_pack: true
-          truth_frame_index: 1
-          write_debug_tiff: false
-          write_prores_on_shot_complete: false
-          framerate: 24
-          show_lut_rec709_path: null
-        log_level: INFO
-        log_file: \(yamlQuote(logPath))
-        """
-        try yaml.appending("\n").write(toFile: destination, atomically: true, encoding: .utf8)
+        workspaceConfigService.resolvedSampleConfigSourcePath(
+            repoRoot: repoRoot,
+            environment: ProcessInfo.processInfo.environment,
+            currentDirectoryPath: FileManager.default.currentDirectoryPath,
+            bundleSamplePath: bundledSampleConfigPath()
+        )
     }
 
     private func restoreWorkspaceAccess() {
@@ -1526,85 +1320,12 @@ final class AppState: ObservableObject {
             workspaceAccessActive = started
             if started {
                 repoRoot = resolved.url.path
-                configPath = Self.defaultConfigPath(forWorkspaceRoot: resolved.url.path)
+                configPath = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: resolved.url.path)
                 bootstrapWorkspaceIfNeeded()
             }
         } catch {
             workspaceAccessActive = false
         }
-    }
-
-    private static func resolveInitialRepoRoot() -> String {
-        let env = ProcessInfo.processInfo.environment
-        if let workspaceRoot = env["STOPMO_XCODE_WORKSPACE_ROOT"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !workspaceRoot.isEmpty {
-            return workspaceRoot
-        }
-        for key in ["STOPMO_XCODE_ROOT", "SRCROOT", "PROJECT_DIR"] {
-            let value = env[key]?.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let value, !value.isEmpty {
-                if let resolved = resolveCandidateRoot(value) {
-                    return resolved
-                }
-                var isDir: ObjCBool = false
-                if FileManager.default.fileExists(atPath: value, isDirectory: &isDir), isDir.boolValue {
-                    return value
-                }
-            }
-        }
-        if let remembered = UserDefaults.standard.string(forKey: repoRootDefaultsKey) {
-            var isDir: ObjCBool = false
-            if FileManager.default.fileExists(atPath: remembered, isDirectory: &isDir), isDir.boolValue {
-                return remembered
-            }
-        }
-        if let fromBundle = discoverRepoRootNear(path: Bundle.main.bundleURL.path) {
-            return fromBundle
-        }
-        if let fromCwd = discoverRepoRootNear(path: FileManager.default.currentDirectoryPath) {
-            return fromCwd
-        }
-        return defaultWorkspaceRoot()
-    }
-
-    private static func resolveCandidateRoot(_ value: String) -> String? {
-        if isLikelyRepoRoot(Path: value) {
-            return value
-        }
-        let url = URL(fileURLWithPath: value).standardizedFileURL
-        if url.lastPathComponent == "StopmoXcodeGUI" {
-            let parent = url.deletingLastPathComponent().deletingLastPathComponent()
-            if isLikelyRepoRoot(Path: parent.path) {
-                return parent.path
-            }
-        }
-        return discoverRepoRootNear(path: value)
-    }
-
-    private static func discoverRepoRootNear(path: String) -> String? {
-        var url = URL(fileURLWithPath: path).standardizedFileURL
-        if !url.hasDirectoryPath {
-            url.deleteLastPathComponent()
-        }
-        for _ in 0..<10 {
-            let candidate = url.path
-            if isLikelyRepoRoot(Path: candidate) {
-                return candidate
-            }
-            let parent = url.deletingLastPathComponent()
-            if parent.path == url.path {
-                break
-            }
-            url = parent
-        }
-        return nil
-    }
-
-    private static func isLikelyRepoRoot(Path root: String) -> Bool {
-        let fm = FileManager.default
-        let pyproject = (root as NSString).appendingPathComponent("pyproject.toml")
-        let moduleDir = (root as NSString).appendingPathComponent("src/stopmo_xcode")
-        return fm.fileExists(atPath: pyproject) && fm.fileExists(atPath: moduleDir)
     }
 
     func clearError() {
