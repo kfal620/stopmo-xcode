@@ -24,6 +24,19 @@ enum ToolsTab: String, CaseIterable, Identifiable {
     case diagnostics = "Diagnostics"
 
     var id: String { rawValue }
+
+    var iconName: String {
+        switch self {
+        case .transcode:
+            return "photo"
+        case .matrix:
+            return "square.grid.3x3"
+        case .dpxProres:
+            return "film.stack"
+        case .diagnostics:
+            return "waveform.path.ecg"
+        }
+    }
 }
 
 enum ToolRunStatus: Equatable {

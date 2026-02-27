@@ -22,10 +22,12 @@ struct ToolsWorkspaceHeaderView: View {
     private var chips: some View {
         HStack(spacing: StopmoUI.Spacing.sm) {
             if let activeTool {
-                StatusChip(label: activeTool.rawValue, tone: .warning)
+                StatusChip(label: activeTool.rawValue, tone: .warning, density: .compact)
             }
-            StatusChip(label: lastToolStatus.label, tone: lastToolStatus.tone)
-            StatusChip(label: "Last Run \(lastToolCompletedLabel)", tone: .neutral)
+            StatusChip(label: lastToolStatus.label, tone: lastToolStatus.tone, density: .compact)
+            StatusChip(label: "Last Run \(lastToolCompletedLabel)", tone: .neutral, density: .compact)
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, embedded ? StopmoUI.Spacing.xs : 0)
     }
 }

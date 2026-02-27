@@ -25,7 +25,11 @@ struct ToolsMatrixPane: View {
     let openReportAction: () -> Void
 
     var body: some View {
-        SectionCard("Suggest Matrix", subtitle: "Estimate camera matrix with confidence/warnings and apply to project config.") {
+        SectionCard(
+            "Suggest Matrix",
+            subtitle: "Estimate camera matrix with confidence/warnings and apply to project config.",
+            density: .compact
+        ) {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
                 ToolsPreflightSummaryView(preflight: preflight, context: .suggestMatrix)
 

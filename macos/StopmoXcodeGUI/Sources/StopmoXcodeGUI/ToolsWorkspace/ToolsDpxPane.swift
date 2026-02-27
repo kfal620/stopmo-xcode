@@ -22,7 +22,11 @@ struct ToolsDpxPane: View {
     let copyOutputAction: (String) -> Void
 
     var body: some View {
-        SectionCard("DPX To ProRes", subtitle: "Batch DPX conversion with preflight checks and output actions.") {
+        SectionCard(
+            "DPX To ProRes",
+            subtitle: "Batch DPX conversion with preflight checks and output actions.",
+            density: .compact
+        ) {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
                 ToolsPreflightSummaryView(preflight: preflight, context: .dpxToProres)
 

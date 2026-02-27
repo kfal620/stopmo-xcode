@@ -21,7 +21,11 @@ struct ToolsTranscodePane: View {
     let pathExists: (String) -> Bool
 
     var body: some View {
-        SectionCard("Transcode One", subtitle: "Single-frame transcode with preflight checks and output actions.") {
+        SectionCard(
+            "Transcode One",
+            subtitle: "Single-frame transcode with preflight checks and output actions.",
+            density: .compact
+        ) {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
                 ToolsPreflightSummaryView(preflight: preflight, context: .transcodeOne)
 

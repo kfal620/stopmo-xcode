@@ -5,18 +5,35 @@ struct ToolsWorkspaceTabBarView: View {
     @Binding var selectedTab: ToolsTab
 
     var body: some View {
-        HStack(spacing: StopmoUI.Spacing.sm) {
-            ForEach(tabs) { tab in
-                Button {
-                    selectedTab = tab
-                } label: {
-                    Text(tab.rawValue)
-                        .fontWeight(.semibold)
+        SurfaceContainer(level: .panel, chrome: .quiet) {
+            HStack(spacing: StopmoUI.Spacing.xs) {
+                ForEach(tabs) { tab in
+                    Button {
+                        selectedTab = tab
+                    } label: {
+                        Label(tab.rawValue, systemImage: tab.iconName)
+                            .font(.callout.weight(.semibold))
+                            .labelStyle(.titleAndIcon)
+                            .padding(.horizontal, StopmoUI.Spacing.sm)
+                            .padding(.vertical, StopmoUI.Spacing.xs)
+                            .frame(minWidth: 132, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(selectedTab == tab ? AppVisualTokens.textPrimary : AppVisualTokens.textSecondary)
+                    .background(
+                        RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                            .fill(selectedTab == tab ? Color.accentColor.opacity(0.20) : Color.clear)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                            .stroke(selectedTab == tab ? Color.accentColor.opacity(0.38) : Color.white.opacity(0.08), lineWidth: 0.75)
+                    )
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(selectedTab == tab ? .accentColor : Color.secondary.opacity(0.35))
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .padding(StopmoUI.Spacing.xs)
+            .animation(.easeOut(duration: StopmoUI.Motion.hover), value: selectedTab)
         }
     }
 }
