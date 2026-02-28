@@ -1,5 +1,14 @@
 import SwiftUI
 
+/// Preference key reporting sidebar width so root can draw split seam compensation.
+struct SidebarWidthPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 /// View rendering root sidebar view.
 struct RootSidebarView: View {
     @EnvironmentObject private var state: AppState
@@ -38,7 +47,14 @@ struct RootSidebarView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(AppVisualTokens.backgroundCanvas)
-        .navigationTitle("stopmo-xcode")
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: SidebarWidthPreferenceKey.self,
+                    value: proxy.size.width
+                )
+            }
+        }
         .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 330)
     }
 

@@ -12,6 +12,7 @@ struct StopmoXcodeGUIApp: App {
                 .preferredColorScheme(.dark)
                 .frame(minWidth: 1120, minHeight: 760)
         }
+        .windowStyle(.hiddenTitleBar)
         .commands {
             CommandMenu("Stopmo") {
                 Button("Start Watch") {

@@ -156,6 +156,30 @@ enum AppVisualTokens {
     static let shadowSoft = Color.black.opacity(0.14)
     static let shadowRaised = Color.black.opacity(0.22)
 
+    // Shell chrome tokens for command/title bar and split seam compensation.
+    static let commandBarBaseOpaque = Color(red: 0.11, green: 0.13, blue: 0.125).opacity(0.94)
+    static let commandBarBorder = Color.white.opacity(0.12)
+    static let commandBarRightNeutralScrim = LinearGradient(
+        colors: [
+            Color.clear,
+            Color.black.opacity(0.05),
+            Color.black.opacity(0.11),
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
+    static let rootSplitSeam = LinearGradient(
+        colors: [
+            Color.white.opacity(0.02),
+            Color.white.opacity(0.08),
+            Color.white.opacity(0.04),
+            Color.white.opacity(0.015),
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+    static let rootSplitCornerBlend = Color(red: 0.047, green: 0.06, blue: 0.055).opacity(0.96)
+
     static func stageAccent(hub: LifecycleHub) -> Color {
         hub.accentColor
     }

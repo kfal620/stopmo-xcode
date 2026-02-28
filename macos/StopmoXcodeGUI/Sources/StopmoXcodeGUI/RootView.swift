@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Environment/preference key for root detail width preference key.
 private struct RootDetailWidthPreferenceKey: PreferenceKey {
@@ -14,12 +15,26 @@ struct RootView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var detailContentWidth: CGFloat = 0
+    @State private var sidebarWidth: CGFloat = 0
 
     var body: some View {
         NavigationSplitView {
             RootSidebarView()
+                .onPreferenceChange(SidebarWidthPreferenceKey.self) { width in
+                    sidebarWidth = width
+                }
         } detail: {
-            detailView
+            VStack(spacing: 0) {
+                RootCommandBarView {
+                    await state.refreshCurrentSelection()
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 6)
+                .zIndex(120)
+
+                detailView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
                 .environment(\.hubContentWidth, detailContentWidth)
                 .background {
                     ZStack {
@@ -44,19 +59,15 @@ struct RootView: View {
                 .onPreferenceChange(RootDetailWidthPreferenceKey.self) { width in
                     detailContentWidth = width
                 }
+                .ignoresSafeArea(edges: .top)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .safeAreaInset(edge: .top, spacing: 0) {
-                    VStack(spacing: StopmoUI.Spacing.xxs) {
-                        RootCommandBarView {
-                            await state.refreshCurrentSelection()
-                        }
-                    }
-                    .padding(.top, 4)
-                    .padding(.horizontal, 8)
-                }
                 .navigationSplitViewColumnWidth(min: 780, ideal: 1120)
         }
         .navigationSplitViewStyle(.balanced)
+        .background(WindowBackgroundDragConfigurator())
+        .overlay(alignment: .topLeading) {
+            splitSeamOverlay
+        }
         .onAppear {
             state.updateMonitoringForSelection()
             state.reduceMotionEnabled = reduceMotion
@@ -96,6 +107,49 @@ struct RootView: View {
             TriageHubView()
         case .deliver:
             DeliverHubView()
+        }
+    }
+
+    private var splitSeamOverlay: some View {
+        GeometryReader { proxy in
+            if sidebarWidth > 0 {
+                let seamX = max(0, min(proxy.size.width, sidebarWidth))
+                ZStack(alignment: .topLeading) {
+                    Rectangle()
+                        .fill(AppVisualTokens.rootSplitSeam)
+                        .frame(width: 1)
+                        .frame(height: max(0, proxy.size.height - 12))
+                        .offset(x: seamX - 0.5, y: 8)
+
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(AppVisualTokens.rootSplitCornerBlend)
+                        .frame(width: 18, height: 18)
+                        .offset(x: seamX - 9, y: proxy.size.height - 18)
+                }
+                .allowsHitTesting(false)
+            }
+        }
+    }
+}
+
+/// Configures NSWindow behavior so hidden-titlebar chrome can be dragged by background.
+private struct WindowBackgroundDragConfigurator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView(frame: .zero)
+        apply(to: view)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        apply(to: nsView)
+    }
+
+    private func apply(to nsView: NSView) {
+        DispatchQueue.main.async {
+            guard let window = nsView.window else { return }
+            window.isMovableByWindowBackground = true
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
         }
     }
 }
