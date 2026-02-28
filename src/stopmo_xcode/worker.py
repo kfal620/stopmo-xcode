@@ -20,10 +20,13 @@ from stopmo_xcode.utils.formatting import shutter_seconds_to_fraction
 from stopmo_xcode.utils.hash import sha256_file
 from stopmo_xcode.write import (
     FrameRecord,
+    PreviewWriteStatus,
     ShotManifest,
+    update_first_preview_if_earlier,
     write_dpx10_logc_awg,
     write_frame_record,
     write_linear_debug_tiff,
+    write_latest_preview,
     write_shot_manifest,
 )
 
@@ -190,6 +193,7 @@ class JobProcessor:
         except Exception as exc:
             self._decoder_init_error = exc
         self.color = ColorPipeline(config.pipeline)
+        self._preview_warning_once: set[str] = set()
 
     def process_job(self, job: Job) -> None:
         """Process one leased job through canonical queue lifecycle transitions."""
@@ -266,6 +270,12 @@ class JobProcessor:
             source_stem = source_path.stem
             dpx_path = dpx_dir / f"{source_stem}.dpx"
             write_dpx10_logc_awg(dpx_path, logc)
+            self._write_shot_previews(
+                shot_dir=shot_dir,
+                source_stem=source_stem,
+                frame_number=job.frame_number,
+                logc=logc,
+            )
 
             if self.config.output.write_debug_tiff:
                 debug_path = shot_dir / "debug_linear" / f"{source_stem}.tiff"
@@ -299,6 +309,52 @@ class JobProcessor:
             msg = f"job failed: {exc}"
             logger.exception("pipeline failed for job=%s", job.id)
             self.db.mark_failed(job.id, msg)
+
+    def _write_shot_previews(
+        self,
+        *,
+        shot_dir: Path,
+        source_stem: str,
+        frame_number: int,
+        logc: np.ndarray,
+    ) -> None:
+        """Best-effort latest/first shot preview generation for GUI thumbnails."""
+
+        try:
+            latest = write_latest_preview(
+                shot_dir=shot_dir,
+                source_stem=source_stem,
+                logc=logc,
+                max_edge=384,
+                quality=60,
+                throttle_seconds=1.0,
+            )
+            first = update_first_preview_if_earlier(
+                shot_dir=shot_dir,
+                frame_number=int(frame_number),
+                source_stem=source_stem,
+                logc=logc,
+                max_edge=384,
+                quality=60,
+            )
+            self._maybe_log_preview_warning_once(latest)
+            self._maybe_log_preview_warning_once(first)
+        except Exception:
+            logger.exception("preview generation failed unexpectedly for shot_dir=%s", shot_dir)
+
+    def _maybe_log_preview_warning_once(self, status: PreviewWriteStatus) -> None:
+        """Emit warning categories at most once per worker lifecycle."""
+
+        reason = status.reason or ""
+        if reason in {"", "throttled", "not_earlier"}:
+            return
+        if reason in self._preview_warning_once:
+            return
+        self._preview_warning_once.add(reason)
+        if reason == "encoder_unavailable":
+            logger.warning("preview encoder unavailable (install Pillow) - previews disabled until dependency is present")
+        else:
+            logger.warning("preview generation skipped: %s", reason)
 
     def _write_sidecars(
         self,

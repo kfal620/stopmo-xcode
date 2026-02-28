@@ -327,13 +327,17 @@ struct ShotSummaryRow: Codable, Sendable, Identifiable {
     var failedFrames: Int
     var inflightFrames: Int
     var progressRatio: Double
-    var firstShotAt: String?
-    var lastUpdatedAt: String?
-    var assemblyState: String?
-    var outputMovPath: String?
-    var reviewMovPath: String?
-    var exposureOffsetStops: Double?
-    var wbMultipliers: [Double]?
+    var firstShotAt: String? = nil
+    var lastUpdatedAt: String? = nil
+    var assemblyState: String? = nil
+    var outputMovPath: String? = nil
+    var reviewMovPath: String? = nil
+    var exposureOffsetStops: Double? = nil
+    var wbMultipliers: [Double]? = nil
+    var previewLatestPath: String? = nil
+    var previewFirstPath: String? = nil
+    var previewFirstFrameNumber: Int? = nil
+    var previewLatestUpdatedAt: String? = nil
 
     var id: String { shotName }
 }

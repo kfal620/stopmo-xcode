@@ -12,6 +12,7 @@ struct DeliveryShotListPane: View {
     let isRunningDelivery: Bool
     let activeRunLabel: String
     let availableHeight: CGFloat
+    let baseOutputDir: String
 
     let onSelectAllReady: () -> Void
     let onSelectNone: () -> Void
@@ -20,6 +21,7 @@ struct DeliveryShotListPane: View {
     let onRunShot: (ShotSummaryRow) -> Void
     let onOpenShotFolder: (ShotSummaryRow) -> Void
     let onOpenPath: (String) -> Void
+    let onShowPreview: (ShotSummaryRow, ShotPreviewKind, String) -> Void
 
     private var selectedReadyCount: Int {
         readyShotEvaluations.filter { selectedShotNames.contains($0.shot.shotName) }.count
@@ -92,6 +94,18 @@ struct DeliveryShotListPane: View {
                     .buttonStyle(.plain)
                     .help(isSelected ? "Unselect shot" : "Select shot")
 
+                    ShotThumbnailView(
+                        shot: shot,
+                        preferredKind: .first,
+                        baseOutputDir: baseOutputDir,
+                        width: 52,
+                        height: 32,
+                        cornerRadius: 6,
+                        onOpenLightbox: { previewPath in
+                            onShowPreview(shot, .first, previewPath)
+                        }
+                    )
+
                     Text(shot.shotName)
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
@@ -150,6 +164,17 @@ struct DeliveryShotListPane: View {
                 } else {
                     ForEach(notReadyShotEvaluations) { evaluation in
                         HStack(alignment: .center, spacing: DeliveryLayoutMetrics.shotRowActionSpacing) {
+                            ShotThumbnailView(
+                                shot: evaluation.shot,
+                                preferredKind: .first,
+                                baseOutputDir: baseOutputDir,
+                                width: 44,
+                                height: 28,
+                                cornerRadius: 6,
+                                onOpenLightbox: { previewPath in
+                                    onShowPreview(evaluation.shot, .first, previewPath)
+                                }
+                            )
                             Text(evaluation.shot.shotName)
                                 .font(.caption.weight(.semibold))
                                 .lineLimit(1)

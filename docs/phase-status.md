@@ -73,6 +73,7 @@
 - GUI phase-F design-system modularization is now in place (`DesignSystem` split into token/component/style-focused files with contracts tests preserved).
 - GUI phase-G app-state domain extraction is now in place (`AppStateDomain` reducers/services isolate monitoring, telemetry, notifications, and bridge orchestration helpers).
 - GUI phase-H triage/capture modular follow-up is now in place (`TriageWorkspace` queue/diagnostics reducers extracted, capture sparkline component extracted, and legacy `ShotsView.swift` removed).
+- GUI phase-14 shot preview rollout is now in place (backend first/latest JPEG preview generation, additive `shots-summary` preview fields, and context-aware thumbnails/lightbox in Capture latest vs Triage/Deliver first frame surfaces).
 - macOS GUI shell now exposes lifecycle panels wired to `gui_bridge`, while preserving all prior feature capabilities and resilience checks (config validation, watch preflight, crash-recovery surfacing, safer watch start semantics).
 - Phase-9 distribution scaffolding is added for macOS packaging/signing/notarization (`.app` bundle + zip, Developer ID codesign, notarytool submission/stapling scripts).
 - Phase-10 parity/signoff harness is added under `qa/phase10_parity_signoff.py`, generating reproducible CLI-vs-GUI parity reports (`qa/reports/.../parity_signoff.md` + `.json`).

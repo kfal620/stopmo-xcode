@@ -13,6 +13,7 @@ private enum ActivityFilter: String, CaseIterable, Identifiable {
 /// View rendering live monitor view.
 struct LiveMonitorView: View {
     @EnvironmentObject private var state: AppState
+    @Environment(\.hubContentWidth) private var hubContentWidth
     var embedded: Bool = false
 
     private let initialActivityDisplayLimit: Int = 80
@@ -31,6 +32,7 @@ struct LiveMonitorView: View {
     @State private var showWatchRuntimeDetails: Bool = false
     @State private var showQueueTrend: Bool = false
     @State private var searchDebounceTask: Task<Void, Never>?
+    @State private var previewLightboxItem: ShotLightboxItem?
 
     var body: some View {
         ScrollView {
@@ -69,13 +71,23 @@ struct LiveMonitorView: View {
         .onDisappear {
             searchDebounceTask?.cancel()
         }
+        .sheet(item: $previewLightboxItem) { item in
+            ShotLightboxView(item: item) { shotRoot in
+                state.openPathInFinder(shotRoot)
+            }
+        }
     }
 
+    @ViewBuilder
     private var monitorWorkspaceLayout: some View {
-        AdaptiveColumns(breakpoint: 760) {
-            leftMonitorColumn
-        } secondary: {
-            rightMonitorColumn
+        if embedded {
+            embeddedCaptureWorkspaceLayout
+        } else {
+            AdaptiveColumns(breakpoint: 760) {
+                leftMonitorColumn
+            } secondary: {
+                rightMonitorColumn
+            }
         }
     }
 
@@ -97,6 +109,58 @@ struct LiveMonitorView: View {
                 watchLogTailCard(logTail)
             }
             activityCard
+        }
+    }
+
+    private var embeddedCaptureWorkspaceLayout: some View {
+        let spacing = StopmoUI.Spacing.md
+        let estimatedInnerPadding = (StopmoUI.Spacing.md + StopmoUI.Spacing.sm) * 2
+        let availableWidth = max(0, hubContentWidth - estimatedInnerPadding)
+        let shouldStack = availableWidth > 0 ? availableWidth < 980 : false
+        let leftWidth = max(0, (availableWidth - spacing) * 0.66)
+        let rightWidth = max(0, availableWidth - spacing - leftWidth)
+
+        return Group {
+            if shouldStack {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+                    embeddedLeftMonitorColumn
+                    embeddedRightMonitorColumn
+                }
+            } else {
+                HStack(alignment: .top, spacing: spacing) {
+                    embeddedLeftMonitorColumn
+                        .frame(
+                            width: availableWidth > 0 ? leftWidth : nil,
+                            alignment: .leading
+                        )
+                    embeddedRightMonitorColumn
+                        .frame(
+                            width: availableWidth > 0 ? rightWidth : nil,
+                            alignment: .leading
+                        )
+                }
+            }
+        }
+    }
+
+    private var embeddedLeftMonitorColumn: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+            if shouldShowRecoveryCard {
+                monitoringRecoveryCard
+            }
+            activeShotFocusCard
+            liveKpiCard
+            if let logTail = state.watchServiceState?.logTail, !logTail.isEmpty {
+                watchLogTailCard(logTail)
+            }
+            activityCard
+        }
+    }
+
+    private var embeddedRightMonitorColumn: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
+            watchServiceCard
+            queueTrendCard
         }
     }
 
@@ -170,51 +234,73 @@ struct LiveMonitorView: View {
         ) {
             if let evaluation = activeShotEvaluation {
                 let shot = evaluation.shot
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    Text(shot.shotName)
-                        .font(.title3.weight(.semibold))
-                    StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
-                    StatusChip(label: evaluation.completionLabel, tone: evaluation.isDeliverable ? .success : .warning, density: .compact)
-                    Spacer(minLength: 0)
-                    if captureNeedsTriageAttention {
-                        Button("Open Triage") {
-                            state.selectedHub = .triage
-                            state.selectedTriagePanel = .shots
+                HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
+                    ShotThumbnailView(
+                        shot: shot,
+                        preferredKind: .latest,
+                        baseOutputDir: state.config.watch.outputDir,
+                        width: 160,
+                        height: 90,
+                        onOpenLightbox: { previewPath in
+                            previewLightboxItem = ShotLightboxItem(
+                                shot: shot,
+                                previewKind: .latest,
+                                previewPath: previewPath,
+                                shotRootPath: shotRootPath(for: shot)
+                            )
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                    }
-                }
+                    )
 
-                ProgressView(value: activeShotProgress(for: shot))
-                    .tint(AppVisualTokens.stageAccent(hub: .capture))
-
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    StatusChip(label: "Done \(shot.doneFrames)", tone: .success, density: .compact)
-                    StatusChip(label: "Inflight \(shot.inflightFrames)", tone: shot.inflightFrames > 0 ? .warning : .neutral, density: .compact)
-                    StatusChip(label: "Failed \(shot.failedFrames)", tone: shot.failedFrames > 0 ? .danger : .neutral, density: .compact)
-                    StatusChip(label: "Total \(shot.totalFrames)", tone: .neutral, density: .compact)
-                    Text(ShotHealthModel.updatedDisplayLabel(for: shot))
-                        .metadataTextStyle(.tertiary)
-                        .help(shot.lastUpdatedAt ?? "No update timestamp")
-                }
-
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    Button("Open Shot Folder") {
-                        state.openPathInFinder(shotRootPath(for: shot))
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    if evaluation.isDeliverable {
-                        Button("Open Deliver") {
-                            state.selectedHub = .deliver
-                            state.selectedDeliverPanel = .dayWrap
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                        HStack(spacing: StopmoUI.Spacing.sm) {
+                            Text(shot.shotName)
+                                .font(.title3.weight(.semibold))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
+                            StatusChip(label: evaluation.completionLabel, tone: evaluation.isDeliverable ? .success : .warning, density: .compact)
+                            Spacer(minLength: 0)
+                            if captureNeedsTriageAttention {
+                                Button("Open Triage") {
+                                    state.selectedHub = .triage
+                                    state.selectedTriagePanel = .shots
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
+                            }
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                    if let reason = evaluation.readinessReason, !reason.isEmpty {
-                        StatusChip(label: reason, tone: .warning, density: .compact)
+
+                        ProgressView(value: activeShotProgress(for: shot))
+                            .tint(AppVisualTokens.stageAccent(hub: .capture))
+
+                        HStack(spacing: StopmoUI.Spacing.sm) {
+                            StatusChip(label: "Done \(shot.doneFrames)", tone: .success, density: .compact)
+                            StatusChip(label: "Inflight \(shot.inflightFrames)", tone: shot.inflightFrames > 0 ? .warning : .neutral, density: .compact)
+                            StatusChip(label: "Failed \(shot.failedFrames)", tone: shot.failedFrames > 0 ? .danger : .neutral, density: .compact)
+                            StatusChip(label: "Total \(shot.totalFrames)", tone: .neutral, density: .compact)
+                            Text(ShotHealthModel.updatedDisplayLabel(for: shot))
+                                .metadataTextStyle(.tertiary)
+                                .help(shot.lastUpdatedAt ?? "No update timestamp")
+                        }
+
+                        HStack(spacing: StopmoUI.Spacing.sm) {
+                            Button("Open Shot Folder") {
+                                state.openPathInFinder(shotRootPath(for: shot))
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            if evaluation.isDeliverable {
+                                Button("Open Deliver") {
+                                    state.selectedHub = .deliver
+                                    state.selectedDeliverPanel = .dayWrap
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
+                            }
+                            if let reason = evaluation.readinessReason, !reason.isEmpty {
+                                StatusChip(label: reason, tone: .warning, density: .compact)
+                            }
+                        }
                     }
                 }
             } else {

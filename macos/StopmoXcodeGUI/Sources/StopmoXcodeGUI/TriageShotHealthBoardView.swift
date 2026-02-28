@@ -27,6 +27,7 @@ struct TriageShotHealthBoardView: View {
     @State private var showRecoveryDrawer: Bool = false
     @State private var recoveryMode: TriageRecoveryMode = .queue
     @State private var shotFilter: TriageShotFilter = .all
+    @State private var previewLightboxItem: ShotLightboxItem?
 
     var body: some View {
         ScrollView {
@@ -41,6 +42,11 @@ struct TriageShotHealthBoardView: View {
         .onAppear {
             if state.shotsSnapshot == nil {
                 Task { await state.refreshLiveData() }
+            }
+        }
+        .sheet(item: $previewLightboxItem) { item in
+            ShotLightboxView(item: item) { shotRoot in
+                state.openPathInFinder(shotRoot)
             }
         }
     }
@@ -105,6 +111,22 @@ struct TriageShotHealthBoardView: View {
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .foregroundStyle(.secondary)
+                    ShotThumbnailView(
+                        shot: shot,
+                        preferredKind: .first,
+                        baseOutputDir: state.config.watch.outputDir,
+                        width: 58,
+                        height: 34,
+                        cornerRadius: 6,
+                        onOpenLightbox: { previewPath in
+                            previewLightboxItem = ShotLightboxItem(
+                                shot: shot,
+                                previewKind: .first,
+                                previewPath: previewPath,
+                                shotRootPath: shotRootPath(for: shot)
+                            )
+                        }
+                    )
                     Text(shot.shotName)
                         .font(.subheadline.weight(.semibold))
                     StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
@@ -174,6 +196,22 @@ struct TriageShotHealthBoardView: View {
 
     private func expandedShotContent(_ shot: ShotSummaryRow) -> some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+            ShotThumbnailView(
+                shot: shot,
+                preferredKind: .first,
+                baseOutputDir: state.config.watch.outputDir,
+                width: 220,
+                height: 124,
+                onOpenLightbox: { previewPath in
+                    previewLightboxItem = ShotLightboxItem(
+                        shot: shot,
+                        previewKind: .first,
+                        previewPath: previewPath,
+                        shotRootPath: shotRootPath(for: shot)
+                    )
+                }
+            )
+
             KeyValueRow(key: "Shot", value: shot.shotName)
             KeyValueRow(key: "State", value: shot.state, tone: ShotHealthModel.healthState(for: shot).tone)
             KeyValueRow(key: "Assembly", value: shot.assemblyState ?? "-", tone: assemblyTone(shot.assemblyState ?? "-"))

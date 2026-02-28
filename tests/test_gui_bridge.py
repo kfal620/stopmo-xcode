@@ -139,6 +139,19 @@ def test_shots_summary_payload_groups_by_shot(tmp_path: Path) -> None:
     finally:
         db.close()
 
+    shot_a_preview = cfg.watch.output_dir / "SHOT_A" / "preview"
+    shot_a_preview.mkdir(parents=True, exist_ok=True)
+    (shot_a_preview / "first.jpg").write_bytes(b"first")
+    (shot_a_preview / "latest.jpg").write_bytes(b"latest")
+    (shot_a_preview / "first.meta.json").write_text(
+        '{"frame_number": 1, "updated_at_utc": "2026-01-01T00:00:00+00:00"}\n',
+        encoding="utf-8",
+    )
+    (shot_a_preview / "latest.meta.json").write_text(
+        '{"updated_at_utc": "2026-01-01T00:05:00+00:00"}\n',
+        encoding="utf-8",
+    )
+
     payload = shots_summary_payload(cfg_file, limit=10)
     shots = payload["shots"]
     assert isinstance(shots, list)
@@ -147,8 +160,14 @@ def test_shots_summary_payload_groups_by_shot(tmp_path: Path) -> None:
     assert by_name["SHOT_A"]["total_frames"] == 2
     assert by_name["SHOT_A"]["done_frames"] == 1
     assert by_name["SHOT_A"]["failed_frames"] == 1
+    assert by_name["SHOT_A"]["preview_first_path"] == str(shot_a_preview / "first.jpg")
+    assert by_name["SHOT_A"]["preview_latest_path"] == str(shot_a_preview / "latest.jpg")
+    assert by_name["SHOT_A"]["preview_first_frame_number"] == 1
+    assert by_name["SHOT_A"]["preview_latest_updated_at"] == "2026-01-01T00:05:00+00:00"
     assert by_name["SHOT_B"]["total_frames"] == 1
     assert by_name["SHOT_B"]["inflight_frames"] == 1
+    assert by_name["SHOT_B"]["preview_first_path"] is None
+    assert by_name["SHOT_B"]["preview_latest_path"] is None
 
 
 def test_watch_state_payload_without_running_service(tmp_path: Path) -> None:

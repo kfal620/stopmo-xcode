@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 
 /// Environment/preference key for root detail width preference key.
 private struct RootDetailWidthPreferenceKey: PreferenceKey {
@@ -64,7 +63,6 @@ struct RootView: View {
                 .navigationSplitViewColumnWidth(min: 780, ideal: 1120)
         }
         .navigationSplitViewStyle(.balanced)
-        .background(WindowBackgroundDragConfigurator())
         .overlay(alignment: .topLeading) {
             splitSeamOverlay
         }
@@ -128,28 +126,6 @@ struct RootView: View {
                 }
                 .allowsHitTesting(false)
             }
-        }
-    }
-}
-
-/// Configures NSWindow behavior so hidden-titlebar chrome can be dragged by background.
-private struct WindowBackgroundDragConfigurator: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        apply(to: view)
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        apply(to: nsView)
-    }
-
-    private func apply(to nsView: NSView) {
-        DispatchQueue.main.async {
-            guard let window = nsView.window else { return }
-            window.isMovableByWindowBackground = true
-            window.titleVisibility = .hidden
-            window.titlebarAppearsTransparent = true
         }
     }
 }

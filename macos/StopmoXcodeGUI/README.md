@@ -77,6 +77,10 @@ STOPMO_XCODE_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
     - Deliver
       - Day Wrap (DPX to ProRes batch-first)
       - Run History (run summary and compare)
+  - Shot previews:
+    - Capture active shot uses latest processed-frame preview.
+    - Triage/Deliver shot rows use first-frame preview for shot identification.
+    - Clickable thumbnails open a larger lightbox preview.
   - Refactored GUI module layout under `Sources/StopmoXcodeGUI/`:
     - `AppStateDomain` (reducers/services for `AppState` orchestration)
     - `CaptureConsole` (live capture-focused components)

@@ -19,6 +19,7 @@ struct DeliveryDayWrapView: View {
     @State private var showRunEvents: Bool = false
     @State private var showNotReadyShots: Bool = false
     @State private var showAdvancedDiagnostics: Bool = false
+    @State private var previewLightboxItem: ShotLightboxItem?
 
     var body: some View {
         GeometryReader { proxy in
@@ -38,6 +39,7 @@ struct DeliveryDayWrapView: View {
                     isRunningDelivery: state.deliveryRunState.status == .running,
                     activeRunLabel: state.deliveryRunState.activeLabel,
                     availableHeight: availableHeight,
+                    baseOutputDir: state.config.watch.outputDir,
                     onSelectAllReady: {
                         selectedShotNames = Set(readyShotEvaluations.map { $0.shot.shotName })
                     },
@@ -58,6 +60,14 @@ struct DeliveryDayWrapView: View {
                     },
                     onOpenPath: { path in
                         state.openPathInFinder(path)
+                    },
+                    onShowPreview: { shot, previewKind, previewPath in
+                        previewLightboxItem = ShotLightboxItem(
+                            shot: shot,
+                            previewKind: previewKind,
+                            previewPath: previewPath,
+                            shotRootPath: shotRootPath(for: shot)
+                        )
                     }
                 )
             } secondary: {
@@ -119,6 +129,11 @@ struct DeliveryDayWrapView: View {
                     showRunEvents = true
                 } else if previous == .running {
                     showRunEvents = false
+                }
+            }
+            .sheet(item: $previewLightboxItem) { item in
+                ShotLightboxView(item: item) { shotRoot in
+                    state.openPathInFinder(shotRoot)
                 }
             }
             .clipped()

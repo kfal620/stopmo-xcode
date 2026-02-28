@@ -64,3 +64,22 @@ All commands emit JSON payloads for direct GUI decoding. Tool commands return:
 - `operation_id`
 - `operation` snapshot
 - `events` list captured from `app_api` operation events
+
+## Shot Preview Fields (`shots-summary`)
+
+`shots-summary` rows now include additive preview metadata for GUI thumbnails:
+
+- `preview_latest_path`
+- `preview_first_path`
+- `preview_first_frame_number`
+- `preview_latest_updated_at`
+
+Preview files are generated under each shot output folder:
+
+- `<shot_root>/preview/latest.jpg`
+- `<shot_root>/preview/first.jpg`
+
+UI policy:
+
+- Capture prefers `latest` preview.
+- Triage/Deliver prefer `first` preview.

@@ -552,6 +552,173 @@ def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = 
 def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str, object]:
     """Aggregate per-shot queue/assembly summary rows for triage surfaces."""
 
+    def _resolve_ffmpeg_for_preview() -> str | None:
+        ffmpeg_env = os.environ.get("STOPMO_XCODE_FFMPEG")
+        ffmpeg_path = ffmpeg_env or shutil.which("ffmpeg")
+        if ffmpeg_path:
+            return ffmpeg_path
+        try:
+            import imageio_ffmpeg  # type: ignore
+        except Exception:
+            return None
+        try:
+            candidate = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            return None
+        return str(candidate) if candidate and Path(candidate).exists() else None
+
+    def _preview_variant_path(preview_dir: Path, stem: str) -> Path | None:
+        candidates = [
+            preview_dir / f"{stem}.jpg",
+            preview_dir / f"{stem}.jpeg",
+            preview_dir / f"{stem}.png",
+            preview_dir / f"{stem}.tiff",
+            preview_dir / f"{stem}.tif",
+        ]
+        for path in candidates:
+            if path.exists():
+                return path
+        return None
+
+    def _legacy_truth_preview_path(shot_root: Path) -> Path | None:
+        truth_dir = shot_root / "truth_frame"
+        if not truth_dir.exists():
+            return None
+        pngs = sorted(truth_dir.glob("*_preview_rec709ish.png"))
+        return pngs[0] if pngs else None
+
+    def _frame_number_from_truth_filename(path: Path) -> int | None:
+        match = re.search(r"_(\d+)_truth_logc_awg$", path.stem)
+        if match is None:
+            return None
+        try:
+            return int(match.group(1))
+        except Exception:
+            return None
+
+    def _attempt_preview_backfill(shot_root: Path, preview_dir: Path) -> None:
+        marker = preview_dir / ".backfill_attempted"
+        if marker.exists():
+            return
+        preview_dir.mkdir(parents=True, exist_ok=True)
+        marker.write_text(_now_utc_iso() + "\n", encoding="utf-8")
+
+        truth_dir = shot_root / "truth_frame"
+        dpx_truth = sorted(truth_dir.glob("*_truth_logc_awg.dpx")) if truth_dir.exists() else []
+        if not dpx_truth:
+            return
+        ffmpeg = _resolve_ffmpeg_for_preview()
+        if not ffmpeg:
+            return
+
+        source = dpx_truth[0]
+        out_first = preview_dir / "first.jpg"
+        out_latest = preview_dir / "latest.jpg"
+        cmd = [
+            ffmpeg,
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            str(source),
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale=384:-2:force_original_aspect_ratio=decrease",
+            str(out_first),
+        ]
+        try:
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            return
+
+        if out_first.exists() and not out_latest.exists():
+            shutil.copy2(out_first, out_latest)
+
+        frame_number = _frame_number_from_truth_filename(source)
+        first_meta = preview_dir / "first.meta.json"
+        latest_meta = preview_dir / "latest.meta.json"
+        now_utc = _now_utc_iso()
+        first_meta.write_text(
+            json.dumps(
+                {
+                    "frame_number": frame_number,
+                    "updated_at_utc": now_utc,
+                    "source_stem": source.stem,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        latest_meta.write_text(
+            json.dumps(
+                {
+                    "updated_at_utc": now_utc,
+                    "source_stem": source.stem,
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+    def _preview_payload(shot_root: Path) -> dict[str, object]:
+        """Return additive preview path metadata for one shot root."""
+
+        preview_dir = shot_root / "preview"
+        first_path = _preview_variant_path(preview_dir, "first")
+        latest_path = _preview_variant_path(preview_dir, "latest")
+        legacy_truth_preview = _legacy_truth_preview_path(shot_root)
+        if first_path is None and latest_path is None:
+            _attempt_preview_backfill(shot_root, preview_dir)
+            first_path = _preview_variant_path(preview_dir, "first")
+            latest_path = _preview_variant_path(preview_dir, "latest")
+
+        first_meta = preview_dir / "first.meta.json"
+        latest_meta = preview_dir / "latest.meta.json"
+
+        first_frame_number: int | None = None
+        if first_meta.exists():
+            try:
+                payload = json.loads(first_meta.read_text(encoding="utf-8"))
+                if isinstance(payload, dict) and isinstance(payload.get("frame_number"), int):
+                    first_frame_number = int(payload["frame_number"])
+            except Exception:
+                pass
+
+        latest_updated_at: str | None = None
+        if latest_meta.exists():
+            try:
+                payload = json.loads(latest_meta.read_text(encoding="utf-8"))
+                if isinstance(payload, dict) and payload.get("updated_at_utc") not in (None, ""):
+                    latest_updated_at = str(payload["updated_at_utc"])
+            except Exception:
+                pass
+
+        return {
+            "preview_first_path": (
+                str(first_path)
+                if first_path is not None
+                else str(legacy_truth_preview)
+                if legacy_truth_preview is not None
+                else None
+            ),
+            "preview_latest_path": (
+                str(latest_path)
+                if latest_path is not None
+                else str(first_path)
+                if first_path is not None
+                else str(legacy_truth_preview)
+                if legacy_truth_preview is not None
+                else None
+            ),
+            "preview_first_frame_number": first_frame_number,
+            "preview_latest_updated_at": latest_updated_at,
+        }
+
     cfg = load_config(config_path)
     conn = sqlite3.connect(str(cfg.watch.db_path), timeout=30, isolation_level=None)
     conn.row_factory = sqlite3.Row
@@ -598,9 +765,11 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
                 state = "done"
 
             progress_ratio = float(done + failed) / float(total) if total > 0 else 0.0
+            shot_name = str(row["shot_name"])
+            preview = _preview_payload(cfg.watch.output_dir / shot_name)
             shots.append(
                 {
-                    "shot_name": str(row["shot_name"]),
+                    "shot_name": shot_name,
                     "state": state,
                     "total_frames": total,
                     "done_frames": done,
@@ -616,6 +785,10 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
                     if row["exposure_offset_stops"] is not None
                     else None,
                     "wb_multipliers": wb_multipliers,
+                    "preview_first_path": preview["preview_first_path"],
+                    "preview_latest_path": preview["preview_latest_path"],
+                    "preview_first_frame_number": preview["preview_first_frame_number"],
+                    "preview_latest_updated_at": preview["preview_latest_updated_at"],
                 }
             )
 
