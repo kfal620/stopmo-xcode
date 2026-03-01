@@ -27,11 +27,11 @@ enum LifecycleHub: String, CaseIterable, Identifiable {
         case .configure:
             return "Workspace, project settings, and calibration"
         case .capture:
-            return "Live watch control and ingest telemetry"
+            return "Live RAW -> DPX conversion & telemetry"
         case .triage:
-            return "Shots, queue recovery, and diagnostics"
+            return "Converted DPX shots and diagnostics"
         case .deliver:
-            return "End of day ProRes assembly and history"
+            return "DPX -> ProRes assembly and history"
         }
     }
 }

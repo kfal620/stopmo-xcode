@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from stopmo_xcode import app_api
@@ -168,6 +169,76 @@ def test_shots_summary_payload_groups_by_shot(tmp_path: Path) -> None:
     assert by_name["SHOT_B"]["inflight_frames"] == 1
     assert by_name["SHOT_B"]["preview_first_path"] is None
     assert by_name["SHOT_B"]["preview_latest_path"] is None
+
+
+def test_shots_summary_payload_backfills_even_when_marker_exists_without_outputs(
+    monkeypatch, tmp_path: Path
+) -> None:
+    cfg_file = _write_min_config(tmp_path)
+    cfg = load_config(cfg_file)
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        src = cfg.watch.source_dir / "SHOT_C_0001.CR3"
+        src.write_bytes(b"x")
+        assert db.enqueue_detected(src, shot_name="SHOT_C", frame_number=1)
+    finally:
+        db.close()
+
+    shot_root = cfg.watch.output_dir / "SHOT_C"
+    preview_dir = shot_root / "preview"
+    truth_dir = shot_root / "truth_frame"
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    truth_dir.mkdir(parents=True, exist_ok=True)
+    (preview_dir / ".backfill_attempted").write_text("2026-01-01T00:00:00+00:00\n", encoding="utf-8")
+    (truth_dir / "SHOT_C_0001_truth_logc_awg.dpx").write_bytes(b"dpx")
+
+    fake_ffmpeg = tmp_path / "fake_ffmpeg.sh"
+    fake_ffmpeg.write_text(
+        "#!/bin/sh\n"
+        "for out; do :; done\n"
+        "printf 'fake-jpg' > \"$out\"\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    fake_ffmpeg.chmod(0o755)
+    monkeypatch.setenv("STOPMO_XCODE_FFMPEG", str(fake_ffmpeg))
+
+    payload = shots_summary_payload(cfg_file, limit=10)
+    shots = payload["shots"]
+    assert isinstance(shots, list)
+    row = next(item for item in shots if item["shot_name"] == "SHOT_C")
+    assert row["preview_first_path"] == str(preview_dir / "first.jpg")
+    assert row["preview_latest_path"] == str(preview_dir / "latest.jpg")
+    assert (preview_dir / "first.meta.json").exists()
+    assert (preview_dir / "latest.meta.json").exists()
+
+
+def test_shots_summary_payload_prefers_newest_preview_variant(tmp_path: Path) -> None:
+    cfg_file = _write_min_config(tmp_path)
+    cfg = load_config(cfg_file)
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        src = cfg.watch.source_dir / "SHOT_D_0001.CR3"
+        src.write_bytes(b"x")
+        assert db.enqueue_detected(src, shot_name="SHOT_D", frame_number=1)
+    finally:
+        db.close()
+
+    preview_dir = cfg.watch.output_dir / "SHOT_D" / "preview"
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    stale_jpg = preview_dir / "latest.jpg"
+    fresh_tiff = preview_dir / "latest.tiff"
+    stale_jpg.write_bytes(b"jpg")
+    fresh_tiff.write_bytes(b"tiff")
+    # Ensure deterministic mtime ordering.
+    os.utime(stale_jpg, (1_700_000_000, 1_700_000_000))
+    os.utime(fresh_tiff, (1_700_000_100, 1_700_000_100))
+
+    payload = shots_summary_payload(cfg_file, limit=10)
+    shots = payload["shots"]
+    assert isinstance(shots, list)
+    row = next(item for item in shots if item["shot_name"] == "SHOT_D")
+    assert row["preview_latest_path"] == str(fresh_tiff)
 
 
 def test_watch_state_payload_without_running_service(tmp_path: Path) -> None:

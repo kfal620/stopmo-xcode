@@ -1,15 +1,5 @@
 import SwiftUI
 
-/// Enumeration for activity filter.
-private enum ActivityFilter: String, CaseIterable, Identifiable {
-    case all = "All"
-    case warnings = "Warnings"
-    case errors = "Errors"
-    case system = "System"
-
-    var id: String { rawValue }
-}
-
 /// View rendering live monitor view.
 struct LiveMonitorView: View {
     @EnvironmentObject private var state: AppState
@@ -20,8 +10,10 @@ struct LiveMonitorView: View {
     private let activityDisplayIncrement: Int = 80
     private let watchLogDisplayLimit: Int = 120
     private let maxActivitySourceLines: Int = 260
+    private let embeddedActivityConsoleHeight: CGFloat = 248
+    private let standardActivityConsoleHeight: CGFloat = 292
 
-    @State private var activityFilter: ActivityFilter = .all
+    @State private var activityFilter: CaptureActivityFilter = .all
     @State private var pauseActivityUpdates: Bool = false
     @State private var frozenEvents: [String] = []
     @State private var activitySearchText: String = ""
@@ -114,9 +106,9 @@ struct LiveMonitorView: View {
 
     private var embeddedCaptureWorkspaceLayout: some View {
         let spacing = StopmoUI.Spacing.md
-        let estimatedInnerPadding = (StopmoUI.Spacing.md + StopmoUI.Spacing.sm) * 2
+        let estimatedInnerPadding = StopmoUI.Spacing.sm * 2
         let availableWidth = max(0, hubContentWidth - estimatedInnerPadding)
-        let shouldStack = availableWidth > 0 ? availableWidth < 980 : false
+        let shouldStack = availableWidth == 0 ? false : availableWidth < 980
         let leftWidth = max(0, (availableWidth - spacing) * 0.66)
         let rightWidth = max(0, availableWidth - spacing - leftWidth)
 
@@ -124,21 +116,20 @@ struct LiveMonitorView: View {
             if shouldStack {
                 VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
                     embeddedLeftMonitorColumn
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     embeddedRightMonitorColumn
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
                 HStack(alignment: .top, spacing: spacing) {
                     embeddedLeftMonitorColumn
-                        .frame(
-                            width: availableWidth > 0 ? leftWidth : nil,
-                            alignment: .leading
-                        )
+                        .frame(width: availableWidth > 0 ? leftWidth : nil, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     embeddedRightMonitorColumn
-                        .frame(
-                            width: availableWidth > 0 ? rightWidth : nil,
-                            alignment: .leading
-                        )
+                        .frame(width: availableWidth > 0 ? rightWidth : nil, alignment: .leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -234,75 +225,35 @@ struct LiveMonitorView: View {
         ) {
             if let evaluation = activeShotEvaluation {
                 let shot = evaluation.shot
-                HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
-                    ShotThumbnailView(
-                        shot: shot,
-                        preferredKind: .latest,
-                        baseOutputDir: state.config.watch.outputDir,
-                        width: 160,
-                        height: 90,
-                        onOpenLightbox: { previewPath in
-                            previewLightboxItem = ShotLightboxItem(
-                                shot: shot,
-                                previewKind: .latest,
-                                previewPath: previewPath,
-                                shotRootPath: shotRootPath(for: shot)
-                            )
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
+                            activeShotHeroIdentity(shot: shot, evaluation: evaluation)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            activeShotPrimaryActions(evaluation: evaluation)
                         }
-                    )
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                            activeShotHeroIdentity(shot: shot, evaluation: evaluation)
+                            activeShotPrimaryActions(evaluation: evaluation)
+                        }
+                    }
 
-                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    ProgressView(value: activeShotProgress(for: shot))
+                        .tint(AppVisualTokens.stageAccent(hub: .capture))
+
+                    ViewThatFits(in: .horizontal) {
                         HStack(spacing: StopmoUI.Spacing.sm) {
-                            Text(shot.shotName)
-                                .font(.title3.weight(.semibold))
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
-                            StatusChip(label: evaluation.completionLabel, tone: evaluation.isDeliverable ? .success : .warning, density: .compact)
+                            activeShotMetricChips(shot: shot)
                             Spacer(minLength: 0)
-                            if captureNeedsTriageAttention {
-                                Button("Open Triage") {
-                                    state.selectedHub = .triage
-                                    state.selectedTriagePanel = .shots
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.small)
-                            }
+                            activeShotSecondaryActions(shot: shot)
                         }
-
-                        ProgressView(value: activeShotProgress(for: shot))
-                            .tint(AppVisualTokens.stageAccent(hub: .capture))
-
-                        HStack(spacing: StopmoUI.Spacing.sm) {
-                            StatusChip(label: "Done \(shot.doneFrames)", tone: .success, density: .compact)
-                            StatusChip(label: "Inflight \(shot.inflightFrames)", tone: shot.inflightFrames > 0 ? .warning : .neutral, density: .compact)
-                            StatusChip(label: "Failed \(shot.failedFrames)", tone: shot.failedFrames > 0 ? .danger : .neutral, density: .compact)
-                            StatusChip(label: "Total \(shot.totalFrames)", tone: .neutral, density: .compact)
-                            Text(ShotHealthModel.updatedDisplayLabel(for: shot))
-                                .metadataTextStyle(.tertiary)
-                                .help(shot.lastUpdatedAt ?? "No update timestamp")
-                        }
-
-                        HStack(spacing: StopmoUI.Spacing.sm) {
-                            Button("Open Shot Folder") {
-                                state.openPathInFinder(shotRootPath(for: shot))
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            if evaluation.isDeliverable {
-                                Button("Open Deliver") {
-                                    state.selectedHub = .deliver
-                                    state.selectedDeliverPanel = .dayWrap
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
-                            }
-                            if let reason = evaluation.readinessReason, !reason.isEmpty {
-                                StatusChip(label: reason, tone: .warning, density: .compact)
-                            }
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                            activeShotMetricChips(shot: shot)
+                            activeShotSecondaryActions(shot: shot)
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 EmptyStateCard(message: "No active shot is available yet. Keep watch running while frames arrive.")
                 if captureNeedsTriageAttention {
@@ -325,28 +276,39 @@ struct LiveMonitorView: View {
             showSubtitle: false
         ) {
             let counts = state.queueSnapshot?.counts ?? [:]
-            let detected = counts["detected", default: 0]
-            let decoding = counts["decoding", default: 0]
-            let xform = counts["xform", default: 0]
-            let dpxWrite = counts["dpx_write", default: 0]
-            let done = counts["done", default: 0]
-            let failed = counts["failed", default: 0]
             let inflight = state.watchServiceState?.inflightFrames ?? 0
             let workers = state.config.watch.maxWorkers
             let throughput = state.throughputFramesPerMinute
 
-            MetricWrap(minItemWidth: 145) {
-                StatusChip(label: "detected \(detected)", tone: .neutral, density: .compact)
-                StatusChip(label: "decoding \(decoding)", tone: .neutral, density: .compact)
-                StatusChip(label: "xform \(xform)", tone: .neutral, density: .compact)
-                StatusChip(label: "dpx_write \(dpxWrite)", tone: .neutral, density: .compact)
-                StatusChip(label: "done \(done)", tone: done > 0 ? .success : .neutral, density: .compact)
-                StatusChip(label: "failed \(failed)", tone: failed > 0 ? .danger : .neutral, density: .compact)
-                StatusChip(label: String(format: "%.1f frames/min", throughput), tone: throughput > 0 ? .success : .neutral, density: .compact)
-                StatusChip(label: "Workers \(inflight)/\(max(1, workers))", tone: .neutral, density: .compact)
-                StatusChip(label: etaLabel(), tone: throughput > 0 ? .neutral : .warning, density: .compact)
-                TimelineView(.periodic(from: Date(), by: 1)) { context in
-                    StatusChip(label: "Last frame \(lastFrameAgeLabel(at: context.date))", tone: state.lastFrameAt == nil ? .warning : .neutral, density: .compact)
+            TimelineView(.periodic(from: Date(), by: 1)) { context in
+                let groups = CaptureMonitorFormatting.groupedKPIs(
+                    queueCounts: counts,
+                    throughputFramesPerMinute: throughput,
+                    workersInFlight: inflight,
+                    maxWorkers: workers,
+                    etaLabel: etaLabel(),
+                    lastFrameLabel: lastFrameAgeLabel(at: context.date),
+                    hasLastFrame: state.lastFrameAt != nil
+                )
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+                    ForEach(groups) { group in
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                            Text(group.title)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AppVisualTokens.textSecondary)
+                            LazyVGrid(
+                                columns: [GridItem(.adaptive(minimum: 138), spacing: StopmoUI.Spacing.sm, alignment: .leading)],
+                                alignment: .leading,
+                                spacing: StopmoUI.Spacing.sm
+                            ) {
+                                ForEach(group.metrics) { metric in
+                                    captureKPITile(metric: metric)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
         }
@@ -555,7 +517,7 @@ struct LiveMonitorView: View {
     }
 
     private var activityCard: some View {
-        return SectionCard(
+        SectionCard(
             "Activity Feed",
             subtitle: "Job transitions, warnings/errors, and watch assembly events.",
             density: .compact,
@@ -564,120 +526,325 @@ struct LiveMonitorView: View {
             showSubtitle: false
         ) {
             DisclosureGroup(isExpanded: $showActivityFeed) {
-                let filteredEvents = filteredActivityEvents
-                let visibleCount = min(activityDisplayLimit, filteredEvents.count)
-                let visibleEvents = Array(filteredEvents.prefix(visibleCount))
+                let filteredRows = filteredActivityRows
+                let visibleCount = min(activityDisplayLimit, filteredRows.count)
+                let visibleRows = Array(filteredRows.prefix(visibleCount))
 
                 VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                    HStack(spacing: StopmoUI.Spacing.sm) {
-                        Picker("Filter", selection: $activityFilter) {
-                            ForEach(ActivityFilter.allCases) { filter in
-                                Text(filter.rawValue).tag(filter)
-                            }
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .center, spacing: StopmoUI.Spacing.sm) {
+                            activityFilterSegmentedControl
+                                .frame(minWidth: 250, maxWidth: 360, alignment: .leading)
+
+                            Toggle("Pause updates", isOn: $pauseActivityUpdates)
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                                .fixedSize()
+
+                            TextField("Search activity", text: $activitySearchText)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
                         }
-                        .pickerStyle(.segmented)
-                        .frame(width: 320)
-
-                        Toggle("Pause", isOn: $pauseActivityUpdates)
-
-                        TextField("Search activity", text: $activitySearchText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 220)
+                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                            HStack(spacing: StopmoUI.Spacing.sm) {
+                                activityFilterMenuControl
+                                Toggle("Pause updates", isOn: $pauseActivityUpdates)
+                                    .toggleStyle(.switch)
+                                    .controlSize(.small)
+                            }
+                            TextField("Search activity", text: $activitySearchText)
+                                .textFieldStyle(.roundedBorder)
+                        }
                     }
 
                     HStack(spacing: StopmoUI.Spacing.sm) {
-                        StatusChip(label: "Showing \(visibleCount)/\(filteredEvents.count)", tone: .neutral)
-                        if filteredEvents.count > visibleCount {
-                            Button("Show More") {
+                        StatusChip(label: "Showing \(visibleCount)/\(filteredRows.count)", tone: .neutral, density: .compact)
+                        if filteredRows.count > visibleCount {
+                            Button("Show more") {
                                 activityDisplayLimit = min(
-                                    filteredEvents.count,
+                                    filteredRows.count,
                                     activityDisplayLimit + activityDisplayIncrement
                                 )
                             }
                             .buttonStyle(.borderless)
                         }
                         if visibleCount > initialActivityDisplayLimit {
-                            Button("Show Less") {
+                            Button("Show less") {
                                 activityDisplayLimit = initialActivityDisplayLimit
                             }
                             .buttonStyle(.borderless)
                         }
+                        Spacer(minLength: 0)
+                        if pauseActivityUpdates {
+                            StatusChip(label: "Paused", tone: .warning, density: .compact)
+                        }
                     }
-                    if filteredEvents.isEmpty {
+
+                    if filteredRows.isEmpty {
                         EmptyStateCard(message: "No activity matches the current filter.")
                     } else {
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
-                                ForEach(Array(visibleEvents.enumerated()), id: \.offset) { _, line in
-                                    Text(line)
-                                        .font(.system(.caption, design: .monospaced))
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                ForEach(Array(visibleRows.enumerated()), id: \.offset) { _, row in
+                                    activityConsoleRow(row)
                                 }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(minHeight: 120, maxHeight: 280)
+                        .frame(
+                            minHeight: embedded ? embeddedActivityConsoleHeight : 120,
+                            maxHeight: embedded ? embeddedActivityConsoleHeight : standardActivityConsoleHeight
+                        )
                     }
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
+                .frame(maxWidth: .infinity, alignment: .leading)
             } label: {
                 HStack(spacing: StopmoUI.Spacing.sm) {
                     DisclosureRowLabel(
-                        title: "Activity (\(sourceActivityEvents.count) recent events)",
+                        title: "Activity (\(sourceActivityRows.count) recent events)",
                         isExpanded: $showActivityFeed
                     )
-                    if pauseActivityUpdates {
-                        StatusChip(label: "Paused", tone: .warning)
-                    }
                 }
             }
         }
     }
 
-    private var sourceActivityEvents: [String] {
+    private var activityFilterSegmentedControl: some View {
+        Picker("Filter", selection: $activityFilter) {
+            ForEach(CaptureActivityFilter.allCases) { filter in
+                Text(filter.rawValue).tag(filter)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var activityFilterMenuControl: some View {
+        Picker("Filter", selection: $activityFilter) {
+            ForEach(CaptureActivityFilter.allCases) { filter in
+                Text(filter.rawValue).tag(filter)
+            }
+        }
+        .labelsHidden()
+        .pickerStyle(.menu)
+    }
+
+    private func activityConsoleRow(_ row: CaptureActivityRow) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.sm) {
+            Text(row.timestamp ?? "--:--:--")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(AppVisualTokens.textSecondary)
+                .frame(width: 62, alignment: .leading)
+
+            Image(systemName: activitySymbol(for: row.severity))
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(activityColor(for: row.severity))
+                .frame(width: 12, alignment: .leading)
+
+            Text(row.message)
+                .font(.system(.caption, design: .monospaced))
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .help(row.rawLine)
+    }
+
+    private var sourceActivityRows: [CaptureActivityRow] {
         let source = pauseActivityUpdates ? frozenEvents : state.liveEvents
-        return Array(source.prefix(maxActivitySourceLines))
+        return Array(source.prefix(maxActivitySourceLines)).map(CaptureMonitorFormatting.parseActivityLine(_:))
     }
 
-    private var filteredActivityEvents: [String] {
-        let term = debouncedActivitySearchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return sourceActivityEvents.filter { line in
-            if !term.isEmpty,
-               !line.localizedCaseInsensitiveContains(term)
-            {
-                return false
+    private var filteredActivityRows: [CaptureActivityRow] {
+        CaptureMonitorFormatting.filterActivityRows(
+            sourceActivityRows,
+            filter: activityFilter,
+            searchTerm: debouncedActivitySearchText
+        )
+    }
+
+    private func activeShotHeroIdentity(
+        shot: ShotSummaryRow,
+        evaluation: ShotHealthEvaluation
+    ) -> some View {
+        HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
+            ShotThumbnailView(
+                shot: shot,
+                preferredKind: .latest,
+                baseOutputDir: state.config.watch.outputDir,
+                width: embedded ? 220 : 192,
+                height: embedded ? 124 : 108,
+                onOpenLightbox: { previewPath in
+                    previewLightboxItem = ShotLightboxItem(
+                        shot: shot,
+                        previewKind: .latest,
+                        previewPath: previewPath,
+                        shotRootPath: shotRootPath(for: shot)
+                    )
+                }
+            )
+
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                Text(shot.shotName)
+                    .font(.title3.weight(.semibold))
+                    .lineLimit(2)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: StopmoUI.Spacing.xs) {
+                    StatusChip(
+                        label: evaluation.healthState.rawValue,
+                        tone: evaluation.healthState.tone,
+                        density: .compact
+                    )
+                    StatusChip(
+                        label: "Done \(shot.doneFrames)/\(max(shot.totalFrames, 0))",
+                        tone: evaluation.isDeliverable ? .success : .warning,
+                        density: .compact
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let reason = evaluation.readinessReason, !reason.isEmpty, !evaluation.isDeliverable {
+                    Text("Readiness: \(reason)")
+                        .metadataTextStyle(.secondary)
+                        .foregroundStyle(Color.orange.opacity(0.88))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+
+                Text(ShotHealthModel.updatedDisplayLabel(for: shot))
+                    .metadataTextStyle(.tertiary)
+                    .lineLimit(1)
+                    .help(shot.lastUpdatedAt ?? "No update timestamp")
             }
-            switch activityFilter {
-            case .all:
-                return true
-            case .warnings:
-                return activityKind(for: line) == .warnings
-            case .errors:
-                return activityKind(for: line) == .errors
-            case .system:
-                return activityKind(for: line) == .system
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private func activeShotPrimaryActions(evaluation: ShotHealthEvaluation) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: StopmoUI.Spacing.xs) {
+                if captureNeedsTriageAttention {
+                    Button("Open Triage") {
+                        state.selectedHub = .triage
+                        state.selectedTriagePanel = .shots
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+                if evaluation.isDeliverable {
+                    Button("Open Deliver") {
+                        state.selectedHub = .deliver
+                        state.selectedDeliverPanel = .dayWrap
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .fixedSize()
+
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                if captureNeedsTriageAttention {
+                    Button("Open Triage") {
+                        state.selectedHub = .triage
+                        state.selectedTriagePanel = .shots
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                }
+                if evaluation.isDeliverable {
+                    Button("Open Deliver") {
+                        state.selectedHub = .deliver
+                        state.selectedDeliverPanel = .dayWrap
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
         }
     }
 
-    private func activityKind(for line: String) -> ActivityFilter {
-        let lower = line.lowercased()
-        if lower.contains("error") || lower.contains("failed") {
-            return .errors
+    private func activeShotMetricChips(shot: ShotSummaryRow) -> some View {
+        HStack(spacing: StopmoUI.Spacing.xs) {
+            StatusChip(label: "Done \(shot.doneFrames)", tone: .success, density: .compact)
+            StatusChip(
+                label: "In Flight \(shot.inflightFrames)",
+                tone: shot.inflightFrames > 0 ? .warning : .neutral,
+                density: .compact
+            )
+            StatusChip(
+                label: "Failed \(shot.failedFrames)",
+                tone: shot.failedFrames > 0 ? .danger : .neutral,
+                density: .compact
+            )
+            StatusChip(label: "Frames \(shot.totalFrames)", tone: .neutral, density: .compact)
         }
-        if lower.contains("warning") || lower.contains("blocked") || lower.contains("missing") {
-            return .warnings
+    }
+
+    private func activeShotSecondaryActions(shot: ShotSummaryRow) -> some View {
+        HStack(spacing: StopmoUI.Spacing.xs) {
+            Button("Open Shot Folder") {
+                state.openPathInFinder(shotRootPath(for: shot))
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
         }
-        if lower.contains("watch process")
-            || lower.contains("queue counts updated")
-            || lower.contains("monitoring")
-            || lower.contains("service started")
-            || lower.contains("service stopped")
-        {
-            return .system
+    }
+
+    private func captureKPITile(metric: CaptureKPIMetric) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(metric.label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(AppVisualTokens.textSecondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Text(metric.value)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(metric.tone == .neutral ? AppVisualTokens.textPrimary : metric.tone.foreground)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
-        return .all
+        .padding(.horizontal, StopmoUI.Spacing.sm)
+        .padding(.vertical, StopmoUI.Spacing.xs)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .fill(metric.tone.background.opacity(metric.tone == .neutral ? 0.75 : 1.0))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .stroke(Color.white.opacity(0.07), lineWidth: 0.6)
+        )
+    }
+
+    private func activitySymbol(for severity: CaptureActivitySeverity) -> String {
+        switch severity {
+        case .info:
+            return "info.circle.fill"
+        case .warning:
+            return "exclamationmark.triangle.fill"
+        case .error:
+            return "exclamationmark.octagon.fill"
+        case .system:
+            return "gearshape.fill"
+        }
+    }
+
+    private func activityColor(for severity: CaptureActivitySeverity) -> Color {
+        switch severity {
+        case .info:
+            return AppVisualTokens.textSecondary
+        case .warning:
+            return .orange
+        case .error:
+            return .red
+        case .system:
+            return .blue
+        }
     }
 
     private func etaLabel() -> String {

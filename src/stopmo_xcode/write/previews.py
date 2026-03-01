@@ -15,6 +15,10 @@ import numpy as np
 
 from stopmo_xcode.color import decode_logc3_ei800
 
+PREVIEW_MAX_EDGE = 960
+PREVIEW_JPEG_QUALITY = 78
+PREVIEW_LATEST_THROTTLE_SECONDS = 1.0
+
 
 def _utc_now_iso() -> str:
     """Return UTC timestamp string used by preview sidecar metadata."""
@@ -47,6 +51,17 @@ def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
     """Atomically write JSON sidecar payload with stable formatting."""
 
     _atomic_write_bytes(path, (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+
+
+def _best_effort_remove(path: Path) -> None:
+    """Best-effort unlink for stale alternate preview variants."""
+
+    try:
+        if path.exists():
+            path.unlink()
+    except Exception:
+        # Preview cleanup is non-critical and must never fail a frame job.
+        pass
 
 
 def _downsample_logc_for_preview(logc: np.ndarray, max_edge: int) -> np.ndarray:
@@ -120,9 +135,9 @@ def write_latest_preview(
     shot_dir: Path,
     source_stem: str,
     logc: np.ndarray,
-    max_edge: int = 384,
-    quality: int = 60,
-    throttle_seconds: float = 1.0,
+    max_edge: int = PREVIEW_MAX_EDGE,
+    quality: int = PREVIEW_JPEG_QUALITY,
+    throttle_seconds: float = PREVIEW_LATEST_THROTTLE_SECONDS,
 ) -> PreviewWriteStatus:
     """Write/update the per-shot latest preview JPEG with mtime throttling."""
 
@@ -139,18 +154,23 @@ def write_latest_preview(
 
     payload = _encode_preview_jpeg(logc, max_edge=max_edge, quality=quality)
     target_path = jpg_path
+    alt_path = tiff_path
     if payload is None:
         payload = _encode_preview_tiff(logc, max_edge=max_edge)
         target_path = tiff_path
+        alt_path = jpg_path
     if payload is None:
         return PreviewWriteStatus(path=None, wrote=False, skipped=True, reason="encoder_unavailable")
 
     _atomic_write_bytes(target_path, payload)
+    _best_effort_remove(alt_path)
     _atomic_write_json(
         meta_path,
         {
             "updated_at_utc": _utc_now_iso(),
             "source_stem": source_stem,
+            "max_edge": int(max_edge),
+            "jpeg_quality": int(quality),
         },
     )
     return PreviewWriteStatus(path=target_path, wrote=True, skipped=False, reason=None)
@@ -162,8 +182,8 @@ def update_first_preview_if_earlier(
     frame_number: int,
     source_stem: str,
     logc: np.ndarray,
-    max_edge: int = 384,
-    quality: int = 60,
+    max_edge: int = PREVIEW_MAX_EDGE,
+    quality: int = PREVIEW_JPEG_QUALITY,
 ) -> PreviewWriteStatus:
     """Write first preview JPEG only when no first exists or frame number is earlier."""
 
@@ -181,19 +201,24 @@ def update_first_preview_if_earlier(
 
     payload = _encode_preview_jpeg(logc, max_edge=max_edge, quality=quality)
     target_path = jpg_path
+    alt_path = tiff_path
     if payload is None:
         payload = _encode_preview_tiff(logc, max_edge=max_edge)
         target_path = tiff_path
+        alt_path = jpg_path
     if payload is None:
         return PreviewWriteStatus(path=None, wrote=False, skipped=True, reason="encoder_unavailable")
 
     _atomic_write_bytes(target_path, payload)
+    _best_effort_remove(alt_path)
     _atomic_write_json(
         meta_path,
         {
             "frame_number": current,
             "updated_at_utc": _utc_now_iso(),
             "source_stem": source_stem,
+            "max_edge": int(max_edge),
+            "jpeg_quality": int(quality),
         },
     )
     return PreviewWriteStatus(path=target_path, wrote=True, skipped=False, reason=None)

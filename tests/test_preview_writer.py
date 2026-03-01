@@ -92,3 +92,24 @@ def test_preview_writer_handles_missing_encoder_gracefully(monkeypatch, tmp_path
     assert latest.reason == "encoder_unavailable"
     assert first.wrote is False
     assert first.reason == "encoder_unavailable"
+
+
+def test_latest_preview_removes_stale_alternate_variant(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("stopmo_xcode.write.previews._encode_preview_jpeg", lambda *args, **kwargs: None)
+    monkeypatch.setattr("stopmo_xcode.write.previews._encode_preview_tiff", lambda *args, **kwargs: b"tiff-a")
+    shot_dir = tmp_path / "SHOT_D"
+    preview_dir = shot_dir / "preview"
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    stale_jpg = preview_dir / "latest.jpg"
+    stale_jpg.write_bytes(b"stale")
+
+    latest = write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_D_0001",
+        logc=_dummy_logc(),
+        throttle_seconds=0.0,
+    )
+    assert latest.wrote is True
+    assert latest.path is not None
+    assert latest.path.suffix == ".tiff"
+    assert not stale_jpg.exists()

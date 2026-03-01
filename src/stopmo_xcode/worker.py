@@ -20,6 +20,9 @@ from stopmo_xcode.utils.formatting import shutter_seconds_to_fraction
 from stopmo_xcode.utils.hash import sha256_file
 from stopmo_xcode.write import (
     FrameRecord,
+    PREVIEW_JPEG_QUALITY,
+    PREVIEW_LATEST_THROTTLE_SECONDS,
+    PREVIEW_MAX_EDGE,
     PreviewWriteStatus,
     ShotManifest,
     update_first_preview_if_earlier,
@@ -269,13 +272,13 @@ class JobProcessor:
             dpx_dir = shot_dir / "dpx"
             source_stem = source_path.stem
             dpx_path = dpx_dir / f"{source_stem}.dpx"
-            write_dpx10_logc_awg(dpx_path, logc)
             self._write_shot_previews(
                 shot_dir=shot_dir,
                 source_stem=source_stem,
                 frame_number=job.frame_number,
                 logc=logc,
             )
+            write_dpx10_logc_awg(dpx_path, logc)
 
             if self.config.output.write_debug_tiff:
                 debug_path = shot_dir / "debug_linear" / f"{source_stem}.tiff"
@@ -325,17 +328,17 @@ class JobProcessor:
                 shot_dir=shot_dir,
                 source_stem=source_stem,
                 logc=logc,
-                max_edge=384,
-                quality=60,
-                throttle_seconds=1.0,
+                max_edge=PREVIEW_MAX_EDGE,
+                quality=PREVIEW_JPEG_QUALITY,
+                throttle_seconds=PREVIEW_LATEST_THROTTLE_SECONDS,
             )
             first = update_first_preview_if_earlier(
                 shot_dir=shot_dir,
                 frame_number=int(frame_number),
                 source_stem=source_stem,
                 logc=logc,
-                max_edge=384,
-                quality=60,
+                max_edge=PREVIEW_MAX_EDGE,
+                quality=PREVIEW_JPEG_QUALITY,
             )
             self._maybe_log_preview_warning_once(latest)
             self._maybe_log_preview_warning_once(first)

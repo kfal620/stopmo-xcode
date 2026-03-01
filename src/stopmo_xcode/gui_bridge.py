@@ -552,6 +552,9 @@ def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = 
 def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str, object]:
     """Aggregate per-shot queue/assembly summary rows for triage surfaces."""
 
+    preview_backfill_max_edge = 960
+    preview_backfill_jpeg_qv = 3
+
     def _resolve_ffmpeg_for_preview() -> str | None:
         ffmpeg_env = os.environ.get("STOPMO_XCODE_FFMPEG")
         ffmpeg_path = ffmpeg_env or shutil.which("ffmpeg")
@@ -575,10 +578,17 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
             preview_dir / f"{stem}.tiff",
             preview_dir / f"{stem}.tif",
         ]
-        for path in candidates:
-            if path.exists():
-                return path
-        return None
+        existing = [path for path in candidates if path.exists()]
+        if not existing:
+            return None
+        rank = {path.suffix.lower(): index for index, path in enumerate(candidates)}
+        existing.sort(
+            key=lambda path: (
+                -float(path.stat().st_mtime),
+                rank.get(path.suffix.lower(), len(candidates)),
+            )
+        )
+        return existing[0]
 
     def _legacy_truth_preview_path(shot_root: Path) -> Path | None:
         truth_dir = shot_root / "truth_frame"
@@ -598,15 +608,16 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
 
     def _attempt_preview_backfill(shot_root: Path, preview_dir: Path) -> None:
         marker = preview_dir / ".backfill_attempted"
-        if marker.exists():
+        first_existing = _preview_variant_path(preview_dir, "first")
+        latest_existing = _preview_variant_path(preview_dir, "latest")
+        if marker.exists() and (first_existing is not None or latest_existing is not None):
             return
-        preview_dir.mkdir(parents=True, exist_ok=True)
-        marker.write_text(_now_utc_iso() + "\n", encoding="utf-8")
 
         truth_dir = shot_root / "truth_frame"
         dpx_truth = sorted(truth_dir.glob("*_truth_logc_awg.dpx")) if truth_dir.exists() else []
         if not dpx_truth:
             return
+        preview_dir.mkdir(parents=True, exist_ok=True)
         ffmpeg = _resolve_ffmpeg_for_preview()
         if not ffmpeg:
             return
@@ -623,8 +634,10 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
             str(source),
             "-frames:v",
             "1",
+            "-q:v",
+            str(preview_backfill_jpeg_qv),
             "-vf",
-            "scale=384:-2:force_original_aspect_ratio=decrease",
+            f"scale={preview_backfill_max_edge}:-2:force_original_aspect_ratio=decrease",
             str(out_first),
         ]
         try:
@@ -645,6 +658,7 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
                     "frame_number": frame_number,
                     "updated_at_utc": now_utc,
                     "source_stem": source.stem,
+                    "max_edge": preview_backfill_max_edge,
                 },
                 indent=2,
                 sort_keys=True,
@@ -657,6 +671,7 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
                 {
                     "updated_at_utc": now_utc,
                     "source_stem": source.stem,
+                    "max_edge": preview_backfill_max_edge,
                 },
                 indent=2,
                 sort_keys=True,
@@ -664,6 +679,7 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
             + "\n",
             encoding="utf-8",
         )
+        marker.write_text(now_utc + "\n", encoding="utf-8")
 
     def _preview_payload(shot_root: Path) -> dict[str, object]:
         """Return additive preview path metadata for one shot root."""
