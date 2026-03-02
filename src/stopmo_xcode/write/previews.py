@@ -133,6 +133,7 @@ def write_latest_preview(
     shot_dir: Path,
     source_stem: str,
     frame_number: int | None = None,
+    job_id: int | None = None,
     logc: np.ndarray,
     max_edge: int = PREVIEW_MAX_EDGE,
     quality: int = PREVIEW_JPEG_QUALITY,
@@ -147,6 +148,13 @@ def write_latest_preview(
 
     existing_meta = _read_json(meta_path)
     requires_intent_refresh = existing_meta.get("render_intent") != PREVIEW_RENDER_INTENT
+    existing_job_raw = existing_meta.get("job_id")
+    existing_job_id: int | None
+    if isinstance(existing_job_raw, int):
+        existing_job_id = int(existing_job_raw)
+    else:
+        existing_job_id = None
+    current_job_id = int(job_id) if job_id is not None else None
     existing_frame_raw = existing_meta.get("frame_number")
     existing_frame: int | None
     if isinstance(existing_frame_raw, int):
@@ -157,17 +165,29 @@ def write_latest_preview(
     existing_preview = jpg_path if jpg_path.exists() else tiff_path if tiff_path.exists() else None
     if (
         existing_preview is not None
+        and existing_job_id is not None
+        and current_job_id is not None
+        and current_job_id < existing_job_id
+        and not requires_intent_refresh
+    ):
+        return PreviewWriteStatus(path=existing_preview, wrote=False, skipped=True, reason="not_later_job")
+    if (
+        existing_preview is not None
         and existing_frame is not None
         and current_frame is not None
         and current_frame < existing_frame
         and not requires_intent_refresh
+        and current_job_id is None
     ):
         return PreviewWriteStatus(path=existing_preview, wrote=False, skipped=True, reason="not_later_frame")
     if throttle_seconds > 0 and existing_preview is not None and not requires_intent_refresh:
+        advancing_job = (
+            current_job_id is not None and (existing_job_id is None or current_job_id > existing_job_id)
+        )
         advancing_frame = (
             current_frame is not None and (existing_frame is None or current_frame > existing_frame)
         )
-        if not advancing_frame:
+        if not (advancing_job or (current_job_id is None and advancing_frame)):
             age = max(0.0, time.time() - float(existing_preview.stat().st_mtime))
             if age < float(throttle_seconds):
                 return PreviewWriteStatus(path=existing_preview, wrote=False, skipped=True, reason="throttled")
@@ -190,9 +210,25 @@ def write_latest_preview(
             "updated_at_utc": _utc_now_iso(),
             "source_stem": source_stem,
             "frame_number": current_frame,
+            "job_id": current_job_id,
             "max_edge": int(max_edge),
             "jpeg_quality": int(quality),
             "render_intent": PREVIEW_RENDER_INTENT,
+            # Lightweight provenance for debugging "latest" preview selection.
+            "selection_reason": (
+                "render_intent_refresh"
+                if requires_intent_refresh
+                else "advanced_job"
+                if current_job_id is not None and (existing_job_id is None or current_job_id > existing_job_id)
+                else "advanced_frame"
+                if current_frame is not None and (existing_frame is None or current_frame > existing_frame)
+                else "rewrite"
+            ),
+            "previous_source_stem": (
+                str(existing_meta.get("source_stem")) if existing_meta.get("source_stem") not in (None, "") else None
+            ),
+            "previous_frame_number": existing_frame,
+            "previous_job_id": existing_job_id,
         },
     )
     return PreviewWriteStatus(path=target_path, wrote=True, skipped=False, reason=None)

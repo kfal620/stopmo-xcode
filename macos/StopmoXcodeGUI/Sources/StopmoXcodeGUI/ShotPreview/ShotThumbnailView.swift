@@ -13,6 +13,7 @@ struct ShotThumbnailView: View {
 
     @State private var image: NSImage?
     @State private var loadedPath: String?
+    @State private var loadedReloadKey: String?
 
     private var resolvedPath: String? {
         ShotPreviewResolver.preferredPath(
@@ -52,9 +53,9 @@ struct ShotThumbnailView: View {
         }
         .buttonStyle(.plain)
         .help(helpLabel)
-        .onAppear(perform: refreshImage)
+        .onAppear { refreshImage(forceReload: true) }
         .onChange(of: reloadKey) { _, _ in
-            refreshImage()
+            refreshImage(forceReload: true)
         }
     }
 
@@ -98,20 +99,27 @@ struct ShotThumbnailView: View {
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
-    private func refreshImage() {
+    private func refreshImage(forceReload: Bool = false) {
         let path = resolvedPath
-        guard path != loadedPath || image == nil else {
+        let key = reloadKey
+        guard forceReload || path != loadedPath || image == nil || loadedReloadKey != key else {
             return
         }
 
         loadedPath = path
+        loadedReloadKey = key
         image = nil
 
         guard let path else { return }
         Task.detached(priority: .utility) {
-            let loaded = NSImage(contentsOfFile: path)
+            let loaded: NSImage?
+            if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
+                loaded = NSImage(data: data)
+            } else {
+                loaded = NSImage(contentsOfFile: path)
+            }
             await MainActor.run {
-                guard loadedPath == path else { return }
+                guard loadedPath == path, loadedReloadKey == key else { return }
                 image = loaded
             }
         }

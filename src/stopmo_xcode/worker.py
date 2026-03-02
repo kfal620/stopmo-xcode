@@ -328,6 +328,7 @@ class JobProcessor:
                 shot_dir=shot_dir,
                 source_stem=source_stem,
                 frame_number=int(frame_number),
+                job_id=int(job.id),
                 logc=logc,
                 max_edge=PREVIEW_MAX_EDGE,
                 quality=PREVIEW_JPEG_QUALITY,

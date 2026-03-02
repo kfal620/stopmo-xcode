@@ -20,6 +20,7 @@ def test_write_latest_preview_writes_then_throttles(monkeypatch, tmp_path: Path)
         shot_dir=shot_dir,
         source_stem="SHOT_A_0001",
         frame_number=1,
+        job_id=1,
         logc=_dummy_logc(),
         throttle_seconds=10.0,
     )
@@ -32,6 +33,7 @@ def test_write_latest_preview_writes_then_throttles(monkeypatch, tmp_path: Path)
         shot_dir=shot_dir,
         source_stem="SHOT_A_0002",
         frame_number=2,
+        job_id=2,
         logc=_dummy_logc(),
         throttle_seconds=10.0,
     )
@@ -84,6 +86,7 @@ def test_preview_writer_handles_missing_encoder_gracefully(monkeypatch, tmp_path
         shot_dir=shot_dir,
         source_stem="SHOT_C_0001",
         frame_number=1,
+        job_id=1,
         logc=_dummy_logc(),
     )
     first = update_first_preview_if_earlier(
@@ -112,6 +115,7 @@ def test_latest_preview_removes_stale_alternate_variant(monkeypatch, tmp_path: P
         shot_dir=shot_dir,
         source_stem="SHOT_D_0001",
         frame_number=1,
+        job_id=1,
         logc=_dummy_logc(),
         throttle_seconds=0.0,
     )
@@ -137,6 +141,7 @@ def test_write_latest_preview_rewrites_when_render_intent_missing(monkeypatch, t
         shot_dir=shot_dir,
         source_stem="SHOT_E_0002",
         frame_number=2,
+        job_id=2,
         logc=_dummy_logc(),
         throttle_seconds=60.0,
     )
@@ -155,6 +160,7 @@ def test_write_latest_preview_throttles_when_frame_does_not_advance(monkeypatch,
         shot_dir=shot_dir,
         source_stem="SHOT_G_0001",
         frame_number=1,
+        job_id=1,
         logc=_dummy_logc(),
         throttle_seconds=10.0,
     )
@@ -164,6 +170,7 @@ def test_write_latest_preview_throttles_when_frame_does_not_advance(monkeypatch,
         shot_dir=shot_dir,
         source_stem="SHOT_G_0001_DUP",
         frame_number=1,
+        job_id=1,
         logc=_dummy_logc(),
         throttle_seconds=10.0,
     )
@@ -180,6 +187,7 @@ def test_write_latest_preview_skips_older_frame(monkeypatch, tmp_path: Path) -> 
         shot_dir=shot_dir,
         source_stem="SHOT_H_0010",
         frame_number=10,
+        job_id=10,
         logc=_dummy_logc(),
         throttle_seconds=10.0,
     )
@@ -189,12 +197,72 @@ def test_write_latest_preview_skips_older_frame(monkeypatch, tmp_path: Path) -> 
         shot_dir=shot_dir,
         source_stem="SHOT_H_0005",
         frame_number=5,
+        job_id=5,
         logc=_dummy_logc(),
         throttle_seconds=10.0,
     )
     assert older.wrote is False
     assert older.skipped is True
-    assert older.reason == "not_later_frame"
+    assert older.reason == "not_later_job"
+
+
+def test_write_latest_preview_uses_job_order_when_frame_numbers_repeat(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("stopmo_xcode.write.previews._encode_preview_jpeg", lambda *args, **kwargs: b"job-order")
+    shot_dir = tmp_path / "SHOT_I"
+
+    write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_I_A",
+        frame_number=1,
+        job_id=100,
+        logc=_dummy_logc(),
+        throttle_seconds=10.0,
+    )
+    older_job = write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_I_B",
+        frame_number=1,
+        job_id=99,
+        logc=_dummy_logc(),
+        throttle_seconds=10.0,
+    )
+    assert older_job.wrote is False
+    assert older_job.reason == "not_later_job"
+
+
+def test_write_latest_preview_records_selection_provenance(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("stopmo_xcode.write.previews._encode_preview_jpeg", lambda *args, **kwargs: b"prov")
+    shot_dir = tmp_path / "SHOT_J"
+    preview_dir = shot_dir / "preview"
+
+    first = write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_J_0001",
+        frame_number=1,
+        job_id=10,
+        logc=_dummy_logc(),
+        throttle_seconds=0.0,
+    )
+    assert first.wrote is True
+
+    second = write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_J_0002",
+        frame_number=2,
+        job_id=11,
+        logc=_dummy_logc(),
+        throttle_seconds=0.0,
+    )
+    assert second.wrote is True
+
+    payload = json.loads((preview_dir / "latest.meta.json").read_text(encoding="utf-8"))
+    assert payload["selection_reason"] == "advanced_job"
+    assert payload["source_stem"] == "SHOT_J_0002"
+    assert payload["job_id"] == 11
+    assert payload["frame_number"] == 2
+    assert payload["previous_source_stem"] == "SHOT_J_0001"
+    assert payload["previous_job_id"] == 10
+    assert payload["previous_frame_number"] == 1
 
 
 def test_first_preview_rewrites_when_render_intent_missing_even_if_not_earlier(
