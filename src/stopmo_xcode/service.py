@@ -149,6 +149,11 @@ def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None 
         if inserted:
             logger.info("queued %s shot=%s frame=%s", path.name, shot_name, frame)
 
+    def should_rearm_ready_file(path: Path) -> bool:
+        """Re-arm ready files when queue rows were removed (shot delete/restart flows)."""
+
+        return not db.has_source_path(path)
+
     watcher = SourceWatcher(
         source_dir=config.watch.source_dir,
         include_extensions=config.watch.include_extensions,
@@ -156,6 +161,7 @@ def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None 
         poll_interval_seconds=config.watch.poll_interval_seconds,
         scan_interval_seconds=config.watch.scan_interval_seconds,
         on_ready_file=on_ready,
+        should_rearm_ready_file=should_rearm_ready_file,
     )
 
     ctx = mp.get_context("spawn")

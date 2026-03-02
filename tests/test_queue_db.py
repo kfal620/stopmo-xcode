@@ -146,3 +146,16 @@ def test_delete_shot_removes_rows_and_blocks_inflight(tmp_path: Path) -> None:
     except ValueError as exc:
         assert "inflight" in str(exc)
     db.close()
+
+
+def test_has_source_path_reflects_shot_delete(tmp_path: Path) -> None:
+    db = QueueDB(tmp_path / "queue.sqlite3")
+    src = tmp_path / "F_0001.CR3"
+    src.write_bytes(b"1")
+    assert db.enqueue_detected(src, shot_name="SHOT_F", frame_number=1)
+    assert db.has_source_path(src) is True
+
+    removed = db.delete_shot("SHOT_F")
+    assert removed["jobs_deleted"] == 1
+    assert db.has_source_path(src) is False
+    db.close()

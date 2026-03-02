@@ -158,6 +158,15 @@ class QueueDB:
         except sqlite3.IntegrityError:
             return False
 
+    def has_source_path(self, source_path: Path) -> bool:
+        """Return whether a queue job row exists for a source path."""
+
+        row = self._conn.execute(
+            "SELECT 1 FROM jobs WHERE source_path = ? LIMIT 1",
+            (str(source_path),),
+        ).fetchone()
+        return row is not None
+
     def force_detected(self, source_path: Path, shot_name: str, frame_number: int) -> None:
         """Upsert a source job back to `detected` for one-shot transcode workflows."""
 

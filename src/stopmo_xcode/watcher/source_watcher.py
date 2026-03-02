@@ -36,6 +36,7 @@ class SourceWatcher:
         poll_interval_seconds: float,
         scan_interval_seconds: float,
         on_ready_file: Callable[[Path], None],
+        should_rearm_ready_file: Callable[[Path], bool] | None = None,
     ) -> None:
         """Configure polling/stability behavior and ready-file callback."""
 
@@ -44,7 +45,10 @@ class SourceWatcher:
         self.poll_interval_seconds = poll_interval_seconds
         self.scan_interval_seconds = scan_interval_seconds
         self.on_ready_file = on_ready_file
-        self._tracker = FileCompletionTracker(stable_seconds=stable_seconds)
+        self._tracker = FileCompletionTracker(
+            stable_seconds=stable_seconds,
+            should_rearm_ready_file=should_rearm_ready_file,
+        )
         self._event_queue: queue.Queue[Path] = queue.Queue()
         self._stop_event = threading.Event()
         self._event_stream = _NoopEventStream()
@@ -62,9 +66,12 @@ class SourceWatcher:
     def _scan_tree(self) -> None:
         """Scan source tree and register candidate files with completion tracker."""
 
+        observed_candidates: set[Path] = set()
         for path in self.source_dir.rglob("*"):
             if self._is_candidate(path):
+                observed_candidates.add(path)
                 self._tracker.mark_candidate(path)
+        self._tracker.reconcile_observed_candidates(observed_candidates)
 
     def run_forever(self, external_stop_event: threading.Event | None = None) -> None:
         """Run polling loop until local or external stop event is set."""
