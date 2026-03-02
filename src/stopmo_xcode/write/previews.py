@@ -13,11 +13,10 @@ from typing import Any
 
 import numpy as np
 
-from stopmo_xcode.color import decode_logc3_ei800
-
 PREVIEW_MAX_EDGE = 960
 PREVIEW_JPEG_QUALITY = 78
 PREVIEW_LATEST_THROTTLE_SECONDS = 1.0
+PREVIEW_RENDER_INTENT = "logc_awg"
 
 
 def _utc_now_iso() -> str:
@@ -78,12 +77,11 @@ def _downsample_logc_for_preview(logc: np.ndarray, max_edge: int) -> np.ndarray:
 
 
 def _preview_rgb8_from_logc(logc: np.ndarray, max_edge: int) -> np.ndarray:
-    """Convert logc frame data into compact 8-bit display RGB preview pixels."""
+    """Convert LogC3/AWG frame data into compact 8-bit signal-space preview pixels."""
 
     sampled = _downsample_logc_for_preview(logc, max_edge=max_edge)
-    linear = decode_logc3_ei800(sampled)
-    srgb = np.clip(linear, 0.0, 1.0) ** (1.0 / 2.2)
-    return np.rint(srgb * 255.0).astype(np.uint8)
+    signal = np.clip(sampled, 0.0, 1.0)
+    return np.rint(signal * 255.0).astype(np.uint8)
 
 
 def _encode_preview_jpeg(logc: np.ndarray, *, max_edge: int, quality: int) -> bytes | None:
@@ -146,8 +144,10 @@ def write_latest_preview(
     tiff_path = preview_dir / "latest.tiff"
     meta_path = preview_dir / "latest.meta.json"
 
+    existing_meta = _read_json(meta_path)
+    requires_intent_refresh = existing_meta.get("render_intent") != PREVIEW_RENDER_INTENT
     existing_preview = jpg_path if jpg_path.exists() else tiff_path if tiff_path.exists() else None
-    if throttle_seconds > 0 and existing_preview is not None:
+    if throttle_seconds > 0 and existing_preview is not None and not requires_intent_refresh:
         age = max(0.0, time.time() - float(existing_preview.stat().st_mtime))
         if age < float(throttle_seconds):
             return PreviewWriteStatus(path=existing_preview, wrote=False, skipped=True, reason="throttled")
@@ -171,6 +171,7 @@ def write_latest_preview(
             "source_stem": source_stem,
             "max_edge": int(max_edge),
             "jpeg_quality": int(quality),
+            "render_intent": PREVIEW_RENDER_INTENT,
         },
     )
     return PreviewWriteStatus(path=target_path, wrote=True, skipped=False, reason=None)
@@ -193,10 +194,16 @@ def update_first_preview_if_earlier(
     meta_path = preview_dir / "first.meta.json"
 
     existing_meta = _read_json(meta_path)
+    requires_intent_refresh = existing_meta.get("render_intent") != PREVIEW_RENDER_INTENT
     existing_frame = existing_meta.get("frame_number")
     current = int(frame_number)
     existing_preview = jpg_path if jpg_path.exists() else tiff_path if tiff_path.exists() else None
-    if existing_preview is not None and isinstance(existing_frame, int) and current >= existing_frame:
+    if (
+        existing_preview is not None
+        and isinstance(existing_frame, int)
+        and current >= existing_frame
+        and not requires_intent_refresh
+    ):
         return PreviewWriteStatus(path=existing_preview, wrote=False, skipped=True, reason="not_earlier")
 
     payload = _encode_preview_jpeg(logc, max_edge=max_edge, quality=quality)
@@ -219,6 +226,7 @@ def update_first_preview_if_earlier(
             "source_stem": source_stem,
             "max_edge": int(max_edge),
             "jpeg_quality": int(quality),
+            "render_intent": PREVIEW_RENDER_INTENT,
         },
     )
     return PreviewWriteStatus(path=target_path, wrote=True, skipped=False, reason=None)

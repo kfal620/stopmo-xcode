@@ -18,9 +18,33 @@ private enum TriageShotFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Enumeration for pending shot action confirmations.
+private enum TriageShotPendingActionKind {
+    case restart
+    case deleteDB
+    case deleteDBAndOutputs
+}
+
+/// Data/view model for generated artifact summary for one shot.
+private struct ShotGeneratedArtifactsSummary {
+    var fileCount: Int
+    var dirCount: Int
+
+    var hasArtifacts: Bool { fileCount + dirCount > 0 }
+}
+
+/// Data/view model for shot action requiring user confirmation.
+private struct TriageShotPendingAction: Identifiable {
+    let id = UUID()
+    let kind: TriageShotPendingActionKind
+    let shot: ShotSummaryRow
+    let artifacts: ShotGeneratedArtifactsSummary
+}
+
 /// View rendering triage shot health board view.
 struct TriageShotHealthBoardView: View {
     @EnvironmentObject private var state: AppState
+    @Environment(\.hubContentWidth) private var hubContentWidth
 
     @State private var searchText: String = ""
     @State private var expandedShotNames: Set<String> = []
@@ -28,13 +52,13 @@ struct TriageShotHealthBoardView: View {
     @State private var recoveryMode: TriageRecoveryMode = .queue
     @State private var shotFilter: TriageShotFilter = .all
     @State private var previewLightboxItem: ShotLightboxItem?
+    @State private var pendingShotAction: TriageShotPendingAction?
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.lg) {
                 toolbarStrip
-                healthBoardCard
-                recoveryDrawerCard
+                triageWorkspaceLayout
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(StopmoUI.Spacing.sm)
@@ -48,6 +72,40 @@ struct TriageShotHealthBoardView: View {
             ShotLightboxView(item: item) { shotRoot in
                 state.openPathInFinder(shotRoot)
             }
+        }
+        .confirmationDialog(
+            pendingActionTitle,
+            isPresented: Binding(
+                get: { pendingShotAction != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        pendingShotAction = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let pendingShotAction {
+                switch pendingShotAction.kind {
+                case .restart:
+                    Button("Restart Shot", role: .destructive) {
+                        confirmPendingShotAction()
+                    }
+                case .deleteDB:
+                    Button("Delete From DB", role: .destructive) {
+                        confirmPendingShotAction()
+                    }
+                case .deleteDBAndOutputs:
+                    Button("Delete DB + Outputs", role: .destructive) {
+                        confirmPendingShotAction()
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                pendingShotAction = nil
+            }
+        } message: {
+            Text(pendingActionMessage)
         }
     }
 
@@ -74,6 +132,41 @@ struct TriageShotHealthBoardView: View {
                     StatusChip(label: "Total \(filteredEvaluations.count)", tone: .neutral, density: .compact)
                 }
             }
+        }
+    }
+
+    private var triageWorkspaceLayout: some View {
+        Group {
+            if hubContentWidth > 0, hubContentWidth < 980 {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+                    recoveryDrawerCard
+                    shotsPanel
+                }
+            } else {
+                AdaptiveColumns(breakpoint: 980, spacing: StopmoUI.Spacing.md) {
+                    shotsPanel
+                } secondary: {
+                    recoveryDrawerCard
+                }
+            }
+        }
+    }
+
+    private var shotsPanel: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+            shotsPanelHeader
+            healthBoardCard
+        }
+    }
+
+    private var shotsPanelHeader: some View {
+        HStack(spacing: StopmoUI.Spacing.xs) {
+            Text("Shots")
+                .font(.headline.weight(.semibold))
+            Image(systemName: "info.circle")
+                .foregroundStyle(AppVisualTokens.textSecondary)
+                .help("Shots processed from RAW -> DPX.")
+            Spacer(minLength: 0)
         }
     }
 
@@ -152,7 +245,22 @@ struct TriageShotHealthBoardView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
 
+                Button("Restart Shot") {
+                    requestRestartShot(shot)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(isShotInflight(shot))
+                .help(isShotInflight(shot) ? "Shot has inflight jobs. Wait until idle or stop watch first." : "Reset this shot and rebuild from beginning.")
+
                 Menu("More") {
+                    Button("Retry Failed Frames") {
+                        Task { await state.retryFailedJobsForShot(shot.shotName) }
+                    }
+                    .disabled(shot.failedFrames == 0 || isShotInflight(shot))
+
+                    Divider()
+
                     Button("Open Manifest") {
                         state.openPathInFinder(manifestPath(for: shot))
                     }
@@ -173,6 +281,17 @@ struct TriageShotHealthBoardView: View {
                             state.openPathInFinder(output)
                         }
                     }
+
+                    Divider()
+
+                    Button("Delete From DB", role: .destructive) {
+                        requestDeleteShot(shot, deleteOutputs: false)
+                    }
+                    .disabled(isShotInflight(shot))
+                    Button("Delete DB + Outputs", role: .destructive) {
+                        requestDeleteShot(shot, deleteOutputs: true)
+                    }
+                    .disabled(isShotInflight(shot))
                 }
                 .controlSize(.small)
             }
@@ -252,8 +371,8 @@ struct TriageShotHealthBoardView: View {
 
     private var recoveryDrawerCard: some View {
         SectionCard(
-            "Recovery Drawer",
-            subtitle: "Collapsed by default; open only when recovery is needed.",
+            "Recovery",
+            subtitle: "Queue retry and diagnostics actions.",
             density: .compact,
             surfaceLevel: .panel,
             chrome: .quiet,
@@ -279,7 +398,11 @@ struct TriageShotHealthBoardView: View {
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
                 DisclosureRowLabel(title: "Show Recovery Tools", isExpanded: $showRecoveryDrawer) {
-                    StatusChip(label: "Queue + Diagnostics", tone: .neutral, density: .compact)
+                    HStack(spacing: StopmoUI.Spacing.xs) {
+                        StatusChip(label: "Failed \(failedQueueCount)", tone: failedQueueCount > 0 ? .danger : .neutral, density: .compact)
+                        StatusChip(label: "Inflight \(inflightQueueCount)", tone: inflightQueueCount > 0 ? .warning : .neutral, density: .compact)
+                        StatusChip(label: "Warnings \(state.logsDiagnostics?.warnings.count ?? 0)", tone: (state.logsDiagnostics?.warnings.count ?? 0) > 0 ? .warning : .neutral, density: .compact)
+                    }
                 }
             }
         }
@@ -470,6 +593,121 @@ struct TriageShotHealthBoardView: View {
 
     private var latestWarnings: [DiagnosticWarningRecord] {
         state.logsDiagnostics?.warnings ?? []
+    }
+
+    private var pendingActionTitle: String {
+        guard let action = pendingShotAction else { return "Confirm Action" }
+        switch action.kind {
+        case .restart:
+            return "Restart \(action.shot.shotName)?"
+        case .deleteDB:
+            return "Delete \(action.shot.shotName) From DB?"
+        case .deleteDBAndOutputs:
+            return "Delete \(action.shot.shotName) From DB + Outputs?"
+        }
+    }
+
+    private var pendingActionMessage: String {
+        guard let action = pendingShotAction else { return "" }
+        switch action.kind {
+        case .restart:
+            if action.artifacts.hasArtifacts {
+                return "This shot has \(action.artifacts.dirCount) generated folder(s) and \(action.artifacts.fileCount) generated file(s). Restart will overwrite/rebuild these outputs from RAW -> DPX."
+            }
+            return "Restart will reset this shot's queue rows to detected and rebuild from the beginning."
+        case .deleteDB:
+            return "This removes the shot from queue database tables only. Generated output files remain on disk."
+        case .deleteDBAndOutputs:
+            return "This removes the shot from queue database and deletes generated shot output artifacts from the output directory."
+        }
+    }
+
+    private func confirmPendingShotAction() {
+        guard let action = pendingShotAction else { return }
+        pendingShotAction = nil
+        switch action.kind {
+        case .restart:
+            Task { await state.restartShotFromBeginning(action.shot.shotName, cleanOutput: true, resetLocks: true) }
+        case .deleteDB:
+            Task { await state.deleteShot(action.shot.shotName, deleteOutputs: false) }
+        case .deleteDBAndOutputs:
+            Task { await state.deleteShot(action.shot.shotName, deleteOutputs: true) }
+        }
+    }
+
+    private func requestRestartShot(_ shot: ShotSummaryRow) {
+        guard !isShotInflight(shot) else {
+            return
+        }
+        let artifacts = generatedArtifactsSummary(for: shot)
+        if artifacts.hasArtifacts {
+            pendingShotAction = TriageShotPendingAction(kind: .restart, shot: shot, artifacts: artifacts)
+            return
+        }
+        Task { await state.restartShotFromBeginning(shot.shotName, cleanOutput: true, resetLocks: true) }
+    }
+
+    private func requestDeleteShot(_ shot: ShotSummaryRow, deleteOutputs: Bool) {
+        guard !isShotInflight(shot) else {
+            return
+        }
+        let kind: TriageShotPendingActionKind = deleteOutputs ? .deleteDBAndOutputs : .deleteDB
+        pendingShotAction = TriageShotPendingAction(
+            kind: kind,
+            shot: shot,
+            artifacts: generatedArtifactsSummary(for: shot)
+        )
+    }
+
+    private func isShotInflight(_ shot: ShotSummaryRow) -> Bool {
+        shot.inflightFrames > 0
+    }
+
+    private func generatedArtifactsSummary(for shot: ShotSummaryRow) -> ShotGeneratedArtifactsSummary {
+        let fileManager = FileManager.default
+        let shotRoot = URL(fileURLWithPath: shotRootPath(for: shot))
+        var generatedFiles: Set<String> = []
+        var dirCount = 0
+        let generatedDirs = ["dpx", "frame_json", "preview", "truth_frame", "debug_linear"]
+        for name in generatedDirs {
+            let url = shotRoot.appendingPathComponent(name)
+            var isDir: ObjCBool = false
+            if fileManager.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
+                dirCount += 1
+                if let enumerator = fileManager.enumerator(
+                    at: url,
+                    includingPropertiesForKeys: [.isRegularFileKey],
+                    options: [.skipsHiddenFiles]
+                ) {
+                    for case let fileURL as URL in enumerator {
+                        if (try? fileURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true {
+                            generatedFiles.insert(fileURL.path)
+                        }
+                    }
+                }
+            }
+        }
+
+        for fileName in ["manifest.json", "README.txt", "show_lut_rec709.cube"] {
+            let path = shotRoot.appendingPathComponent(fileName).path
+            if fileManager.fileExists(atPath: path) {
+                generatedFiles.insert(path)
+            }
+        }
+        if let output = shot.outputMovPath, fileManager.fileExists(atPath: output) {
+            generatedFiles.insert(output)
+        }
+        if let review = shot.reviewMovPath, fileManager.fileExists(atPath: review) {
+            generatedFiles.insert(review)
+        }
+        if let entries = try? fileManager.contentsOfDirectory(at: shotRoot, includingPropertiesForKeys: [.isRegularFileKey]) {
+            for entry in entries where entry.pathExtension.lowercased() == "mov" {
+                if (try? entry.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true {
+                    generatedFiles.insert(entry.path)
+                }
+            }
+        }
+        return ShotGeneratedArtifactsSummary(fileCount: generatedFiles.count, dirCount: dirCount)
     }
 
     private func toggleExpanded(_ shotName: String) {

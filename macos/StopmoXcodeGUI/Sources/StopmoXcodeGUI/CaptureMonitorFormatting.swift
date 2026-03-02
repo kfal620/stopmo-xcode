@@ -137,7 +137,6 @@ enum CaptureMonitorFormatting {
         let detected = queueCounts["detected", default: 0]
         let decoding = queueCounts["decoding", default: 0]
         let transform = queueCounts["xform", default: 0]
-        let dpxWrite = queueCounts["dpx_write", default: 0]
         let done = queueCounts["done", default: 0]
         let failed = queueCounts["failed", default: 0]
 
@@ -156,7 +155,6 @@ enum CaptureMonitorFormatting {
                     metric(id: "detected", label: "Detected", value: "\(detected)", tone: .neutral),
                     metric(id: "decoding", label: "Decoding", value: "\(decoding)", tone: .neutral),
                     metric(id: "transform", label: "Transform", value: "\(transform)", tone: .neutral),
-                    metric(id: "dpxWrite", label: "DPX Write", value: "\(dpxWrite)", tone: .neutral),
                 ]
             ),
             CaptureKPIGroup(
@@ -182,6 +180,49 @@ enum CaptureMonitorFormatting {
                     metric(id: "lastFrame", label: "Last Frame", value: lastFrameLabel, tone: lastFrameTone),
                 ]
             ),
+        ]
+    }
+
+    static func compactPrimaryKPIs(queueCounts: [String: Int]) -> [CaptureKPIMetric] {
+        [
+            metric(id: "detected", label: "Detected", value: "\(queueCounts["detected", default: 0])", tone: .neutral),
+            metric(id: "decoding", label: "Decoding", value: "\(queueCounts["decoding", default: 0])", tone: .neutral),
+            metric(id: "transform", label: "Transform", value: "\(queueCounts["xform", default: 0])", tone: .neutral),
+            metric(
+                id: "done",
+                label: "Done",
+                value: "\(queueCounts["done", default: 0])",
+                tone: queueCounts["done", default: 0] > 0 ? .success : .neutral
+            ),
+            metric(
+                id: "failed",
+                label: "Failed",
+                value: "\(queueCounts["failed", default: 0])",
+                tone: queueCounts["failed", default: 0] > 0 ? .danger : .neutral
+            ),
+        ]
+    }
+
+    static func compactSecondaryKPIs(
+        throughputFramesPerMinute: Double,
+        workersInFlight: Int,
+        maxWorkers: Int,
+        etaLabel: String,
+        lastFrameLabel: String,
+        hasLastFrame: Bool
+    ) -> [CaptureKPIMetric] {
+        let safeMaxWorkers = max(1, maxWorkers)
+        let throughputLabel = String(format: "%.1f frames/min", throughputFramesPerMinute)
+        let throughputTone: StatusTone = throughputFramesPerMinute > 0.01 ? .success : .warning
+        let workerTone: StatusTone = workersInFlight >= safeMaxWorkers ? .warning : .neutral
+        let etaTone: StatusTone = etaLabel.contains("--") ? .warning : .neutral
+        let lastFrameTone: StatusTone = hasLastFrame ? .neutral : .warning
+
+        return [
+            metric(id: "throughput", label: "Throughput", value: throughputLabel, tone: throughputTone),
+            metric(id: "workers", label: "Workers", value: "\(workersInFlight)/\(safeMaxWorkers)", tone: workerTone),
+            metric(id: "eta", label: "ETA", value: etaLabel, tone: etaTone),
+            metric(id: "lastFrame", label: "Last Frame", value: lastFrameLabel, tone: lastFrameTone),
         ]
     }
 

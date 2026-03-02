@@ -37,6 +37,39 @@ final class AppStateBridgeOrchestrationTests: XCTestCase {
         XCTAssertEqual(bridge.shotsSummaryCallCount, 0)
     }
 
+    func testRetryFailedJobsForShotUsesShotMutationBridgeCall() async {
+        let bridge = FakeBridgeService()
+        let state = makeState(bridge: bridge)
+
+        await state.retryFailedJobsForShot("SHOT_A")
+
+        XCTAssertEqual(bridge.queueRetryShotFailedCallCount, 1)
+        XCTAssertEqual(bridge.shotsSummaryCallCount, 1)
+        XCTAssertEqual(state.statusMessage, "Retried failed frames for SHOT_A")
+    }
+
+    func testRestartShotFromBeginningUsesShotMutationBridgeCall() async {
+        let bridge = FakeBridgeService()
+        let state = makeState(bridge: bridge)
+
+        await state.restartShotFromBeginning("SHOT_A", cleanOutput: true, resetLocks: true)
+
+        XCTAssertEqual(bridge.queueRestartShotCallCount, 1)
+        XCTAssertEqual(bridge.shotsSummaryCallCount, 1)
+        XCTAssertEqual(state.statusMessage, "Restarted shot SHOT_A")
+    }
+
+    func testDeleteShotUsesShotMutationBridgeCall() async {
+        let bridge = FakeBridgeService()
+        let state = makeState(bridge: bridge)
+
+        await state.deleteShot("SHOT_A", deleteOutputs: true)
+
+        XCTAssertEqual(bridge.queueDeleteShotCallCount, 1)
+        XCTAssertEqual(bridge.shotsSummaryCallCount, 1)
+        XCTAssertEqual(state.statusMessage, "Deleted shot SHOT_A")
+    }
+
     private func makeState(bridge: FakeBridgeService) -> AppState {
         let deps = AppStateDependencies(
             bridgeService: bridge,
@@ -52,6 +85,9 @@ private final class FakeBridgeService: BridgeServicing {
     private(set) var healthCallCount = 0
     private(set) var watchStateCallCount = 0
     private(set) var shotsSummaryCallCount = 0
+    private(set) var queueRetryShotFailedCallCount = 0
+    private(set) var queueRestartShotCallCount = 0
+    private(set) var queueDeleteShotCallCount = 0
 
     func health(repoRoot: String, configPath: String) async throws -> BridgeHealth {
         healthCallCount += 1
@@ -189,6 +225,71 @@ private final class FakeBridgeService: BridgeServicing {
             requestedIds: jobIds ?? [],
             failedBefore: 0,
             failedAfter: 0,
+            queue: stubWatchState(configPath: configPath).queue
+        )
+    }
+
+    func queueRetryShotFailed(repoRoot: String, configPath: String, shotName: String) async throws -> QueueShotMutationResult {
+        queueRetryShotFailedCallCount += 1
+        return QueueShotMutationResult(
+            action: "retry_shot_failed",
+            shotName: shotName,
+            jobsTotalBefore: 1,
+            jobsChanged: 1,
+            failedBefore: 1,
+            inflightBefore: 0,
+            settingsCleared: false,
+            assemblyCleared: false,
+            outputsDeleted: false,
+            deletedFileCount: 0,
+            deletedDirCount: 0,
+            queue: stubWatchState(configPath: configPath).queue
+        )
+    }
+
+    func queueRestartShot(
+        repoRoot: String,
+        configPath: String,
+        shotName: String,
+        cleanOutput: Bool,
+        resetLocks: Bool
+    ) async throws -> QueueShotMutationResult {
+        queueRestartShotCallCount += 1
+        return QueueShotMutationResult(
+            action: "restart_shot",
+            shotName: shotName,
+            jobsTotalBefore: 4,
+            jobsChanged: 4,
+            failedBefore: 1,
+            inflightBefore: 0,
+            settingsCleared: resetLocks,
+            assemblyCleared: true,
+            outputsDeleted: cleanOutput,
+            deletedFileCount: cleanOutput ? 3 : 0,
+            deletedDirCount: cleanOutput ? 2 : 0,
+            queue: stubWatchState(configPath: configPath).queue
+        )
+    }
+
+    func queueDeleteShot(
+        repoRoot: String,
+        configPath: String,
+        shotName: String,
+        deleteOutputs: Bool
+    ) async throws -> QueueShotMutationResult {
+        queueDeleteShotCallCount += 1
+        return QueueShotMutationResult(
+            action: "delete_shot",
+            shotName: shotName,
+            jobsTotalBefore: 4,
+            jobsChanged: 4,
+            failedBefore: 1,
+            inflightBefore: 0,
+            settingsCleared: true,
+            assemblyCleared: true,
+            outputsDeleted: deleteOutputs,
+            deletedFileCount: deleteOutputs ? 3 : 0,
+            deletedDirCount: deleteOutputs ? 2 : 0,
             queue: stubWatchState(configPath: configPath).queue
         )
     }

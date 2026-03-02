@@ -52,12 +52,58 @@ final class CaptureMonitorFormattingTests: XCTestCase {
         )
 
         XCTAssertEqual(groups.map(\.id), ["pipeline", "outputPace", "capacityFreshness"])
-        XCTAssertEqual(groups[0].metrics.map(\.label), ["Detected", "Decoding", "Transform", "DPX Write"])
+        XCTAssertEqual(groups[0].metrics.map(\.label), ["Detected", "Decoding", "Transform"])
         XCTAssertEqual(groups[1].metrics.map(\.label), ["Done", "Failed", "Throughput"])
         XCTAssertEqual(groups[2].metrics.map(\.label), ["Workers", "ETA", "Last Frame"])
         XCTAssertEqual(groups[1].metrics[1].tone, .danger)
         XCTAssertEqual(groups[1].metrics[2].tone, .warning)
         XCTAssertEqual(groups[2].metrics[0].tone, .warning)
         XCTAssertEqual(groups[2].metrics[2].tone, .warning)
+    }
+
+    func testCompactPrimaryKPIsHaveExpectedOrder() {
+        let metrics = CaptureMonitorFormatting.compactPrimaryKPIs(
+            queueCounts: [
+                "detected": 7,
+                "decoding": 6,
+                "xform": 5,
+                "done": 3,
+                "failed": 2,
+            ]
+        )
+
+        XCTAssertEqual(metrics.map(\.label), ["Detected", "Decoding", "Transform", "Done", "Failed"])
+        XCTAssertEqual(metrics.map(\.value), ["7", "6", "5", "3", "2"])
+        XCTAssertFalse(metrics.map(\.label).contains("DPX Write"))
+    }
+
+    func testCompactSecondaryKPIsHaveExpectedOrder() {
+        let metrics = CaptureMonitorFormatting.compactSecondaryKPIs(
+            throughputFramesPerMinute: 11.5,
+            workersInFlight: 1,
+            maxWorkers: 3,
+            etaLabel: "3m",
+            lastFrameLabel: "4s ago",
+            hasLastFrame: true
+        )
+
+        XCTAssertEqual(metrics.map(\.label), ["Throughput", "Workers", "ETA", "Last Frame"])
+        XCTAssertEqual(metrics.map(\.value), ["11.5 frames/min", "1/3", "3m", "4s ago"])
+    }
+
+    func testCompactSecondaryKPITonesReflectStalledThroughputAndUnknownEta() {
+        let metrics = CaptureMonitorFormatting.compactSecondaryKPIs(
+            throughputFramesPerMinute: 0.0,
+            workersInFlight: 3,
+            maxWorkers: 3,
+            etaLabel: "ETA --",
+            lastFrameLabel: "--",
+            hasLastFrame: false
+        )
+
+        XCTAssertEqual(metrics.first(where: { $0.id == "throughput" })?.tone, .warning)
+        XCTAssertEqual(metrics.first(where: { $0.id == "eta" })?.tone, .warning)
+        XCTAssertEqual(metrics.first(where: { $0.id == "lastFrame" })?.tone, .warning)
+        XCTAssertEqual(metrics.first(where: { $0.id == "workers" })?.tone, .warning)
     }
 }

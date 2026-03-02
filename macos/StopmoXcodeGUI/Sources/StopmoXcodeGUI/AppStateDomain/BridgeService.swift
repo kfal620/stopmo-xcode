@@ -38,6 +38,20 @@ protocol BridgeServicing {
     ) async throws -> ToolOperationEnvelope
     func copyDiagnosticsBundle(repoRoot: String, configPath: String, outDir: String?) async throws -> DiagnosticsBundleResult
     func queueRetryFailed(repoRoot: String, configPath: String, jobIds: [Int]?) async throws -> QueueRetryResult
+    func queueRetryShotFailed(repoRoot: String, configPath: String, shotName: String) async throws -> QueueShotMutationResult
+    func queueRestartShot(
+        repoRoot: String,
+        configPath: String,
+        shotName: String,
+        cleanOutput: Bool,
+        resetLocks: Bool
+    ) async throws -> QueueShotMutationResult
+    func queueDeleteShot(
+        repoRoot: String,
+        configPath: String,
+        shotName: String,
+        deleteOutputs: Bool
+    ) async throws -> QueueShotMutationResult
 }
 
 @MainActor
@@ -173,6 +187,50 @@ struct LiveBridgeService: BridgeServicing {
                 repoRoot: repoRoot,
                 configPath: configPath,
                 jobIds: jobIds
+            )
+        }.value
+    }
+
+    func queueRetryShotFailed(repoRoot: String, configPath: String, shotName: String) async throws -> QueueShotMutationResult {
+        try await Task.detached(priority: .userInitiated) {
+            try BridgeClient().queueRetryShotFailed(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                shotName: shotName
+            )
+        }.value
+    }
+
+    func queueRestartShot(
+        repoRoot: String,
+        configPath: String,
+        shotName: String,
+        cleanOutput: Bool,
+        resetLocks: Bool
+    ) async throws -> QueueShotMutationResult {
+        try await Task.detached(priority: .userInitiated) {
+            try BridgeClient().queueRestartShot(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                shotName: shotName,
+                cleanOutput: cleanOutput,
+                resetLocks: resetLocks
+            )
+        }.value
+    }
+
+    func queueDeleteShot(
+        repoRoot: String,
+        configPath: String,
+        shotName: String,
+        deleteOutputs: Bool
+    ) async throws -> QueueShotMutationResult {
+        try await Task.detached(priority: .userInitiated) {
+            try BridgeClient().queueDeleteShot(
+                repoRoot: repoRoot,
+                configPath: configPath,
+                shotName: shotName,
+                deleteOutputs: deleteOutputs
             )
         }.value
     }

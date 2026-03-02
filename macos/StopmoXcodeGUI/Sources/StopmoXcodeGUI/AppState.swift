@@ -901,11 +901,7 @@ final class AppState: ObservableObject {
                 configPath: configPath,
                 jobIds: retryIds
             )
-            self.queueSnapshot = result.queue
-            if var watch = self.watchServiceState {
-                watch.queue = result.queue
-                self.watchServiceState = watch
-            }
+            self.applyQueueSnapshot(result.queue)
             if result.retried > 0 {
                 self.presentInfo(
                     title: "Queue Jobs Retried",
@@ -922,6 +918,126 @@ final class AppState: ObservableObject {
                 )
             }
             self.statusMessage = "Retried \(result.retried) failed job(s)"
+        }
+    }
+
+    func retryFailedJobsForShot(_ shotName: String) async {
+        let trimmed = shotName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            presentWarning(
+                title: "Retry Failed Frames",
+                message: "Shot name is empty.",
+                likelyCause: "No shot was selected for retry.",
+                suggestedAction: "Select a shot in Triage and retry again."
+            )
+            return
+        }
+        await runBlockingTask(label: "Retrying failed frames for \(trimmed)") {
+            let result = try await self.bridgeService.queueRetryShotFailed(
+                repoRoot: self.repoRoot,
+                configPath: self.configPath,
+                shotName: trimmed
+            )
+            self.applyQueueSnapshot(result.queue)
+            let shots = try await self.bridgeService.shotsSummary(
+                repoRoot: self.repoRoot,
+                configPath: self.configPath,
+                limit: 500
+            )
+            self.shotsSnapshot = shots
+            if result.jobsChanged > 0 {
+                self.presentInfo(
+                    title: "Shot Failed Frames Retried",
+                    message: "Reset \(result.jobsChanged) failed frame(s) for \(trimmed).",
+                    likelyCause: nil,
+                    suggestedAction: "Watch Capture/Triage to confirm frame jobs proceed through queue states."
+                )
+            } else {
+                self.presentWarning(
+                    title: "No Failed Frames To Retry",
+                    message: "No failed frames were found for \(trimmed).",
+                    likelyCause: "The shot currently has no failed jobs.",
+                    suggestedAction: "Use Restart Shot if you want a full clean rebuild."
+                )
+            }
+            self.statusMessage = "Retried failed frames for \(trimmed)"
+        }
+    }
+
+    func restartShotFromBeginning(_ shotName: String, cleanOutput: Bool = true, resetLocks: Bool = true) async {
+        let trimmed = shotName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            presentWarning(
+                title: "Restart Shot",
+                message: "Shot name is empty.",
+                likelyCause: "No shot was selected for restart.",
+                suggestedAction: "Select a shot in Triage and restart again."
+            )
+            return
+        }
+        await runBlockingTask(label: "Restarting shot \(trimmed)") {
+            let result = try await self.bridgeService.queueRestartShot(
+                repoRoot: self.repoRoot,
+                configPath: self.configPath,
+                shotName: trimmed,
+                cleanOutput: cleanOutput,
+                resetLocks: resetLocks
+            )
+            self.applyQueueSnapshot(result.queue)
+            let shots = try await self.bridgeService.shotsSummary(
+                repoRoot: self.repoRoot,
+                configPath: self.configPath,
+                limit: 500
+            )
+            self.shotsSnapshot = shots
+            let cleanupSummary = cleanOutput
+                ? " Cleared \(result.deletedDirCount) folder(s) and \(result.deletedFileCount) file(s)."
+                : ""
+            self.presentInfo(
+                title: "Shot Restarted",
+                message: "Reset \(result.jobsChanged) frame job(s) for \(trimmed).\((resetLocks ? " Locks reset." : ""))\(cleanupSummary)",
+                likelyCause: nil,
+                suggestedAction: "Watch Capture/Triage to verify the shot rebuilds from detected."
+            )
+            self.statusMessage = "Restarted shot \(trimmed)"
+        }
+    }
+
+    func deleteShot(_ shotName: String, deleteOutputs: Bool) async {
+        let trimmed = shotName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            presentWarning(
+                title: "Delete Shot",
+                message: "Shot name is empty.",
+                likelyCause: "No shot was selected for delete.",
+                suggestedAction: "Select a shot in Triage and retry delete."
+            )
+            return
+        }
+        await runBlockingTask(label: "Deleting shot \(trimmed)") {
+            let result = try await self.bridgeService.queueDeleteShot(
+                repoRoot: self.repoRoot,
+                configPath: self.configPath,
+                shotName: trimmed,
+                deleteOutputs: deleteOutputs
+            )
+            self.applyQueueSnapshot(result.queue)
+            let shots = try await self.bridgeService.shotsSummary(
+                repoRoot: self.repoRoot,
+                configPath: self.configPath,
+                limit: 500
+            )
+            self.shotsSnapshot = shots
+            let cleanupSummary = deleteOutputs
+                ? " Removed \(result.deletedDirCount) folder(s) and \(result.deletedFileCount) file(s)."
+                : ""
+            self.presentInfo(
+                title: "Shot Deleted",
+                message: "Removed \(trimmed) from queue database.\(cleanupSummary)",
+                likelyCause: nil,
+                suggestedAction: "Use Capture/Triage refresh to confirm shot inventory is updated."
+            )
+            self.statusMessage = "Deleted shot \(trimmed)"
         }
     }
 
@@ -976,6 +1092,14 @@ final class AppState: ObservableObject {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter.string(from: Date())
+    }
+
+    private func applyQueueSnapshot(_ snapshot: QueueSnapshot) {
+        queueSnapshot = snapshot
+        if var watch = watchServiceState {
+            watch.queue = snapshot
+            watchServiceState = watch
+        }
     }
 
     func shouldMonitorCurrentSelection() -> Bool {

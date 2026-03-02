@@ -335,6 +335,43 @@ struct BridgeClient: Sendable {
         return try decodeJSON(QueueRetryResult.self, from: data)
     }
 
+    func queueRetryShotFailed(repoRoot: String, configPath: String, shotName: String) throws -> QueueShotMutationResult {
+        let data = try runBridge(
+            repoRoot: repoRoot,
+            arguments: ["queue-retry-shot-failed", "--config", configPath, "--shot-name", shotName],
+            timeoutSeconds: 25.0
+        )
+        return try decodeJSON(QueueShotMutationResult.self, from: data)
+    }
+
+    func queueRestartShot(
+        repoRoot: String,
+        configPath: String,
+        shotName: String,
+        cleanOutput: Bool,
+        resetLocks: Bool
+    ) throws -> QueueShotMutationResult {
+        var args = ["queue-restart-shot", "--config", configPath, "--shot-name", shotName]
+        args.append(cleanOutput ? "--clean-output" : "--no-clean-output")
+        args.append(resetLocks ? "--reset-locks" : "--preserve-locks")
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 60.0)
+        return try decodeJSON(QueueShotMutationResult.self, from: data)
+    }
+
+    func queueDeleteShot(
+        repoRoot: String,
+        configPath: String,
+        shotName: String,
+        deleteOutputs: Bool
+    ) throws -> QueueShotMutationResult {
+        var args = ["queue-delete-shot", "--config", configPath, "--shot-name", shotName]
+        if deleteOutputs {
+            args.append("--delete-outputs")
+        }
+        let data = try runBridge(repoRoot: repoRoot, arguments: args, timeoutSeconds: 60.0)
+        return try decodeJSON(QueueShotMutationResult.self, from: data)
+    }
+
     func shotsSummary(repoRoot: String, configPath: String, limit: Int = 500) throws -> ShotsSummarySnapshot {
         let data = try runBridge(
             repoRoot: repoRoot,

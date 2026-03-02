@@ -318,6 +318,22 @@ struct QueueRetryResult: Codable, Sendable {
     var queue: QueueSnapshot
 }
 
+/// Result payload for shot-scoped queue mutation operations.
+struct QueueShotMutationResult: Codable, Sendable {
+    var action: String
+    var shotName: String
+    var jobsTotalBefore: Int
+    var jobsChanged: Int
+    var failedBefore: Int
+    var inflightBefore: Int
+    var settingsCleared: Bool
+    var assemblyCleared: Bool
+    var outputsDeleted: Bool
+    var deletedFileCount: Int
+    var deletedDirCount: Int
+    var queue: QueueSnapshot
+}
+
 /// Data/view model for shot summary row.
 struct ShotSummaryRow: Codable, Sendable, Identifiable {
     var shotName: String

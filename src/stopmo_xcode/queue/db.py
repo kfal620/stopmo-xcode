@@ -323,6 +323,100 @@ class QueueDB:
         ).fetchall()
         return {row["state"]: int(row["n"]) for row in rows}
 
+    def shot_state_counts(self, shot_name: str) -> dict[str, int]:
+        """Return per-state counts for a single shot with convenience totals."""
+
+        rows = self._conn.execute(
+            """
+            SELECT state, COUNT(*) AS n
+            FROM jobs
+            WHERE shot_name = ?
+            GROUP BY state
+            """,
+            (shot_name,),
+        ).fetchall()
+        counts: dict[str, int] = {row["state"]: int(row["n"]) for row in rows}
+        counts["total"] = int(sum(counts.values()))
+        counts["failed"] = int(counts.get(JobState.FAILED.value, 0))
+        counts["inflight"] = int(sum(counts.get(state, 0) for state in INFLIGHT_STATES))
+        return counts
+
+    def retry_failed_for_shot(self, shot_name: str) -> int:
+        """Reset failed jobs for one shot to detected for reprocessing."""
+
+        now = self._now()
+        cur = self._conn.execute(
+            """
+            UPDATE jobs
+            SET state = ?, updated_at = ?, worker_id = NULL, started_at = NULL, finished_at = NULL,
+                last_error = NULL, output_path = NULL, source_sha256 = NULL
+            WHERE shot_name = ? AND state = ?
+            """,
+            (JobState.DETECTED.value, now, shot_name, JobState.FAILED.value),
+        )
+        return int(cur.rowcount)
+
+    def restart_shot(self, shot_name: str, reset_locks: bool) -> dict[str, int | bool]:
+        """Reset all jobs for a shot back to detected with optional lock reset."""
+
+        counts = self.shot_state_counts(shot_name)
+        if int(counts.get("inflight", 0)) > 0:
+            raise ValueError("shot has inflight jobs and cannot be restarted")
+
+        now = self._now()
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            job_cur = self._conn.execute(
+                """
+                UPDATE jobs
+                SET state = ?, attempts = 0, worker_id = NULL, started_at = NULL, finished_at = NULL,
+                    last_error = NULL, output_path = NULL, source_sha256 = NULL, detected_at = ?, updated_at = ?
+                WHERE shot_name = ?
+                """,
+                (JobState.DETECTED.value, now, now, shot_name),
+            )
+
+            settings_cleared = False
+            if reset_locks:
+                settings_cur = self._conn.execute("DELETE FROM shot_settings WHERE shot_name = ?", (shot_name,))
+                settings_cleared = int(settings_cur.rowcount) > 0
+
+            assembly_cur = self._conn.execute("DELETE FROM shot_assembly WHERE shot_name = ?", (shot_name,))
+            assembly_cleared = int(assembly_cur.rowcount) > 0
+            self._conn.execute("COMMIT")
+        except Exception:
+            self._conn.execute("ROLLBACK")
+            raise
+
+        return {
+            "jobs_changed": int(job_cur.rowcount),
+            "settings_cleared": bool(settings_cleared),
+            "assembly_cleared": bool(assembly_cleared),
+        }
+
+    def delete_shot(self, shot_name: str) -> dict[str, int | bool]:
+        """Delete one shot from queue/settings/assembly tables."""
+
+        counts = self.shot_state_counts(shot_name)
+        if int(counts.get("inflight", 0)) > 0:
+            raise ValueError("shot has inflight jobs and cannot be deleted")
+
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            jobs_cur = self._conn.execute("DELETE FROM jobs WHERE shot_name = ?", (shot_name,))
+            settings_cur = self._conn.execute("DELETE FROM shot_settings WHERE shot_name = ?", (shot_name,))
+            assembly_cur = self._conn.execute("DELETE FROM shot_assembly WHERE shot_name = ?", (shot_name,))
+            self._conn.execute("COMMIT")
+        except Exception:
+            self._conn.execute("ROLLBACK")
+            raise
+
+        return {
+            "jobs_deleted": int(jobs_cur.rowcount),
+            "settings_cleared": int(settings_cur.rowcount) > 0,
+            "assembly_cleared": int(assembly_cur.rowcount) > 0,
+        }
+
     def recent_jobs(self, limit: int = 20) -> list[Job]:
         """Fetch most recently updated jobs for CLI/GUI inspection."""
 

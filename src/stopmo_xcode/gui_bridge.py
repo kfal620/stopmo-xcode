@@ -494,6 +494,39 @@ def queue_status_payload(config_path: str | Path, limit: int = 200) -> dict[str,
     return _queue_status_from_config(config_path=config_path, limit=limit)
 
 
+def _remove_shot_generated_outputs(cfg: AppConfig, shot_name: str) -> dict[str, int]:
+    """Delete generated output artifacts for one shot under configured output root."""
+
+    output_root = cfg.watch.output_dir.expanduser().resolve()
+    shot_root = (cfg.watch.output_dir / shot_name).expanduser().resolve()
+    try:
+        shot_root.relative_to(output_root)
+    except Exception as exc:  # pragma: no cover - defensive guard
+        raise RuntimeError(f"shot path is outside configured output root: {shot_root}") from exc
+
+    deleted_files = 0
+    deleted_dirs = 0
+
+    for folder_name in ("dpx", "frame_json", "preview", "truth_frame", "debug_linear"):
+        folder = shot_root / folder_name
+        if folder.exists() and folder.is_dir():
+            shutil.rmtree(folder)
+            deleted_dirs += 1
+
+    for file_name in ("manifest.json", "README.txt", "show_lut_rec709.cube"):
+        path = shot_root / file_name
+        if path.exists() and path.is_file():
+            path.unlink()
+            deleted_files += 1
+
+    for mov in shot_root.glob("*.mov"):
+        if mov.is_file():
+            mov.unlink()
+            deleted_files += 1
+
+    return {"deleted_file_count": deleted_files, "deleted_dir_count": deleted_dirs}
+
+
 def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = None) -> dict[str, object]:
     """Reset failed jobs to detected state, optionally scoped to specific ids."""
 
@@ -545,6 +578,132 @@ def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = 
         "requested_ids": requested_ids,
         "failed_before": failed_before,
         "failed_after": failed_after,
+        "queue": _queue_status_from_config(config_path=config_path, limit=250),
+    }
+
+
+def queue_retry_shot_failed_payload(config_path: str | Path, shot_name: str) -> dict[str, object]:
+    """Retry failed jobs for one shot only."""
+
+    cfg = load_config(config_path)
+    normalized_shot = shot_name.strip()
+    if not normalized_shot:
+        raise ValueError("shot_name is required")
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        counts = db.shot_state_counts(normalized_shot)
+        jobs_total_before = int(counts.get("total", 0))
+        failed_before = int(counts.get("failed", 0))
+        inflight_before = int(counts.get("inflight", 0))
+        if jobs_total_before == 0:
+            raise ValueError(f"shot not found in queue db: {normalized_shot}")
+        if inflight_before > 0:
+            raise ValueError(f"shot has inflight jobs and cannot be retried: {normalized_shot}")
+        jobs_changed = db.retry_failed_for_shot(normalized_shot)
+    finally:
+        db.close()
+
+    return {
+        "action": "retry_shot_failed",
+        "shot_name": normalized_shot,
+        "jobs_total_before": jobs_total_before,
+        "jobs_changed": jobs_changed,
+        "failed_before": failed_before,
+        "inflight_before": inflight_before,
+        "settings_cleared": False,
+        "assembly_cleared": False,
+        "outputs_deleted": False,
+        "deleted_file_count": 0,
+        "deleted_dir_count": 0,
+        "queue": _queue_status_from_config(config_path=config_path, limit=250),
+    }
+
+
+def queue_restart_shot_payload(
+    config_path: str | Path,
+    *,
+    shot_name: str,
+    clean_output: bool = True,
+    reset_locks: bool = True,
+) -> dict[str, object]:
+    """Restart one shot from the beginning by resetting all rows to detected."""
+
+    cfg = load_config(config_path)
+    normalized_shot = shot_name.strip()
+    if not normalized_shot:
+        raise ValueError("shot_name is required")
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        counts = db.shot_state_counts(normalized_shot)
+        jobs_total_before = int(counts.get("total", 0))
+        failed_before = int(counts.get("failed", 0))
+        inflight_before = int(counts.get("inflight", 0))
+        if jobs_total_before == 0:
+            raise ValueError(f"shot not found in queue db: {normalized_shot}")
+        mutation = db.restart_shot(normalized_shot, reset_locks=bool(reset_locks))
+    finally:
+        db.close()
+
+    deleted = {"deleted_file_count": 0, "deleted_dir_count": 0}
+    if clean_output:
+        deleted = _remove_shot_generated_outputs(cfg, normalized_shot)
+
+    return {
+        "action": "restart_shot",
+        "shot_name": normalized_shot,
+        "jobs_total_before": jobs_total_before,
+        "jobs_changed": int(mutation.get("jobs_changed", 0)),
+        "failed_before": failed_before,
+        "inflight_before": inflight_before,
+        "settings_cleared": bool(mutation.get("settings_cleared", False)),
+        "assembly_cleared": bool(mutation.get("assembly_cleared", False)),
+        "outputs_deleted": bool(clean_output),
+        "deleted_file_count": int(deleted.get("deleted_file_count", 0)),
+        "deleted_dir_count": int(deleted.get("deleted_dir_count", 0)),
+        "queue": _queue_status_from_config(config_path=config_path, limit=250),
+    }
+
+
+def queue_delete_shot_payload(
+    config_path: str | Path,
+    *,
+    shot_name: str,
+    delete_outputs: bool = False,
+) -> dict[str, object]:
+    """Delete one shot from queue tables with optional output cleanup."""
+
+    cfg = load_config(config_path)
+    normalized_shot = shot_name.strip()
+    if not normalized_shot:
+        raise ValueError("shot_name is required")
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        counts = db.shot_state_counts(normalized_shot)
+        jobs_total_before = int(counts.get("total", 0))
+        failed_before = int(counts.get("failed", 0))
+        inflight_before = int(counts.get("inflight", 0))
+        if jobs_total_before == 0:
+            raise ValueError(f"shot not found in queue db: {normalized_shot}")
+        mutation = db.delete_shot(normalized_shot)
+    finally:
+        db.close()
+
+    deleted = {"deleted_file_count": 0, "deleted_dir_count": 0}
+    if delete_outputs:
+        deleted = _remove_shot_generated_outputs(cfg, normalized_shot)
+
+    return {
+        "action": "delete_shot",
+        "shot_name": normalized_shot,
+        "jobs_total_before": jobs_total_before,
+        "jobs_changed": int(mutation.get("jobs_deleted", 0)),
+        "failed_before": failed_before,
+        "inflight_before": inflight_before,
+        "settings_cleared": bool(mutation.get("settings_cleared", False)),
+        "assembly_cleared": bool(mutation.get("assembly_cleared", False)),
+        "outputs_deleted": bool(delete_outputs),
+        "deleted_file_count": int(deleted.get("deleted_file_count", 0)),
+        "deleted_dir_count": int(deleted.get("deleted_dir_count", 0)),
         "queue": _queue_status_from_config(config_path=config_path, limit=250),
     }
 
@@ -659,6 +818,7 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
                     "updated_at_utc": now_utc,
                     "source_stem": source.stem,
                     "max_edge": preview_backfill_max_edge,
+                    "render_intent": "logc_awg",
                 },
                 indent=2,
                 sort_keys=True,
@@ -672,6 +832,7 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
                     "updated_at_utc": now_utc,
                     "source_stem": source.stem,
                     "max_edge": preview_backfill_max_edge,
+                    "render_intent": "logc_awg",
                 },
                 indent=2,
                 sort_keys=True,
@@ -1552,6 +1713,56 @@ def _build_parser() -> argparse.ArgumentParser:
     queue_retry_failed.add_argument("--config", required=True, help="Path to YAML config")
     queue_retry_failed.add_argument("--ids", nargs="*", type=int, default=None, help="Optional failed job IDs to retry")
 
+    queue_retry_shot_failed = sub.add_parser(
+        "queue-retry-shot-failed",
+        help="Retry failed jobs for one shot by resetting failed rows to detected",
+    )
+    queue_retry_shot_failed.add_argument("--config", required=True, help="Path to YAML config")
+    queue_retry_shot_failed.add_argument("--shot-name", required=True, help="Shot name")
+
+    queue_restart_shot = sub.add_parser(
+        "queue-restart-shot",
+        help="Restart one shot from beginning by resetting all rows to detected",
+    )
+    queue_restart_shot.add_argument("--config", required=True, help="Path to YAML config")
+    queue_restart_shot.add_argument("--shot-name", required=True, help="Shot name")
+    queue_restart_shot.add_argument(
+        "--clean-output",
+        dest="clean_output",
+        action="store_true",
+        default=True,
+        help="Delete generated shot outputs before restart",
+    )
+    queue_restart_shot.add_argument(
+        "--no-clean-output",
+        dest="clean_output",
+        action="store_false",
+        help="Do not delete generated shot outputs before restart",
+    )
+    queue_restart_shot.add_argument(
+        "--reset-locks",
+        dest="reset_locks",
+        action="store_true",
+        default=True,
+        help="Reset shot-level lock state (shot_settings)",
+    )
+    queue_restart_shot.add_argument(
+        "--preserve-locks",
+        dest="reset_locks",
+        action="store_false",
+        help="Preserve existing shot-level lock state",
+    )
+
+    queue_delete_shot = sub.add_parser("queue-delete-shot", help="Delete one shot from DB with optional output cleanup")
+    queue_delete_shot.add_argument("--config", required=True, help="Path to YAML config")
+    queue_delete_shot.add_argument("--shot-name", required=True, help="Shot name")
+    queue_delete_shot.add_argument(
+        "--delete-outputs",
+        action="store_true",
+        default=False,
+        help="Delete generated shot outputs under output root",
+    )
+
     shots_summary = sub.add_parser("shots-summary", help="Emit per-shot queue summary JSON")
     shots_summary.add_argument("--config", required=True, help="Path to YAML config")
     shots_summary.add_argument("--limit", type=int, default=500, help="Max shots")
@@ -1641,6 +1852,34 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if args.command == "queue-retry-failed":
             print(json.dumps(queue_retry_failed_payload(args.config, ids=args.ids), indent=2))
+            return 0
+        if args.command == "queue-retry-shot-failed":
+            print(json.dumps(queue_retry_shot_failed_payload(args.config, shot_name=args.shot_name), indent=2))
+            return 0
+        if args.command == "queue-restart-shot":
+            print(
+                json.dumps(
+                    queue_restart_shot_payload(
+                        args.config,
+                        shot_name=args.shot_name,
+                        clean_output=bool(args.clean_output),
+                        reset_locks=bool(args.reset_locks),
+                    ),
+                    indent=2,
+                )
+            )
+            return 0
+        if args.command == "queue-delete-shot":
+            print(
+                json.dumps(
+                    queue_delete_shot_payload(
+                        args.config,
+                        shot_name=args.shot_name,
+                        delete_outputs=bool(args.delete_outputs),
+                    ),
+                    indent=2,
+                )
+            )
             return 0
         if args.command == "shots-summary":
             print(json.dumps(shots_summary_payload(args.config, limit=args.limit), indent=2))

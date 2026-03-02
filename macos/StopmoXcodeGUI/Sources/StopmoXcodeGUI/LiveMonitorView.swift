@@ -226,32 +226,29 @@ struct LiveMonitorView: View {
             if let evaluation = activeShotEvaluation {
                 let shot = evaluation.shot
                 VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
-                    ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
-                            activeShotHeroIdentity(shot: shot, evaluation: evaluation)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            activeShotPrimaryActions(evaluation: evaluation)
-                        }
-                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                            activeShotHeroIdentity(shot: shot, evaluation: evaluation)
-                            activeShotPrimaryActions(evaluation: evaluation)
-                        }
-                    }
+                    Text(shot.shotName)
+                        .font(.title3.weight(.semibold))
+                        .lineLimit(2)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .help(shot.shotName)
+
+                    activeShotHeroIdentity(shot: shot, evaluation: evaluation)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    activeShotPrimaryActions(evaluation: evaluation, shot: shot)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     ProgressView(value: activeShotProgress(for: shot))
                         .tint(AppVisualTokens.stageAccent(hub: .capture))
 
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: StopmoUI.Spacing.sm) {
+                        activeShotMetricChips(shot: shot)
+                        ScrollView(.horizontal, showsIndicators: false) {
                             activeShotMetricChips(shot: shot)
-                            Spacer(minLength: 0)
-                            activeShotSecondaryActions(shot: shot)
-                        }
-                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                            activeShotMetricChips(shot: shot)
-                            activeShotSecondaryActions(shot: shot)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             } else {
@@ -281,35 +278,29 @@ struct LiveMonitorView: View {
             let throughput = state.throughputFramesPerMinute
 
             TimelineView(.periodic(from: Date(), by: 1)) { context in
-                let groups = CaptureMonitorFormatting.groupedKPIs(
-                    queueCounts: counts,
+                let primaryMetrics = CaptureMonitorFormatting.compactPrimaryKPIs(queueCounts: counts)
+                let secondaryMetrics = CaptureMonitorFormatting.compactSecondaryKPIs(
                     throughputFramesPerMinute: throughput,
                     workersInFlight: inflight,
                     maxWorkers: workers,
-                    etaLabel: etaLabel(),
+                    etaLabel: compactETAValueLabel(),
                     lastFrameLabel: lastFrameAgeLabel(at: context.date),
                     hasLastFrame: state.lastFrameAt != nil
                 )
 
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
-                    ForEach(groups) { group in
-                        VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                            Text(group.title)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(AppVisualTokens.textSecondary)
-                            LazyVGrid(
-                                columns: [GridItem(.adaptive(minimum: 138), spacing: StopmoUI.Spacing.sm, alignment: .leading)],
-                                alignment: .leading,
-                                spacing: StopmoUI.Spacing.sm
-                            ) {
-                                ForEach(group.metrics) { metric in
-                                    captureKPITile(metric: metric)
-                                }
-                            }
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    MetricWrap(minItemWidth: 124, spacing: StopmoUI.Spacing.xs) {
+                        ForEach(primaryMetrics) { metric in
+                            compactKPIChip(metric: metric)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    MetricWrap(minItemWidth: 156, spacing: StopmoUI.Spacing.xs) {
+                        ForEach(secondaryMetrics) { metric in
+                            compactKPIChip(metric: metric)
+                        }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
@@ -687,12 +678,6 @@ struct LiveMonitorView: View {
             )
 
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                Text(shot.shotName)
-                    .font(.title3.weight(.semibold))
-                    .lineLimit(2)
-                    .truncationMode(.middle)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
                 HStack(spacing: StopmoUI.Spacing.xs) {
                     StatusChip(
                         label: evaluation.healthState.rawValue,
@@ -725,7 +710,10 @@ struct LiveMonitorView: View {
     }
 
     @ViewBuilder
-    private func activeShotPrimaryActions(evaluation: ShotHealthEvaluation) -> some View {
+    private func activeShotPrimaryActions(
+        evaluation: ShotHealthEvaluation,
+        shot: ShotSummaryRow
+    ) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: StopmoUI.Spacing.xs) {
                 if captureNeedsTriageAttention {
@@ -736,6 +724,11 @@ struct LiveMonitorView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                 }
+                Button("Open Shot Folder") {
+                    state.openPathInFinder(shotRootPath(for: shot))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 if evaluation.isDeliverable {
                     Button("Open Deliver") {
                         state.selectedHub = .deliver
@@ -756,6 +749,11 @@ struct LiveMonitorView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
                 }
+                Button("Open Shot Folder") {
+                    state.openPathInFinder(shotRootPath(for: shot))
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
                 if evaluation.isDeliverable {
                     Button("Open Deliver") {
                         state.selectedHub = .deliver
@@ -785,16 +783,6 @@ struct LiveMonitorView: View {
         }
     }
 
-    private func activeShotSecondaryActions(shot: ShotSummaryRow) -> some View {
-        HStack(spacing: StopmoUI.Spacing.xs) {
-            Button("Open Shot Folder") {
-                state.openPathInFinder(shotRootPath(for: shot))
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-    }
-
     private func captureKPITile(metric: CaptureKPIMetric) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(metric.label)
@@ -818,6 +806,29 @@ struct LiveMonitorView: View {
         .overlay(
             RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
                 .stroke(Color.white.opacity(0.07), lineWidth: 0.6)
+        )
+    }
+
+    private func compactKPIChip(metric: CaptureKPIMetric) -> some View {
+        HStack(spacing: 5) {
+            Text(metric.label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(AppVisualTokens.textSecondary)
+                .lineLimit(1)
+            Text(metric.value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(metric.tone == .neutral ? AppVisualTokens.textPrimary : metric.tone.foreground)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, StopmoUI.Spacing.xs)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .fill(metric.tone.background.opacity(metric.tone == .neutral ? 0.7 : 0.95))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
+                .stroke(Color.white.opacity(0.06), lineWidth: 0.6)
         )
     }
 
@@ -865,6 +876,14 @@ struct LiveMonitorView: View {
         let hours = Int(minutes) / 60
         let mins = Int(minutes) % 60
         return "ETA \(hours)h \(mins)m"
+    }
+
+    private func compactETAValueLabel() -> String {
+        let label = etaLabel()
+        if label.hasPrefix("ETA ") {
+            return String(label.dropFirst(4))
+        }
+        return label
     }
 
     private func lastFrameAgeLabel(at now: Date) -> String {

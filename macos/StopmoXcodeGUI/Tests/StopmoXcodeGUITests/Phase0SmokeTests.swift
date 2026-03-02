@@ -151,6 +151,9 @@ final class Phase0SmokeTests: XCTestCase {
         let _: ([String], Int, Bool, String?) async -> [String] = state.deliverShotsToProres
         let _: (String?) async -> Void = state.copyDiagnosticsBundle
         let _: ([Int]?) async -> Void = state.retryFailedQueueJobs
+        let _: (String) async -> Void = state.retryFailedJobsForShot
+        let _: (String, Bool, Bool) async -> Void = state.restartShotFromBeginning
+        let _: (String, Bool) async -> Void = state.deleteShot
         let _: () -> Void = state.exportQueueSnapshot
         let _: () -> Void = state.chooseWorkspaceDirectory
         let _: () -> Void = state.chooseRepoRootDirectory
@@ -174,6 +177,9 @@ final class Phase0SmokeTests: XCTestCase {
         let _: (String, String, StopmoConfigDocument) throws -> StopmoConfigDocument = client.writeConfig
         let _: (String, String, Int) throws -> QueueSnapshot = client.queueStatus
         let _: (String, String, [Int]?) throws -> QueueRetryResult = client.queueRetryFailed
+        let _: (String, String, String) throws -> QueueShotMutationResult = client.queueRetryShotFailed
+        let _: (String, String, String, Bool, Bool) throws -> QueueShotMutationResult = client.queueRestartShot
+        let _: (String, String, String, Bool) throws -> QueueShotMutationResult = client.queueDeleteShot
         let _: (String, String, Int) throws -> ShotsSummarySnapshot = client.shotsSummary
         let _: (String, String) throws -> WatchServiceState = client.watchStart
         let _: (String, String, Double) throws -> WatchServiceState = client.watchStop

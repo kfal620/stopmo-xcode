@@ -74,6 +74,8 @@ STOPMO_XCODE_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
       - Live Capture (watch start/stop, queue progress, activity/log tail)
     - Triage
       - Shots + Queue + Diagnostics
+      - Per-shot recovery actions (retry failed frames, restart clean rebuild, delete from DB, delete DB + outputs)
+      - Right-rail Recovery drawer (collapsed by default, always visible)
     - Deliver
       - Day Wrap (DPX to ProRes batch-first)
       - Run History (run summary and compare)

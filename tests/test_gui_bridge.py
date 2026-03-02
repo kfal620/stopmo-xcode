@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -11,6 +12,9 @@ from stopmo_xcode.gui_bridge import (
     health_payload,
     history_summary_payload,
     logs_diagnostics_payload,
+    queue_delete_shot_payload,
+    queue_restart_shot_payload,
+    queue_retry_shot_failed_payload,
     queue_status_payload,
     read_config_payload,
     suggest_matrix_payload,
@@ -171,6 +175,105 @@ def test_shots_summary_payload_groups_by_shot(tmp_path: Path) -> None:
     assert by_name["SHOT_B"]["preview_latest_path"] is None
 
 
+def test_queue_retry_shot_failed_payload_only_retries_one_shot(tmp_path: Path) -> None:
+    cfg_file = _write_min_config(tmp_path)
+    cfg = load_config(cfg_file)
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        src_a = cfg.watch.source_dir / "SHOT_A_0001.CR3"
+        src_b = cfg.watch.source_dir / "SHOT_B_0001.CR3"
+        src_a.write_bytes(b"a")
+        src_b.write_bytes(b"b")
+        assert db.enqueue_detected(src_a, shot_name="SHOT_A", frame_number=1)
+        assert db.enqueue_detected(src_b, shot_name="SHOT_B", frame_number=1)
+        job_a = db.lease_job_for_source(src_a, worker_id="w1")
+        job_b = db.lease_job_for_source(src_b, worker_id="w2")
+        assert job_a is not None and job_b is not None
+        db.mark_failed(job_a.id, error="decode failed")
+        db.mark_failed(job_b.id, error="decode failed")
+    finally:
+        db.close()
+
+    payload = queue_retry_shot_failed_payload(cfg_file, "SHOT_A")
+    assert payload["action"] == "retry_shot_failed"
+    assert payload["shot_name"] == "SHOT_A"
+    assert payload["jobs_changed"] == 1
+    queue = payload["queue"]
+    assert isinstance(queue, dict)
+    counts = queue["counts"]
+    assert isinstance(counts, dict)
+    assert counts.get("failed") == 1
+    assert counts.get("detected") == 1
+
+
+def test_queue_restart_shot_payload_resets_and_cleans_outputs(tmp_path: Path) -> None:
+    cfg_file = _write_min_config(tmp_path)
+    cfg = load_config(cfg_file)
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        src = cfg.watch.source_dir / "SHOT_C_0001.CR3"
+        src.write_bytes(b"c")
+        assert db.enqueue_detected(src, shot_name="SHOT_C", frame_number=1)
+        job = db.lease_job_for_source(src, worker_id="w1")
+        assert job is not None
+        db.mark_done(job.id, output_path=cfg.watch.output_dir / "SHOT_C" / "dpx" / "SHOT_C_0001.dpx")
+        db.set_shot_settings(
+            shot_name="SHOT_C",
+            wb_multipliers=(1.0, 1.0, 1.0, 1.0),
+            exposure_offset_stops=0.0,
+            reference_source_path=src,
+        )
+        db.mark_shot_frame_done("SHOT_C")
+    finally:
+        db.close()
+
+    shot_root = cfg.watch.output_dir / "SHOT_C"
+    (shot_root / "dpx").mkdir(parents=True, exist_ok=True)
+    (shot_root / "preview").mkdir(parents=True, exist_ok=True)
+    (shot_root / "dpx" / "SHOT_C_0001.dpx").write_bytes(b"dpx")
+    (shot_root / "manifest.json").write_text("{}", encoding="utf-8")
+    (shot_root / "SHOT_C_logc3_awg_prores4444.mov").write_bytes(b"mov")
+
+    payload = queue_restart_shot_payload(
+        cfg_file,
+        shot_name="SHOT_C",
+        clean_output=True,
+        reset_locks=True,
+    )
+    assert payload["action"] == "restart_shot"
+    assert payload["jobs_changed"] == 1
+    assert payload["settings_cleared"] is True
+    assert payload["assembly_cleared"] is True
+    assert payload["outputs_deleted"] is True
+    assert payload["deleted_file_count"] >= 2
+    assert payload["deleted_dir_count"] >= 1
+    assert not (shot_root / "dpx").exists()
+    assert not (shot_root / "manifest.json").exists()
+
+
+def test_queue_delete_shot_payload_db_only_keeps_outputs(tmp_path: Path) -> None:
+    cfg_file = _write_min_config(tmp_path)
+    cfg = load_config(cfg_file)
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        src = cfg.watch.source_dir / "SHOT_D_0001.CR3"
+        src.write_bytes(b"d")
+        assert db.enqueue_detected(src, shot_name="SHOT_D", frame_number=1)
+    finally:
+        db.close()
+
+    shot_root = cfg.watch.output_dir / "SHOT_D"
+    shot_root.mkdir(parents=True, exist_ok=True)
+    marker = shot_root / "manifest.json"
+    marker.write_text("{}", encoding="utf-8")
+
+    payload = queue_delete_shot_payload(cfg_file, shot_name="SHOT_D", delete_outputs=False)
+    assert payload["action"] == "delete_shot"
+    assert payload["jobs_changed"] == 1
+    assert payload["outputs_deleted"] is False
+    assert marker.exists()
+
+
 def test_shots_summary_payload_backfills_even_when_marker_exists_without_outputs(
     monkeypatch, tmp_path: Path
 ) -> None:
@@ -211,6 +314,10 @@ def test_shots_summary_payload_backfills_even_when_marker_exists_without_outputs
     assert row["preview_latest_path"] == str(preview_dir / "latest.jpg")
     assert (preview_dir / "first.meta.json").exists()
     assert (preview_dir / "latest.meta.json").exists()
+    first_meta = json.loads((preview_dir / "first.meta.json").read_text(encoding="utf-8"))
+    latest_meta = json.loads((preview_dir / "latest.meta.json").read_text(encoding="utf-8"))
+    assert first_meta["render_intent"] == "logc_awg"
+    assert latest_meta["render_intent"] == "logc_awg"
 
 
 def test_shots_summary_payload_prefers_newest_preview_variant(tmp_path: Path) -> None:

@@ -46,6 +46,9 @@ SwiftUI shell integration uses:
 - `python -m stopmo_xcode.gui_bridge health [--config <path>]`
 - `python -m stopmo_xcode.gui_bridge queue-status --config <path> [--limit N]`
 - `python -m stopmo_xcode.gui_bridge queue-retry-failed --config <path> [--ids <id> ...]`
+- `python -m stopmo_xcode.gui_bridge queue-retry-shot-failed --config <path> --shot-name <shot>`
+- `python -m stopmo_xcode.gui_bridge queue-restart-shot --config <path> --shot-name <shot> [--clean-output|--no-clean-output] [--reset-locks|--preserve-locks]`
+- `python -m stopmo_xcode.gui_bridge queue-delete-shot --config <path> --shot-name <shot> [--delete-outputs]`
 - `python -m stopmo_xcode.gui_bridge shots-summary --config <path> [--limit N]`
 - `python -m stopmo_xcode.gui_bridge watch-start --config <path>`
 - `python -m stopmo_xcode.gui_bridge watch-stop --config <path> [--timeout S]`
@@ -83,3 +86,21 @@ UI policy:
 
 - Capture prefers `latest` preview.
 - Triage/Deliver prefer `first` preview.
+
+## Shot Queue Mutation Payload
+
+Shot-scoped queue mutation commands (`queue-retry-shot-failed`, `queue-restart-shot`, `queue-delete-shot`)
+return a shared payload shape:
+
+- `action`
+- `shot_name`
+- `jobs_total_before`
+- `jobs_changed`
+- `failed_before`
+- `inflight_before`
+- `settings_cleared`
+- `assembly_cleared`
+- `outputs_deleted`
+- `deleted_file_count`
+- `deleted_dir_count`
+- `queue` (updated queue snapshot)
