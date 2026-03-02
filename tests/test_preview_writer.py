@@ -19,6 +19,7 @@ def test_write_latest_preview_writes_then_throttles(monkeypatch, tmp_path: Path)
     first = write_latest_preview(
         shot_dir=shot_dir,
         source_stem="SHOT_A_0001",
+        frame_number=1,
         logc=_dummy_logc(),
         throttle_seconds=10.0,
     )
@@ -30,12 +31,12 @@ def test_write_latest_preview_writes_then_throttles(monkeypatch, tmp_path: Path)
     second = write_latest_preview(
         shot_dir=shot_dir,
         source_stem="SHOT_A_0002",
+        frame_number=2,
         logc=_dummy_logc(),
         throttle_seconds=10.0,
     )
-    assert second.wrote is False
-    assert second.skipped is True
-    assert second.reason == "throttled"
+    assert second.wrote is True
+    assert second.skipped is False
 
 
 def test_first_preview_replaced_when_earlier_frame_arrives(monkeypatch, tmp_path: Path) -> None:
@@ -82,6 +83,7 @@ def test_preview_writer_handles_missing_encoder_gracefully(monkeypatch, tmp_path
     latest = write_latest_preview(
         shot_dir=shot_dir,
         source_stem="SHOT_C_0001",
+        frame_number=1,
         logc=_dummy_logc(),
     )
     first = update_first_preview_if_earlier(
@@ -109,6 +111,7 @@ def test_latest_preview_removes_stale_alternate_variant(monkeypatch, tmp_path: P
     latest = write_latest_preview(
         shot_dir=shot_dir,
         source_stem="SHOT_D_0001",
+        frame_number=1,
         logc=_dummy_logc(),
         throttle_seconds=0.0,
     )
@@ -133,6 +136,7 @@ def test_write_latest_preview_rewrites_when_render_intent_missing(monkeypatch, t
     result = write_latest_preview(
         shot_dir=shot_dir,
         source_stem="SHOT_E_0002",
+        frame_number=2,
         logc=_dummy_logc(),
         throttle_seconds=60.0,
     )
@@ -141,6 +145,56 @@ def test_write_latest_preview_rewrites_when_render_intent_missing(monkeypatch, t
     assert latest_path.read_bytes() == b"fresh"
     payload = json.loads((preview_dir / "latest.meta.json").read_text(encoding="utf-8"))
     assert payload["render_intent"] == "logc_awg"
+
+
+def test_write_latest_preview_throttles_when_frame_does_not_advance(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("stopmo_xcode.write.previews._encode_preview_jpeg", lambda *args, **kwargs: b"jpeg-same")
+    shot_dir = tmp_path / "SHOT_G"
+
+    first = write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_G_0001",
+        frame_number=1,
+        logc=_dummy_logc(),
+        throttle_seconds=10.0,
+    )
+    assert first.wrote is True
+
+    second = write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_G_0001_DUP",
+        frame_number=1,
+        logc=_dummy_logc(),
+        throttle_seconds=10.0,
+    )
+    assert second.wrote is False
+    assert second.skipped is True
+    assert second.reason == "throttled"
+
+
+def test_write_latest_preview_skips_older_frame(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("stopmo_xcode.write.previews._encode_preview_jpeg", lambda *args, **kwargs: b"jpeg-newer")
+    shot_dir = tmp_path / "SHOT_H"
+
+    newer = write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_H_0010",
+        frame_number=10,
+        logc=_dummy_logc(),
+        throttle_seconds=10.0,
+    )
+    assert newer.wrote is True
+
+    older = write_latest_preview(
+        shot_dir=shot_dir,
+        source_stem="SHOT_H_0005",
+        frame_number=5,
+        logc=_dummy_logc(),
+        throttle_seconds=10.0,
+    )
+    assert older.wrote is False
+    assert older.skipped is True
+    assert older.reason == "not_later_frame"
 
 
 def test_first_preview_rewrites_when_render_intent_missing_even_if_not_earlier(

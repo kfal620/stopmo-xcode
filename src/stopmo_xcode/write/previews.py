@@ -132,6 +132,7 @@ def write_latest_preview(
     *,
     shot_dir: Path,
     source_stem: str,
+    frame_number: int | None = None,
     logc: np.ndarray,
     max_edge: int = PREVIEW_MAX_EDGE,
     quality: int = PREVIEW_JPEG_QUALITY,
@@ -146,11 +147,30 @@ def write_latest_preview(
 
     existing_meta = _read_json(meta_path)
     requires_intent_refresh = existing_meta.get("render_intent") != PREVIEW_RENDER_INTENT
+    existing_frame_raw = existing_meta.get("frame_number")
+    existing_frame: int | None
+    if isinstance(existing_frame_raw, int):
+        existing_frame = int(existing_frame_raw)
+    else:
+        existing_frame = None
+    current_frame = int(frame_number) if frame_number is not None else None
     existing_preview = jpg_path if jpg_path.exists() else tiff_path if tiff_path.exists() else None
+    if (
+        existing_preview is not None
+        and existing_frame is not None
+        and current_frame is not None
+        and current_frame < existing_frame
+        and not requires_intent_refresh
+    ):
+        return PreviewWriteStatus(path=existing_preview, wrote=False, skipped=True, reason="not_later_frame")
     if throttle_seconds > 0 and existing_preview is not None and not requires_intent_refresh:
-        age = max(0.0, time.time() - float(existing_preview.stat().st_mtime))
-        if age < float(throttle_seconds):
-            return PreviewWriteStatus(path=existing_preview, wrote=False, skipped=True, reason="throttled")
+        advancing_frame = (
+            current_frame is not None and (existing_frame is None or current_frame > existing_frame)
+        )
+        if not advancing_frame:
+            age = max(0.0, time.time() - float(existing_preview.stat().st_mtime))
+            if age < float(throttle_seconds):
+                return PreviewWriteStatus(path=existing_preview, wrote=False, skipped=True, reason="throttled")
 
     payload = _encode_preview_jpeg(logc, max_edge=max_edge, quality=quality)
     target_path = jpg_path
@@ -169,6 +189,7 @@ def write_latest_preview(
         {
             "updated_at_utc": _utc_now_iso(),
             "source_stem": source_stem,
+            "frame_number": current_frame,
             "max_edge": int(max_edge),
             "jpeg_quality": int(quality),
             "render_intent": PREVIEW_RENDER_INTENT,

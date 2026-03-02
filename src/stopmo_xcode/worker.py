@@ -327,6 +327,7 @@ class JobProcessor:
             latest = write_latest_preview(
                 shot_dir=shot_dir,
                 source_stem=source_stem,
+                frame_number=int(frame_number),
                 logc=logc,
                 max_edge=PREVIEW_MAX_EDGE,
                 quality=PREVIEW_JPEG_QUALITY,
