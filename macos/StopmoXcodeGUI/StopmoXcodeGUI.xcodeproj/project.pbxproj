@@ -572,7 +572,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.framerelay.gui;
 				PRODUCT_NAME = FrameRelay;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -595,7 +595,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.framerelay.gui;
 				PRODUCT_NAME = FrameRelay;
 				SWIFT_EMIT_LOC_STRINGS = YES;

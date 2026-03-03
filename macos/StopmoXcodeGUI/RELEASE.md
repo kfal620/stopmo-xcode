@@ -21,7 +21,7 @@ Build, bundle runtimes, sign, and produce DMG:
 
 ```bash
 SIGN_IDENTITY="Developer ID Application: YOUR NAME (TEAMID)" \
-VERSION="0.2.0" \
+VERSION="0.3.0" \
 BUILD_NUMBER="1" \
 scripts/package_release.sh
 ```
@@ -54,7 +54,7 @@ Submit and staple:
 ```bash
 NOTARY_PROFILE="stopmo-notary" \
 scripts/notarize_release.sh \
-  dist/FrameRelay-0.2.0.dmg \
+  dist/FrameRelay-0.3.0.dmg \
   dist/FrameRelay.app
 ```
 
@@ -64,7 +64,7 @@ scripts/notarize_release.sh \
 SIGN_IDENTITY="Developer ID Application: YOUR NAME (TEAMID)" \
 NOTARIZE=1 \
 NOTARY_PROFILE="stopmo-notary" \
-VERSION="0.2.0" \
+VERSION="0.3.0" \
 BUILD_NUMBER="1" \
 scripts/package_release.sh
 ```

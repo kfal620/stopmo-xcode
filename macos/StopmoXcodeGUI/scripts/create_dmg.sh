@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GUI_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 APP_NAME="${APP_NAME:-FrameRelay}"
-VERSION="${VERSION:-0.2.0}"
+VERSION="${VERSION:-0.3.0}"
 DIST_DIR="${DIST_DIR:-${GUI_ROOT}/dist}"
 APP_BUNDLE="${APP_BUNDLE:-${DIST_DIR}/${APP_NAME}.app}"
 DMG_PATH="${DMG_PATH:-${DIST_DIR}/${APP_NAME}-${VERSION}.dmg}"
