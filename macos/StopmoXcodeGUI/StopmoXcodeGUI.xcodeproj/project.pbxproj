@@ -51,9 +51,12 @@
 		8B57DFF8D6071E9A04AA6554 /* ProjectWatchSectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEA61BC00F196FAF17B8EE4 /* ProjectWatchSectionView.swift */; };
 		2A84592FB76BA5AE87EEC740 /* QueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D896E1717E9670E976B51F /* QueueView.swift */; };
 		79B9923D57FF09F37FEFEBAA /* RootCommandBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B82040E2F9D62C84D64DA85B /* RootCommandBarView.swift */; };
+		717386D59EBE397E6EE88236 /* RootShellMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA0B650552CC11B0C023333 /* RootShellMetrics.swift */; };
 		41BDDBDD67846EDB3E49F880 /* RootSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A9FA764D88BFB34448FA570 /* RootSidebarView.swift */; };
 		044570D788F45E63E97CE2B3 /* RootStatusBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1FC346494D54C1501C505F3 /* RootStatusBarView.swift */; };
+		3A34BACB49E5C05273FA9C82 /* RootTitlebarSidebarToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 671C42F2B485326D7B476A6B /* RootTitlebarSidebarToggleButton.swift */; };
 		0B3437F204E7645CD798B84F /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A35ED0BB565BA4A28684804 /* RootView.swift */; };
+		FEE76416CAAAC43D0AA2594B /* RootWindowChromeConfigurator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 154515B0BDFC9CF66B1B24AF /* RootWindowChromeConfigurator.swift */; };
 		EE0131F56E1D1455264B0FA4 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CD56ABF65C1E7B861D4F2F9 /* SetupView.swift */; };
 		1C9760D2ADE1C0349E197927 /* ShotHealthModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 637ACA3538B5D28B71230F87 /* ShotHealthModel.swift */; };
 		F3DB4ED7B2204573DE9E7849 /* ShotPreview/ShotLightboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2836C158EDDA1E432949B5E /* ShotPreview/ShotLightboxView.swift */; };
@@ -132,9 +135,12 @@
 		9DEA61BC00F196FAF17B8EE4 /* ProjectWatchSectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectWatchSectionView.swift; sourceTree = "<group>"; };
 		23D896E1717E9670E976B51F /* QueueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueueView.swift; sourceTree = "<group>"; };
 		B82040E2F9D62C84D64DA85B /* RootCommandBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootCommandBarView.swift; sourceTree = "<group>"; };
+		AAA0B650552CC11B0C023333 /* RootShellMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootShellMetrics.swift; sourceTree = "<group>"; };
 		0A9FA764D88BFB34448FA570 /* RootSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootSidebarView.swift; sourceTree = "<group>"; };
 		C1FC346494D54C1501C505F3 /* RootStatusBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootStatusBarView.swift; sourceTree = "<group>"; };
+		671C42F2B485326D7B476A6B /* RootTitlebarSidebarToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootTitlebarSidebarToggleButton.swift; sourceTree = "<group>"; };
 		1A35ED0BB565BA4A28684804 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		154515B0BDFC9CF66B1B24AF /* RootWindowChromeConfigurator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootWindowChromeConfigurator.swift; sourceTree = "<group>"; };
 		8CD56ABF65C1E7B861D4F2F9 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
 		637ACA3538B5D28B71230F87 /* ShotHealthModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotHealthModel.swift; sourceTree = "<group>"; };
 		E2836C158EDDA1E432949B5E /* ShotPreview/ShotLightboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShotLightboxView.swift; sourceTree = "<group>"; };
@@ -237,9 +243,12 @@
 				9DEA61BC00F196FAF17B8EE4 /* ProjectWatchSectionView.swift */,
 				23D896E1717E9670E976B51F /* QueueView.swift */,
 				B82040E2F9D62C84D64DA85B /* RootCommandBarView.swift */,
+				AAA0B650552CC11B0C023333 /* RootShellMetrics.swift */,
 				0A9FA764D88BFB34448FA570 /* RootSidebarView.swift */,
 				C1FC346494D54C1501C505F3 /* RootStatusBarView.swift */,
+				671C42F2B485326D7B476A6B /* RootTitlebarSidebarToggleButton.swift */,
 				1A35ED0BB565BA4A28684804 /* RootView.swift */,
+				154515B0BDFC9CF66B1B24AF /* RootWindowChromeConfigurator.swift */,
 				8CD56ABF65C1E7B861D4F2F9 /* SetupView.swift */,
 				637ACA3538B5D28B71230F87 /* ShotHealthModel.swift */,
 				F9070F9F9EC35895DE89514C /* StopmoXcodeGUIApp.swift */,
@@ -475,9 +484,12 @@
 				8B57DFF8D6071E9A04AA6554 /* ProjectWatchSectionView.swift in Sources */,
 				2A84592FB76BA5AE87EEC740 /* QueueView.swift in Sources */,
 				79B9923D57FF09F37FEFEBAA /* RootCommandBarView.swift in Sources */,
+				717386D59EBE397E6EE88236 /* RootShellMetrics.swift in Sources */,
 				41BDDBDD67846EDB3E49F880 /* RootSidebarView.swift in Sources */,
 				044570D788F45E63E97CE2B3 /* RootStatusBarView.swift in Sources */,
+				3A34BACB49E5C05273FA9C82 /* RootTitlebarSidebarToggleButton.swift in Sources */,
 				0B3437F204E7645CD798B84F /* RootView.swift in Sources */,
+				FEE76416CAAAC43D0AA2594B /* RootWindowChromeConfigurator.swift in Sources */,
 				EE0131F56E1D1455264B0FA4 /* SetupView.swift in Sources */,
 				1C9760D2ADE1C0349E197927 /* ShotHealthModel.swift in Sources */,
 				F3DB4ED7B2204573DE9E7849 /* ShotPreview/ShotLightboxView.swift in Sources */,

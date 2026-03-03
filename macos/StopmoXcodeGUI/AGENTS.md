@@ -68,6 +68,22 @@ Use this guide when working inside `/Users/kyle/Developer/stopmo-xcode/macos/Sto
 - Preserve current toolbar/notification spacing unless user requests visual changes.
 - When adding filter/pagination/search logic for Queue/Diagnostics-style screens, prefer pure reducers in `TriageWorkspace/*/*Reducer.swift`.
 
+## Window Chrome Customization
+
+- Titlebar traffic-light controls are intentionally offset to align with the custom translucent sidebar/titlebar shell.
+- Source of truth for shell offsets and spacing lives in:
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Sources/StopmoXcodeGUI/RootShellMetrics.swift`
+- `RootWindowChromeConfigurator` is a controlled AppKit interop workaround:
+  - It captures original system traffic-light button frames once per window.
+  - It reapplies offsets relative to those original frames (never relative to current frames) to avoid drift after resize relayout.
+- Safe tuning knobs:
+  - `RootShellMetrics.titlebarControlsOffset`
+  - `RootShellMetrics.sidebarToggleBaseLeading`
+  - `RootShellMetrics.sidebarToggleBaseTop`
+  - `RootShellMetrics.sidebarHeaderBaseClearance`
+- Known risk area:
+  - macOS/AppKit can relayout titlebar controls during and after live resize; if behavior regresses, inspect `RootWindowChromeConfigurator` observer lifecycle first.
+
 ## Tests To Run For UI/Core State Refactors
 
 - Full package tests: `swift test`
@@ -80,6 +96,7 @@ Use this guide when working inside `/Users/kyle/Developer/stopmo-xcode/macos/Sto
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/ProjectEditorViewModelTests.swift`
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/NotificationPresenterStateTests.swift`
   - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/Phase0SmokeTests.swift`
+  - `/Users/kyle/Developer/stopmo-xcode/macos/StopmoXcodeGUI/Tests/StopmoXcodeGUITests/TrafficLightFrameProjectorTests.swift`
 
 ## Xcode Wrapper Notes
 
