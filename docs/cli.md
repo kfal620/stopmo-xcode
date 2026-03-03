@@ -1,9 +1,12 @@
-# stopmo-xcode CLI And Developer Guide
+# FrameRelay CLI And Developer Guide
 
 This guide covers CLI usage, local setup, and parity/testing workflows.
 The default end-user surface is the macOS app; see root `README.md` first.
 
 ## CLI Commands
+
+Preferred command name: `framerelay`  
+Legacy alias (deprecated, still supported): `stopmo-xcode`
 
 - `watch`: watch source folder and process incoming RAW frames
 - `transcode-one`: process a single frame for debugging/calibration
@@ -60,13 +63,20 @@ Use `./stopmo` from repo root:
 - create `.venv` if missing
 - install runtime extras `.[watch,raw,ocio,io,video]`
 - re-install when `pyproject.toml` changes
-- run `.venv/bin/stopmo-xcode ...`
+- run `PYTHONPATH=src .venv/bin/python -m stopmo_xcode.cli ...`
+
+You can also run the new entrypoint directly:
+
+```bash
+.venv/bin/framerelay --help
+```
 
 For ProRes assembly, `ffmpeg` resolution order is:
 
-1. `STOPMO_XCODE_FFMPEG` env var
-2. `ffmpeg` on `PATH`
-3. bundled `imageio-ffmpeg` binary (from `.[video]`)
+1. `FRAMERELAY_FFMPEG` env var
+2. `STOPMO_XCODE_FFMPEG` env var (legacy fallback)
+3. `ffmpeg` on `PATH`
+4. bundled `imageio-ffmpeg` binary (from `.[video]`)
 
 ## Baseline Config And Quick Start
 

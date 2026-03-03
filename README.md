@@ -1,7 +1,7 @@
-# stopmo-xcode
+# FrameRelay
 
-`stopmo-xcode` is a standalone macOS app for deterministic stop-motion ingest and delivery.
-Its primary interface is the SwiftUI desktop app (`StopmoXcodeGUI`), backed by the same
+FrameRelay is a standalone macOS app for deterministic stop-motion ingest and delivery.
+Its primary interface is the SwiftUI desktop app bundle (`FrameRelay.app`), backed by the same
 deterministic RAW -> LogC3/AWG pipeline used in CLI workflows.
 
 ## Download
@@ -13,7 +13,7 @@ deterministic RAW -> LogC3/AWG pipeline used in CLI workflows.
 ## Quick Start (macOS App)
 
 1. Download the latest DMG from Releases.
-2. Launch `StopmoXcodeGUI.app`.
+2. Launch `FrameRelay.app`.
 3. In `Configure`, load or edit your project config.
 4. In `Capture`, start watch/capture monitoring.
 5. In `Deliver`, run day-wrap ProRes delivery when ready.
@@ -51,3 +51,18 @@ deterministic RAW -> LogC3/AWG pipeline used in CLI workflows.
 - CLI/developer guide: `docs/cli.md`
 - Contributor workflow: `CONTRIBUTING.md`
 - Agent workflow rules: `AGENTS.md`
+
+## Brand vs Internal Namespace
+
+- Product/app brand is **FrameRelay**.
+- Legacy internal namespaces are intentionally still in place for compatibility during this migration:
+  - Python module/package paths: `stopmo_xcode`
+  - Swift target/module names: `StopmoXcodeGUI`
+  - Swift design token namespace: `StopmoUI`
+- CLI transition:
+  - preferred command: `framerelay`
+  - legacy command (still supported, deprecated): `stopmo-xcode`
+- Env var transition:
+  - preferred prefix: `FRAMERELAY_*`
+  - legacy prefix (still supported, deprecated): `STOPMO_XCODE_*`
+- A deeper internal namespace rename is tracked as a separate future migration to minimize regression risk in this release.

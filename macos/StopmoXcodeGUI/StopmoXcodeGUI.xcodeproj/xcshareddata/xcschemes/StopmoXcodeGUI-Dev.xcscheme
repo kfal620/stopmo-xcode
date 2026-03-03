@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "1822280F6B0881F495C33105"
-               BuildableName = "StopmoXcodeGUI.app"
+               BuildableName = "FrameRelay.app"
                BlueprintName = "StopmoXcodeGUI"
                ReferencedContainer = "container:StopmoXcodeGUI.xcodeproj">
             </BuildableReference>
@@ -45,12 +45,27 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "1822280F6B0881F495C33105"
-            BuildableName = "StopmoXcodeGUI.app"
+            BuildableName = "FrameRelay.app"
             BlueprintName = "StopmoXcodeGUI"
             ReferencedContainer = "container:StopmoXcodeGUI.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "FRAMERELAY_ROOT"
+            value = "$(SRCROOT)/../.."
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "FRAMERELAY_RUNTIME_MODE"
+            value = "external"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "FRAMERELAY_BACKEND_MODE"
+            value = "external"
+            isEnabled = "YES">
+         </EnvironmentVariable>
          <EnvironmentVariable
             key = "STOPMO_XCODE_ROOT"
             value = "$(SRCROOT)/../.."
@@ -79,7 +94,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "1822280F6B0881F495C33105"
-            BuildableName = "StopmoXcodeGUI.app"
+            BuildableName = "FrameRelay.app"
             BlueprintName = "StopmoXcodeGUI"
             ReferencedContainer = "container:StopmoXcodeGUI.xcodeproj">
          </BuildableReference>

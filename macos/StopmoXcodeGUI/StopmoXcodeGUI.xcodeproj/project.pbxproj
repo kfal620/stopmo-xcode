@@ -87,7 +87,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		34F686D89FE98D7807DD38CB /* StopmoXcodeGUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StopmoXcodeGUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		34F686D89FE98D7807DD38CB /* FrameRelay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrameRelay.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EF431FED19380A0D7D5E65CE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = packaging/Info.plist; sourceTree = "<group>"; };
 		6851888A471B45F362B9E693 /* entitlements.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.plist; sourceTree = "<group>"; };
 		204E97482B5682072413C183 /* entitlements.debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.debug.plist; sourceTree = "<group>"; };
@@ -193,7 +193,7 @@
 		1E78B559816E575FC0BDB29C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				34F686D89FE98D7807DD38CB /* StopmoXcodeGUI.app */,
+				34F686D89FE98D7807DD38CB /* FrameRelay.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -389,7 +389,7 @@
 			);
 			name = StopmoXcodeGUI;
 			productName = StopmoXcodeGUI;
-			productReference = 34F686D89FE98D7807DD38CB /* StopmoXcodeGUI.app */;
+			productReference = 34F686D89FE98D7807DD38CB /* FrameRelay.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -573,8 +573,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stopmo.xcode.gui;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.framerelay.gui;
+				PRODUCT_NAME = FrameRelay;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 			};
@@ -596,8 +596,8 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.2.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.stopmo.xcode.gui;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.framerelay.gui;
+				PRODUCT_NAME = FrameRelay;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 			};

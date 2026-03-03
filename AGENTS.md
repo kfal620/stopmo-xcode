@@ -8,6 +8,17 @@ Use this file as the default operating guide for agents working in this repo.
 - Prefer repo-relative paths in guidance and updates (`config/sample.yaml`, `src/stopmo_xcode/...`).
 - Do not introduce new references to `/Users/kyle/Documents/Coding/stopmo-xcode` in docs or commands for this workspace.
 
+## Brand vs Internal Namespace
+
+- Product/app brand is **FrameRelay**.
+- Legacy internal namespaces remain intentionally for compatibility in this phase:
+  - Python module/package paths: `stopmo_xcode`
+  - Swift target/module names: `StopmoXcodeGUI`
+  - Swift design token namespace: `StopmoUI`
+- Prefer new public-facing names in docs and UX copy:
+  - CLI: `framerelay` (legacy `stopmo-xcode` still works, deprecated)
+  - Env vars: `FRAMERELAY_*` (legacy `STOPMO_XCODE_*` still works, deprecated)
+
 ## Environment
 
 - Canonical virtualenv path: `.venv`

@@ -25,14 +25,24 @@ final class WorkspaceConfigServiceTests: XCTestCase {
         XCTAssertEqual(discovered, root)
     }
 
-    func testResolveInitialRepoRootPrefersWorkspaceEnv() {
+    func testResolveInitialRepoRootPrefersFrameRelayWorkspaceEnv() {
         let resolved = service.resolveInitialRepoRoot(
-            environment: ["STOPMO_XCODE_WORKSPACE_ROOT": "/tmp/env-workspace"],
+            environment: ["FRAMERELAY_WORKSPACE_ROOT": "/tmp/env-workspace"],
             rememberedRepoRoot: "/tmp/remembered",
             bundlePath: nil,
             currentDirectoryPath: "/tmp/cwd"
         )
         XCTAssertEqual(resolved, "/tmp/env-workspace")
+    }
+
+    func testResolveInitialRepoRootFallsBackToLegacyWorkspaceEnv() {
+        let resolved = service.resolveInitialRepoRoot(
+            environment: ["STOPMO_XCODE_WORKSPACE_ROOT": "/tmp/legacy-workspace"],
+            rememberedRepoRoot: "/tmp/remembered",
+            bundlePath: nil,
+            currentDirectoryPath: "/tmp/cwd"
+        )
+        XCTAssertEqual(resolved, "/tmp/legacy-workspace")
     }
 
     func testBootstrapWorkspaceCreatesConfigWhenMissing() throws {

@@ -188,7 +188,10 @@ struct SetupView: View {
 
             if let health = state.health {
                 KeyValueRow(key: "Python Version", value: health.pythonVersion)
-                KeyValueRow(key: "stopmo Version", value: health.stopmoVersion ?? "unknown")
+                KeyValueRow(
+                    key: "FrameRelay Version",
+                    value: health.framerelayVersion ?? health.stopmoVersion ?? "unknown"
+                )
                 KeyValueRow(key: "Runtime Mode", value: health.backendMode ?? "external")
                 KeyValueRow(
                     key: "Python Runtime",
@@ -209,6 +212,13 @@ struct SetupView: View {
                         }
                         if let ffmpegSource = health.ffmpegSource, !ffmpegSource.isEmpty {
                             KeyValueRow(key: "FFmpeg Source", value: ffmpegSource)
+                        }
+                        if let legacyWarnings = health.legacyEnvWarnings, !legacyWarnings.isEmpty {
+                            KeyValueRow(
+                                key: "Legacy Env Usage",
+                                value: legacyWarnings.joined(separator: " | "),
+                                tone: .warning
+                            )
                         }
                         if let configLoadOk = health.configLoadOk {
                             KeyValueRow(

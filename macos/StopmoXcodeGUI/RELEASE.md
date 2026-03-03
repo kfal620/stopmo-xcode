@@ -1,4 +1,4 @@
-# StopmoXcodeGUI Distribution
+# FrameRelay Distribution
 
 This project ships a standalone, signed `.app` bundled inside a notarizable `.dmg`.
 
@@ -28,8 +28,8 @@ scripts/package_release.sh
 
 Outputs:
 
-- `macos/StopmoXcodeGUI/dist/StopmoXcodeGUI.app`
-- `macos/StopmoXcodeGUI/dist/StopmoXcodeGUI-<version>.dmg`
+- `macos/StopmoXcodeGUI/dist/FrameRelay.app`
+- `macos/StopmoXcodeGUI/dist/FrameRelay-<version>.dmg`
 - `macos/StopmoXcodeGUI/dist/manifest.json` (runtime manifest)
 
 Notes:
@@ -54,8 +54,8 @@ Submit and staple:
 ```bash
 NOTARY_PROFILE="stopmo-notary" \
 scripts/notarize_release.sh \
-  dist/StopmoXcodeGUI-0.2.0.dmg \
-  dist/StopmoXcodeGUI.app
+  dist/FrameRelay-0.2.0.dmg \
+  dist/FrameRelay.app
 ```
 
 ## 3) Optional: Build + Notarize in One Step
@@ -74,3 +74,4 @@ scripts/package_release.sh
 - Standalone app mode uses bundled backend launch script:
   - `Contents/Resources/backend/launch_bridge.sh`
 - Development mode still works against external repo + `.venv` via `StopmoXcodeGUI-Dev` scheme.
+- Default release bundle identifier is `com.framerelay.gui`.

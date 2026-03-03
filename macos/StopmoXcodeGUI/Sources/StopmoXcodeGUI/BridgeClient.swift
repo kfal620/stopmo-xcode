@@ -111,7 +111,7 @@ struct BridgeClient: Sendable {
     /// Resolve backend root using env overrides then filesystem discovery fallback.
     private func resolveRepoRoot(_ repoRoot: String) -> String {
         let env = ProcessInfo.processInfo.environment
-        for key in ["STOPMO_XCODE_BACKEND_ROOT", "STOPMO_XCODE_ROOT"] {
+        for key in ["FRAMERELAY_BACKEND_ROOT", "FRAMERELAY_ROOT", "STOPMO_XCODE_BACKEND_ROOT", "STOPMO_XCODE_ROOT"] {
             if let candidate = env[key], isRepoRoot(candidate) {
                 return candidate
             }
@@ -174,6 +174,8 @@ struct BridgeClient: Sendable {
                 executable: launcher,
                 argumentsPrefix: [],
                 environmentOverrides: [
+                    "FRAMERELAY_RUNTIME_MODE": BridgeRuntimeMode.bundled.rawValue,
+                    "FRAMERELAY_WORKSPACE_ROOT": resolvedWorkspace,
                     "STOPMO_XCODE_RUNTIME_MODE": BridgeRuntimeMode.bundled.rawValue,
                     "STOPMO_XCODE_WORKSPACE_ROOT": resolvedWorkspace,
                 ]
@@ -202,8 +204,13 @@ struct BridgeClient: Sendable {
             argumentsPrefix: [bridgeScript],
             environmentOverrides: [
                 "PYTHONPATH": pythonPath,
+                "FRAMERELAY_RUNTIME_MODE": BridgeRuntimeMode.external.rawValue,
+                "FRAMERELAY_BACKEND_ROOT": resolvedRepoRoot,
+                "FRAMERELAY_ROOT": resolvedRepoRoot,
+                "FRAMERELAY_WORKSPACE_ROOT": resolvedWorkspace,
                 "STOPMO_XCODE_RUNTIME_MODE": BridgeRuntimeMode.external.rawValue,
                 "STOPMO_XCODE_BACKEND_ROOT": resolvedRepoRoot,
+                "STOPMO_XCODE_ROOT": resolvedRepoRoot,
                 "STOPMO_XCODE_WORKSPACE_ROOT": resolvedWorkspace,
             ]
         )

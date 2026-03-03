@@ -80,6 +80,58 @@ def test_health_payload_reports_core_keys(tmp_path: Path) -> None:
     assert payload["config_exists"] is True
 
 
+def test_health_payload_prefers_framerelay_env_aliases(monkeypatch, tmp_path: Path) -> None:
+    cfg_file = _write_min_config(tmp_path)
+    fake_ffmpeg = tmp_path / "ffmpeg"
+    fake_ffmpeg.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    fake_ffmpeg.chmod(0o755)
+
+    monkeypatch.setenv("FRAMERELAY_RUNTIME_MODE", "bundled")
+    monkeypatch.setenv("STOPMO_XCODE_RUNTIME_MODE", "external")
+    monkeypatch.setenv("FRAMERELAY_BACKEND_ROOT", str(tmp_path / "backend-new"))
+    monkeypatch.setenv("STOPMO_XCODE_BACKEND_ROOT", str(tmp_path / "backend-old"))
+    monkeypatch.setenv("FRAMERELAY_WORKSPACE_ROOT", "/tmp/framerelay-workspace")
+    monkeypatch.setenv("STOPMO_XCODE_WORKSPACE_ROOT", "/tmp/stopmo-workspace")
+    monkeypatch.setenv("FRAMERELAY_FFMPEG", str(fake_ffmpeg))
+    monkeypatch.setenv("STOPMO_XCODE_FFMPEG", str(tmp_path / "old-ffmpeg"))
+
+    payload = health_payload(cfg_file)
+    assert payload["backend_mode"] == "bundled"
+    assert payload["workspace_root"] == "/tmp/framerelay-workspace"
+    assert payload["ffmpeg_path"] == str(fake_ffmpeg)
+    assert payload["framerelay_version"] == payload["stopmo_version"]
+    sources = payload["env_var_sources"]
+    assert isinstance(sources, dict)
+    assert sources["runtime_mode"] == "FRAMERELAY_RUNTIME_MODE"
+    assert sources["backend_root"] == "FRAMERELAY_BACKEND_ROOT"
+    assert sources["workspace_root"] == "FRAMERELAY_WORKSPACE_ROOT"
+    assert sources["ffmpeg"] == "FRAMERELAY_FFMPEG"
+    assert payload["legacy_env_warnings"] == []
+
+
+def test_health_payload_reports_legacy_env_warnings(monkeypatch, tmp_path: Path) -> None:
+    cfg_file = _write_min_config(tmp_path)
+    fake_ffmpeg = tmp_path / "ffmpeg"
+    fake_ffmpeg.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    fake_ffmpeg.chmod(0o755)
+
+    monkeypatch.delenv("FRAMERELAY_RUNTIME_MODE", raising=False)
+    monkeypatch.delenv("FRAMERELAY_FFMPEG", raising=False)
+    monkeypatch.setenv("STOPMO_XCODE_RUNTIME_MODE", "external")
+    monkeypatch.setenv("STOPMO_XCODE_FFMPEG", str(fake_ffmpeg))
+
+    payload = health_payload(cfg_file)
+    warnings = payload["legacy_env_warnings"]
+    assert isinstance(warnings, list)
+    assert any("STOPMO_XCODE_RUNTIME_MODE" in warning for warning in warnings)
+    assert any("STOPMO_XCODE_FFMPEG" in warning for warning in warnings)
+
+    preflight = watch_preflight_payload(cfg_file)
+    preflight_warnings = preflight["legacy_env_warnings"]
+    assert isinstance(preflight_warnings, list)
+    assert any("STOPMO_XCODE_FFMPEG" in warning for warning in preflight_warnings)
+
+
 def test_queue_status_payload_reports_counts_and_recent(tmp_path: Path) -> None:
     cfg_file = _write_min_config(tmp_path)
     cfg = load_config(cfg_file)

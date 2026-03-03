@@ -1,12 +1,12 @@
 import SwiftUI
 
 @main
-/// Data/view model for stopmo xcode guiapp.
+/// Data/view model for the FrameRelay macOS app.
 struct StopmoXcodeGUIApp: App {
     @StateObject private var state = AppState()
 
     var body: some Scene {
-        WindowGroup("stopmo-xcode GUI") {
+        WindowGroup("FrameRelay") {
             RootView()
                 .environmentObject(state)
                 .preferredColorScheme(.dark)
@@ -14,7 +14,7 @@ struct StopmoXcodeGUIApp: App {
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
-            CommandMenu("Stopmo") {
+            CommandMenu("FrameRelay") {
                 Button("Start Watch") {
                     Task { await state.startWatchService() }
                 }

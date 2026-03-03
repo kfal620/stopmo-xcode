@@ -79,7 +79,7 @@ def main() -> int:
         )
 
     file_ref_entries = [
-        f"\t\t{product_ref_id} /* StopmoXcodeGUI.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StopmoXcodeGUI.app; sourceTree = BUILT_PRODUCTS_DIR; }};",
+        f"\t\t{product_ref_id} /* FrameRelay.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrameRelay.app; sourceTree = BUILT_PRODUCTS_DIR; }};",
         f"\t\t{info_plist_ref_id} /* Info.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = packaging/Info.plist; sourceTree = \"<group>\"; }};",
         f"\t\t{entitlements_ref_id} /* entitlements.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.plist; sourceTree = \"<group>\"; }};",
         f"\t\t{entitlements_debug_ref_id} /* entitlements.debug.plist */ = {{isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = packaging/entitlements.debug.plist; sourceTree = \"<group>\"; }};",
@@ -169,7 +169,7 @@ def main() -> int:
 \t\t{products_group_id} /* Products */ = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
-\t\t\t\t{product_ref_id} /* StopmoXcodeGUI.app */,
+\t\t\t\t{product_ref_id} /* FrameRelay.app */,
 \t\t\t);
 \t\t\tname = Products;
 \t\t\tsourceTree = "<group>";
@@ -218,7 +218,7 @@ def main() -> int:
 \t\t\t);
 \t\t\tname = StopmoXcodeGUI;
 \t\t\tproductName = StopmoXcodeGUI;
-\t\t\tproductReference = {product_ref_id} /* StopmoXcodeGUI.app */;
+\t\t\tproductReference = {product_ref_id} /* FrameRelay.app */;
 \t\t\tproductType = "com.apple.product-type.application";
 \t\t}};
 /* End PBXNativeTarget section */
@@ -326,8 +326,8 @@ def main() -> int:
 \t\t\t\t\t"@executable_path/../Frameworks",
 \t\t\t\t);
 \t\t\t\tMARKETING_VERSION = 0.2.0;
-\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.stopmo.xcode.gui;
-\t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
+\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.framerelay.gui;
+\t\t\t\tPRODUCT_NAME = FrameRelay;
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
 \t\t\t\tSWIFT_VERSION = 6.0;
 \t\t\t}};
@@ -349,8 +349,8 @@ def main() -> int:
 \t\t\t\t\t"@executable_path/../Frameworks",
 \t\t\t\t);
 \t\t\t\tMARKETING_VERSION = 0.2.0;
-\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.stopmo.xcode.gui;
-\t\t\t\tPRODUCT_NAME = "$(TARGET_NAME)";
+\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = com.framerelay.gui;
+\t\t\t\tPRODUCT_NAME = FrameRelay;
 \t\t\t\tSWIFT_EMIT_LOC_STRINGS = YES;
 \t\t\t\tSWIFT_VERSION = 6.0;
 \t\t\t}};
@@ -400,7 +400,7 @@ def main() -> int:
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "__TARGET_ID__"
-               BuildableName = "StopmoXcodeGUI.app"
+               BuildableName = "FrameRelay.app"
                BlueprintName = "StopmoXcodeGUI"
                ReferencedContainer = "container:StopmoXcodeGUI.xcodeproj">
             </BuildableReference>
@@ -430,7 +430,7 @@ def main() -> int:
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "__TARGET_ID__"
-            BuildableName = "StopmoXcodeGUI.app"
+            BuildableName = "FrameRelay.app"
             BlueprintName = "StopmoXcodeGUI"
             ReferencedContainer = "container:StopmoXcodeGUI.xcodeproj">
          </BuildableReference>
@@ -450,7 +450,7 @@ __ENV_VARS__
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "__TARGET_ID__"
-            BuildableName = "StopmoXcodeGUI.app"
+            BuildableName = "FrameRelay.app"
             BlueprintName = "StopmoXcodeGUI"
             ReferencedContainer = "container:StopmoXcodeGUI.xcodeproj">
          </BuildableReference>
@@ -496,6 +496,9 @@ __ENV_VARS__
         profile_config="Release",
         analyze_config="Debug",
         env_vars={
+            "FRAMERELAY_ROOT": "$(SRCROOT)/../..",
+            "FRAMERELAY_RUNTIME_MODE": "external",
+            "FRAMERELAY_BACKEND_MODE": "external",
             "STOPMO_XCODE_ROOT": "$(SRCROOT)/../..",
             "STOPMO_XCODE_RUNTIME_MODE": "external",
             "STOPMO_XCODE_BACKEND_MODE": "external",
@@ -507,6 +510,8 @@ __ENV_VARS__
         profile_config="Release",
         analyze_config="Release",
         env_vars={
+            "FRAMERELAY_RUNTIME_MODE": "bundled",
+            "FRAMERELAY_BACKEND_MODE": "bundled",
             "STOPMO_XCODE_RUNTIME_MODE": "bundled",
             "STOPMO_XCODE_BACKEND_MODE": "bundled",
         },

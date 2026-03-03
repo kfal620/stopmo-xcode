@@ -42,11 +42,15 @@ struct LiveWorkspaceConfigService: WorkspaceConfigServicing {
         bundlePath: String?,
         currentDirectoryPath: String
     ) -> String {
+        if let workspaceRoot = environment["FRAMERELAY_WORKSPACE_ROOT"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !workspaceRoot.isEmpty {
+            return workspaceRoot
+        }
         if let workspaceRoot = environment["STOPMO_XCODE_WORKSPACE_ROOT"]?.trimmingCharacters(in: .whitespacesAndNewlines),
            !workspaceRoot.isEmpty {
             return workspaceRoot
         }
-        for key in ["STOPMO_XCODE_ROOT", "SRCROOT", "PROJECT_DIR"] {
+        for key in ["FRAMERELAY_ROOT", "STOPMO_XCODE_ROOT", "SRCROOT", "PROJECT_DIR"] {
             let value = environment[key]?.trimmingCharacters(in: .whitespacesAndNewlines)
             if let value, !value.isEmpty {
                 if let resolved = resolveCandidateRoot(value) {
@@ -117,7 +121,7 @@ struct LiveWorkspaceConfigService: WorkspaceConfigServicing {
         currentDirectoryPath: String,
         bundleSamplePath: String?
     ) -> String? {
-        let envRepo = environment["STOPMO_XCODE_ROOT"] ?? ""
+        let envRepo = environment["FRAMERELAY_ROOT"] ?? environment["STOPMO_XCODE_ROOT"] ?? ""
         var candidates: [String] = [
             "\(repoRoot)/config/sample.yaml",
             "\(envRepo)/config/sample.yaml",
@@ -142,7 +146,7 @@ struct LiveWorkspaceConfigService: WorkspaceConfigServicing {
         let working = "\(workspaceRoot)/work"
         let output = "\(workspaceRoot)/output"
         let dbPath = "\(working)/queue.sqlite3"
-        let logPath = "\(working)/stopmo-xcode.log"
+        let logPath = "\(working)/framerelay.log"
 
         let directories = [incoming, working, output, "\(workspaceRoot)/config"]
         let fm = FileManager.default

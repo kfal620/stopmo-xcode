@@ -4,8 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV_DIR="$ROOT_DIR/.venv"
 VENV_PY="$VENV_DIR/bin/python"
-VENV_PIP="$VENV_DIR/bin/pip"
-VENV_CLI="$VENV_DIR/bin/stopmo-xcode"
 STAMP_FILE="$VENV_DIR/.stopmo-bootstrap-stamp"
 FAIL_STAMP_FILE="$VENV_DIR/.stopmo-bootstrap-fail"
 INSTALL_SPEC="${ROOT_DIR}[watch,raw,ocio,io,video]"
@@ -62,6 +60,8 @@ ensure_venv() {
 }
 
 ensure_install() {
+  local pip_cmd
+  pip_cmd=("$VENV_PY" -m pip)
   local pyproject_hash
   pyproject_hash="$(file_hash "$ROOT_DIR/pyproject.toml")"
   local wanted_stamp="${LAUNCHER_VERSION}:${pyproject_hash}:${INSTALL_SPEC}"
@@ -73,8 +73,8 @@ ensure_install() {
     current_stamp="$(cat "$STAMP_FILE")"
   fi
 
-  if [[ "$current_stamp" != "$wanted_stamp" || ! -x "$VENV_CLI" ]]; then
-    if [[ -x "$VENV_CLI" && -f "$FAIL_STAMP_FILE" ]]; then
+  if [[ "$current_stamp" != "$wanted_stamp" ]]; then
+    if [[ -f "$FAIL_STAMP_FILE" ]]; then
       local last_fail
       last_fail="$(cat "$FAIL_STAMP_FILE" 2>/dev/null || true)"
       if [[ "$last_fail" =~ ^[0-9]+$ ]] && (( now - last_fail < RETRY_SECONDS )); then
@@ -84,22 +84,17 @@ ensure_install() {
     fi
 
     log "Bootstrapping dependencies ($INSTALL_SPEC)"
-    if PIP_DISABLE_PIP_VERSION_CHECK=1 "$VENV_PIP" install -e "$INSTALL_SPEC"; then
+    if PIP_DISABLE_PIP_VERSION_CHECK=1 "${pip_cmd[@]}" install -e "$INSTALL_SPEC"; then
       printf '%s\n' "$wanted_stamp" > "$STAMP_FILE"
       rm -f "$FAIL_STAMP_FILE"
     else
       log "Editable install failed; retrying standard install."
-      if PIP_DISABLE_PIP_VERSION_CHECK=1 "$VENV_PIP" install --no-build-isolation "$INSTALL_SPEC"; then
+      if PIP_DISABLE_PIP_VERSION_CHECK=1 "${pip_cmd[@]}" install --no-build-isolation "$INSTALL_SPEC"; then
         printf '%s\n' "$wanted_stamp" > "$STAMP_FILE"
         rm -f "$FAIL_STAMP_FILE"
       else
         printf '%s\n' "$now" > "$FAIL_STAMP_FILE"
-        if [[ -x "$VENV_CLI" ]]; then
-          log "Dependency bootstrap failed; running with existing environment."
-        else
-          log "Dependency bootstrap failed and no stopmo-xcode CLI is available."
-          exit 1
-        fi
+        log "Dependency bootstrap failed; running with existing environment."
       fi
     fi
   fi
@@ -108,7 +103,8 @@ ensure_install() {
 main() {
   ensure_venv
   ensure_install
-  exec "$VENV_CLI" "$@"
+  export PYTHONPATH="$ROOT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+  exec "$VENV_PY" -m stopmo_xcode.cli "$@"
 }
 
 main "$@"

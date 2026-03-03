@@ -41,13 +41,13 @@ enum NotificationReducer {
             }
             return (
                 likelyCause: "Python dependencies are missing or PYTHONPATH/venv is not configured for this workspace.",
-                suggestedAction: "Use the development scheme with STOPMO_XCODE_ROOT pointed at this repository, then install dependencies in `.venv`."
+                suggestedAction: "Use the development scheme with FRAMERELAY_ROOT (or legacy STOPMO_XCODE_ROOT) pointed at this repository, then install dependencies in `.venv`."
             )
         }
         if lower.contains("invalid repo root") || lower.contains("bridge script not found") {
             return (
-                likelyCause: "Development backend root does not point to the stopmo-xcode project root.",
-                suggestedAction: "For development mode, set STOPMO_XCODE_ROOT to a repository containing `pyproject.toml` and `src/stopmo_xcode`."
+                likelyCause: "FrameRelay backend root does not point to a valid repository root.",
+                suggestedAction: "For development mode, set FRAMERELAY_ROOT (or legacy STOPMO_XCODE_ROOT) to a repository containing `pyproject.toml` and `src/stopmo_xcode` (legacy internal module name)."
             )
         }
         if lower.contains("permission") || lower.contains("not allowed") || lower.contains("operation not permitted") {

@@ -35,16 +35,33 @@ class DpxSequence:
 _TRAILING_FRAME_RE = re.compile(r"^(?P<prefix>.*?)(?P<frame>\d+)$")
 
 
+def _ffmpeg_env_override() -> tuple[str | None, str | None]:
+    """Return ffmpeg env override with alias precedence and key source."""
+
+    for key in ("FRAMERELAY_FFMPEG", "STOPMO_XCODE_FFMPEG"):
+        value = os.environ.get(key)
+        if value is None:
+            continue
+        normalized = value.strip()
+        if normalized:
+            return normalized, key
+    return None, None
+
+
 def _require_ffmpeg() -> str:
     """Resolve executable ffmpeg path from env/PATH or bundled fallback."""
 
-    env_ffmpeg = os.environ.get("STOPMO_XCODE_FFMPEG")
+    env_ffmpeg, env_key = _ffmpeg_env_override()
     if env_ffmpeg:
         candidate = Path(env_ffmpeg).expanduser()
         if candidate.exists() and os.access(candidate, os.X_OK):
+            if env_key == "STOPMO_XCODE_FFMPEG":
+                logger.warning(
+                    "environment variable STOPMO_XCODE_FFMPEG is deprecated; prefer FRAMERELAY_FFMPEG"
+                )
             return str(candidate)
         raise AssemblyError(
-            f"STOPMO_XCODE_FFMPEG is set but not executable: {candidate}"
+            f"{env_key} is set but not executable: {candidate}"
         )
 
     ffmpeg = shutil.which("ffmpeg")

@@ -28,6 +28,7 @@ dev = [
 
 [project.scripts]
 stopmo-xcode = "stopmo_xcode.cli:main"
+framerelay = "stopmo_xcode.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

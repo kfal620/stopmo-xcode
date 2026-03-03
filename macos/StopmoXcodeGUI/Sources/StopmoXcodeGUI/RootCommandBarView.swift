@@ -54,7 +54,7 @@ struct RootCommandBarView: View {
             }
             .zIndex(1)
 
-            Text("stopmo-xcode GUI")
+            Text("FrameRelay")
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(AppVisualTokens.textPrimary)
                 .lineLimit(1)

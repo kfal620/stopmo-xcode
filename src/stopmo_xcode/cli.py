@@ -16,10 +16,21 @@ from stopmo_xcode.utils.logging_utils import configure_logging
 logger = logging.getLogger(__name__)
 
 
+def _warn_if_legacy_entrypoint(invoked_as: str) -> None:
+    """Emit one-line deprecation guidance when legacy CLI name is used."""
+
+    if invoked_as != "stopmo-xcode":
+        return
+    print(
+        "warning: `stopmo-xcode` is deprecated; use `framerelay` instead.",
+        file=sys.stderr,
+    )
+
+
 def _build_parser() -> argparse.ArgumentParser:
     """Build the top-level CLI parser and subcommand contracts."""
 
-    parser = argparse.ArgumentParser(prog="stopmo-xcode")
+    parser = argparse.ArgumentParser(prog="framerelay")
     sub = parser.add_subparsers(dest="command", required=True)
 
     watch = sub.add_parser("watch", help="Watch source folder and process incoming RAW frames")
@@ -225,6 +236,9 @@ def _cmd_dpx_to_prores(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     """Parse args, dispatch command handlers, and normalize fatal error reporting."""
+
+    if argv is None:
+        _warn_if_legacy_entrypoint(Path(sys.argv[0]).name)
 
     parser = _build_parser()
     args = parser.parse_args(argv)

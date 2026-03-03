@@ -162,6 +162,7 @@ struct BridgeHealth: Codable, Sendable {
     var backendMode: String?
     var backendRoot: String?
     var workspaceRoot: String?
+    var envVarSources: [String: String?]? = nil
     var pythonExecutable: String
     var pythonVersion: String
     var venvPython: String
@@ -170,6 +171,8 @@ struct BridgeHealth: Codable, Sendable {
     var ffmpegPath: String?
     var ffmpegSource: String?
     var stopmoVersion: String?
+    var framerelayVersion: String? = nil
+    var legacyEnvWarnings: [String]? = nil
     var configPath: String?
     var configExists: Bool?
     var configLoadOk: Bool?

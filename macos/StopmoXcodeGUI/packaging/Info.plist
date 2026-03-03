@@ -5,13 +5,15 @@
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>StopmoXcodeGUI</string>
+  <string>$(EXECUTABLE_NAME)</string>
   <key>CFBundleIdentifier</key>
-  <string>com.stopmo.xcode.gui</string>
+  <string>com.framerelay.gui</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
+  <key>CFBundleDisplayName</key>
+  <string>FrameRelay</string>
   <key>CFBundleName</key>
-  <string>StopmoXcodeGUI</string>
+  <string>FrameRelay</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

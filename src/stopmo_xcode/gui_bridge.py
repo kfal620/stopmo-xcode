@@ -23,6 +23,31 @@ from stopmo_xcode.config import AppConfig, OutputConfig, PipelineConfig, WatchCo
 from stopmo_xcode.queue import JobState, QueueDB
 
 
+def _read_env_alias(
+    primary_key: str,
+    legacy_key: str,
+    *,
+    default: str | None = None,
+) -> tuple[str | None, str | None]:
+    """Resolve env alias with primary precedence, returning value and source key."""
+
+    primary_val = os.environ.get(primary_key)
+    if primary_val is not None and primary_val.strip():
+        return primary_val.strip(), primary_key
+
+    legacy_val = os.environ.get(legacy_key)
+    if legacy_val is not None and legacy_val.strip():
+        return legacy_val.strip(), legacy_key
+
+    return default, None
+
+
+def _legacy_env_warning(*, primary_key: str, legacy_key: str) -> str:
+    """Format consistent warning text for deprecated env variable usage."""
+
+    return f"{legacy_key} is deprecated; use {primary_key}."
+
+
 def _cfg_to_dict(config: AppConfig) -> dict[str, object]:
     """Serialize typed config dataclasses into bridge-friendly JSON payload shape."""
 
@@ -378,10 +403,21 @@ def write_config_payload(config_path: str | Path, payload: dict[str, Any]) -> di
 def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
     """Return runtime health/dependency diagnostics for GUI preflight surfaces."""
 
-    runtime_mode = str(os.environ.get("STOPMO_XCODE_RUNTIME_MODE", "external") or "external").strip().lower()
-    backend_root_env = os.environ.get("STOPMO_XCODE_BACKEND_ROOT")
+    runtime_mode_raw, runtime_mode_source = _read_env_alias(
+        "FRAMERELAY_RUNTIME_MODE",
+        "STOPMO_XCODE_RUNTIME_MODE",
+        default="external",
+    )
+    runtime_mode = str(runtime_mode_raw or "external").strip().lower()
+    backend_root_env, backend_root_source = _read_env_alias(
+        "FRAMERELAY_BACKEND_ROOT",
+        "STOPMO_XCODE_BACKEND_ROOT",
+    )
     backend_root = Path(backend_root_env).expanduser().resolve() if backend_root_env else Path.cwd().resolve()
-    workspace_root = os.environ.get("STOPMO_XCODE_WORKSPACE_ROOT")
+    workspace_root, workspace_root_source = _read_env_alias(
+        "FRAMERELAY_WORKSPACE_ROOT",
+        "STOPMO_XCODE_WORKSPACE_ROOT",
+    )
 
     if runtime_mode == "bundled":
         venv_python = Path(sys.executable).resolve()
@@ -390,7 +426,10 @@ def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
         venv_python = backend_root / ".venv" / "bin" / "python"
         venv_python_exists = venv_python.exists()
 
-    ffmpeg_env = os.environ.get("STOPMO_XCODE_FFMPEG")
+    ffmpeg_env, ffmpeg_env_source = _read_env_alias(
+        "FRAMERELAY_FFMPEG",
+        "STOPMO_XCODE_FFMPEG",
+    )
     ffmpeg_path = ffmpeg_env or shutil.which("ffmpeg")
     ffmpeg_source = "env_or_path" if ffmpeg_path else None
     if not ffmpeg_path:
@@ -418,6 +457,12 @@ def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
         "backend_mode": runtime_mode,
         "backend_root": str(backend_root),
         "workspace_root": workspace_root,
+        "env_var_sources": {
+            "runtime_mode": runtime_mode_source,
+            "backend_root": backend_root_source,
+            "workspace_root": workspace_root_source,
+            "ffmpeg": ffmpeg_env_source,
+        },
         "python_executable": sys.executable,
         "python_version": sys.version.split()[0],
         "venv_python": str(venv_python),
@@ -426,14 +471,49 @@ def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
         "ffmpeg_path": ffmpeg_path,
         "ffmpeg_source": ffmpeg_source,
         "stopmo_version": None,
+        "framerelay_version": None,
+        "legacy_env_warnings": [],
     }
+
+    legacy_env_warnings: list[str] = []
+    if runtime_mode_source == "STOPMO_XCODE_RUNTIME_MODE":
+        legacy_env_warnings.append(
+            _legacy_env_warning(
+                primary_key="FRAMERELAY_RUNTIME_MODE",
+                legacy_key="STOPMO_XCODE_RUNTIME_MODE",
+            )
+        )
+    if backend_root_source == "STOPMO_XCODE_BACKEND_ROOT":
+        legacy_env_warnings.append(
+            _legacy_env_warning(
+                primary_key="FRAMERELAY_BACKEND_ROOT",
+                legacy_key="STOPMO_XCODE_BACKEND_ROOT",
+            )
+        )
+    if workspace_root_source == "STOPMO_XCODE_WORKSPACE_ROOT":
+        legacy_env_warnings.append(
+            _legacy_env_warning(
+                primary_key="FRAMERELAY_WORKSPACE_ROOT",
+                legacy_key="STOPMO_XCODE_WORKSPACE_ROOT",
+            )
+        )
+    if ffmpeg_env_source == "STOPMO_XCODE_FFMPEG":
+        legacy_env_warnings.append(
+            _legacy_env_warning(
+                primary_key="FRAMERELAY_FFMPEG",
+                legacy_key="STOPMO_XCODE_FFMPEG",
+            )
+        )
+    payload["legacy_env_warnings"] = legacy_env_warnings
 
     try:
         from stopmo_xcode import __version__
 
         payload["stopmo_version"] = __version__
+        payload["framerelay_version"] = __version__
     except Exception:
         payload["stopmo_version"] = None
+        payload["framerelay_version"] = None
 
     if config_path is not None:
         cfg_path = Path(config_path).expanduser().resolve()
@@ -715,7 +795,10 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
     preview_backfill_jpeg_qv = 3
 
     def _resolve_ffmpeg_for_preview() -> str | None:
-        ffmpeg_env = os.environ.get("STOPMO_XCODE_FFMPEG")
+        ffmpeg_env, _ = _read_env_alias(
+            "FRAMERELAY_FFMPEG",
+            "STOPMO_XCODE_FFMPEG",
+        )
         ffmpeg_path = ffmpeg_env or shutil.which("ffmpeg")
         if ffmpeg_path:
             return ffmpeg_path
@@ -1288,6 +1371,7 @@ def watch_preflight_payload(config_path: str | Path) -> dict[str, object]:
         "blockers": blockers,
         "validation": validation,
         "health_checks": checks,
+        "legacy_env_warnings": health.get("legacy_env_warnings", []),
     }
 
 
@@ -1693,7 +1777,7 @@ def dpx_to_prores_payload(
 def _build_parser() -> argparse.ArgumentParser:
     """Build JSON bridge CLI parser and command contracts."""
 
-    parser = argparse.ArgumentParser(prog="stopmo-xcode-gui-bridge")
+    parser = argparse.ArgumentParser(prog="framerelay-gui-bridge")
     sub = parser.add_subparsers(dest="command", required=True)
 
     cfg_read = sub.add_parser("config-read", help="Read config and emit JSON")

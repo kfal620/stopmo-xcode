@@ -1,6 +1,6 @@
-# StopmoXcodeGUI
+# FrameRelay macOS GUI
 
-SwiftUI shell for `stopmo-xcode`.
+SwiftUI shell for FrameRelay.
 
 ## Build And Test
 
@@ -41,9 +41,9 @@ open StopmoXcodeGUI.xcodeproj
 Shared schemes:
 
 - `StopmoXcodeGUI-Dev`
-  - external backend mode (`STOPMO_XCODE_ROOT=$(SRCROOT)/../..`)
+  - external backend mode (`FRAMERELAY_ROOT=$(SRCROOT)/../..`, legacy `STOPMO_XCODE_ROOT` also supported)
 - `StopmoXcodeGUI-Release`
-  - bundled backend mode validation (`STOPMO_XCODE_RUNTIME_MODE=bundled`)
+  - bundled backend mode validation (`FRAMERELAY_RUNTIME_MODE=bundled`)
 - `StopmoXcodeGUI`
   - compatibility alias to the dev scheme
 
@@ -53,7 +53,7 @@ From repo root:
 
 ```bash
 cd macos/StopmoXcodeGUI
-STOPMO_XCODE_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
+FRAMERELAY_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
 ```
 
 ## Notes
