@@ -1,61 +1,60 @@
 import SwiftUI
-
-/// Preference key reporting sidebar width so root can draw split seam compensation.
-struct SidebarWidthPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
+import AppKit
 
 /// View rendering root sidebar view.
 struct RootSidebarView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var hoveredHub: LifecycleHub?
+    let topContentInset: CGFloat
     private let detailMode: SidebarDetailMode = .progressive
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 2) {
-                ForEach(LifecycleHub.allCases) { hub in
-                    let isSelected = state.selectedHub == hub
-                    let isHovered = hoveredHub == hub
+    init(topContentInset: CGFloat = 0) {
+        self.topContentInset = max(0, topContentInset)
+    }
 
-                    Button {
-                        state.selectedHub = hub
-                    } label: {
-                        sidebarRow(
-                            for: hub,
-                            isSelected: isSelected,
-                            isHovered: isHovered
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(Rectangle())
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .onHover { hovering in
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
-                            hoveredHub = hovering ? hub : (hoveredHub == hub ? nil : hoveredHub)
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(LifecycleHub.allCases) { hub in
+                        let isSelected = state.selectedHub == hub
+                        let isHovered = hoveredHub == hub
+
+                        Button {
+                            state.selectedHub = hub
+                        } label: {
+                            sidebarRow(
+                                for: hub,
+                                isSelected: isSelected,
+                                isHovered: isHovered
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .contentShape(Rectangle())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .onHover { hovering in
+                            withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
+                                hoveredHub = hovering ? hub : (hoveredHub == hub ? nil : hoveredHub)
+                            }
                         }
                     }
                 }
+                .padding(.horizontal, 6)
+                .padding(.top, -15 + topContentInset)   /// Padding above the sidebar rows (vertically between traffic lights and sidebar rows)
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .background(AppVisualTokens.backgroundCanvas)
         .background {
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: SidebarWidthPreferenceKey.self,
-                    value: proxy.size.width
-                )
+            ZStack {
+                SidebarBehindWindowMaterial()
+                Rectangle()
+                    .fill(AppVisualTokens.rootSidebarTintOverlay)
             }
+            .ignoresSafeArea(edges: [.top, .bottom, .leading])
         }
-        .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 330)
     }
 
     private func sidebarRow(
@@ -157,4 +156,20 @@ struct RootSidebarView: View {
 private struct SidebarBadge {
     let label: String
     let tone: StatusTone
+}
+
+private struct SidebarBehindWindowMaterial: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .underWindowBackground
+        view.blendingMode = .behindWindow
+        view.state = .active
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {
+        view.material = .underWindowBackground
+        view.blendingMode = .behindWindow
+        view.state = .active
+    }
 }

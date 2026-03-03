@@ -156,7 +156,22 @@ enum AppVisualTokens {
     static let shadowSoft = Color.black.opacity(0.14)
     static let shadowRaised = Color.black.opacity(0.22)
 
-    // Shell chrome tokens for command/title bar and split seam compensation.
+    // Shell chrome tokens for command/title bar and root framing.
+    static let rootShellCornerRadius: CGFloat = 18
+    static let rootSidebarTintOverlay = LinearGradient(
+        colors: [
+            Color(red: 0.04, green: 0.055, blue: 0.05).opacity(0.24),
+            Color(red: 0.045, green: 0.055, blue: 0.06).opacity(0.18),
+            Color(red: 0.035, green: 0.04, blue: 0.045).opacity(0.22),
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    static let rootDetailFrameOpaqueFill = Color(red: 0.055, green: 0.063, blue: 0.07).opacity(0.985)
+    static let rootDetailFrameBorder = Color.white.opacity(0.11)
+    static let rootDetailFrameShadow = Color.black.opacity(0.34)
+
+    // Existing command-bar tokens.
     static let commandBarBaseOpaque = Color(red: 0.11, green: 0.13, blue: 0.125).opacity(0.94)
     static let commandBarBorder = Color.white.opacity(0.12)
     static let commandBarRightNeutralScrim = LinearGradient(
@@ -168,17 +183,6 @@ enum AppVisualTokens {
         startPoint: .leading,
         endPoint: .trailing
     )
-    static let rootSplitSeam = LinearGradient(
-        colors: [
-            Color.white.opacity(0.02),
-            Color.white.opacity(0.08),
-            Color.white.opacity(0.04),
-            Color.white.opacity(0.015),
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-    static let rootSplitCornerBlend = Color(red: 0.047, green: 0.06, blue: 0.055).opacity(0.96)
 
     static func stageAccent(hub: LifecycleHub) -> Color {
         hub.accentColor
