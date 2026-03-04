@@ -39,9 +39,9 @@ struct TrafficLightFrameProjector {
 /// AppKit interop shim for custom titlebar chrome behavior in the root shell.
 ///
 /// This is a controlled workaround: AppKit may relayout traffic-light controls during
-/// resize/live-resize. We capture the original system button frames and the original
-/// traffic-light container frame once per window, then always reapply the offset relative
-/// to that original container frame to prevent drift and hover-hit mismatches.
+/// resize/live-resize. We capture original system button frames once per window and always
+/// apply offsets relative to those originals (never relative to current frames) to prevent
+/// drift and post-resize snap-back.
 struct RootWindowChromeConfigurator: NSViewRepresentable {
     let titlebarControlsOffset: CGSize
 
@@ -56,11 +56,13 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
 
         var titlebarControlsOffset: CGSize = .zero
 
-        var buttonContainerObservation: NSKeyValueObservation?
+        var closeButtonFrameObservation: NSKeyValueObservation?
+        var miniaturizeButtonFrameObservation: NSKeyValueObservation?
+        var zoomButtonFrameObservation: NSKeyValueObservation?
 
         var originalsWindowID: ObjectIdentifier?
         var originalButtonFrames: TrafficLightFrameProjector.OriginalFrames?
-        var originalButtonContainerFrame: CGRect?
+        var isApplyingShiftedFrames = false
 
         func bindWindow(_ window: NSWindow, offset: CGSize) {
             titlebarControlsOffset = offset
@@ -71,9 +73,7 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
                 bindWindowObservers(for: window)
             }
 
-            bindTitlebarControls(in: window)
-            captureOriginalFramesIfNeeded(for: window)
-            applyShiftedFrames()
+            synchronizeTrafficLights(in: window)
         }
 
         private func bindWindowObservers(for window: NSWindow) {
@@ -93,25 +93,30 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
 
         @objc private func handleWindowDidResize(_ notification: Notification) {
             guard let window = observedWindow else { return }
-            bindTitlebarControls(in: window)
-            captureOriginalFramesIfNeeded(for: window)
-            applyShiftedFrames()
+            synchronizeTrafficLights(in: window)
         }
 
         @objc private func handleWindowDidEndLiveResize(_ notification: Notification) {
             guard let window = observedWindow else { return }
-            bindTitlebarControls(in: window)
-            captureOriginalFramesIfNeeded(for: window)
-            applyShiftedFrames()
+            synchronizeTrafficLights(in: window)
 
-            // AppKit can relayout controls at the end of live resize; reapply on next ticks.
+            // AppKit can relayout controls after live-resize completes; rebind/reapply on later ticks.
             perform(#selector(handleDeferredApply), with: nil, afterDelay: 0)
-            perform(#selector(handleDeferredApply), with: nil, afterDelay: 0.05)
+            perform(#selector(handleDeferredApply), with: nil, afterDelay: 0.03)
+            perform(#selector(handleDeferredApply), with: nil, afterDelay: 0.08)
+            perform(#selector(handleDeferredApply), with: nil, afterDelay: 0.16)
+            perform(#selector(handleDeferredApply), with: nil, afterDelay: 0.3)
         }
 
         @objc private func handleDeferredApply() {
+            guard let window = observedWindow else { return }
+            synchronizeTrafficLights(in: window)
+        }
+
+        private func synchronizeTrafficLights(in window: NSWindow) {
+            bindTitlebarControls(in: window)
+            captureOriginalFramesIfNeeded(for: window)
             applyShiftedFrames()
-            refreshTrafficLightTrackingAreas()
         }
 
         private func bindTitlebarControls(in window: NSWindow) {
@@ -125,34 +130,38 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
                 return
             }
 
-            var hierarchyChanged = false
-
             if observedCloseButton !== close || observedMiniaturizeButton !== miniaturize || observedZoomButton !== zoom {
                 observedCloseButton = close
                 observedMiniaturizeButton = miniaturize
                 observedZoomButton = zoom
-                hierarchyChanged = true
+                bindButtonFrameObservers()
             }
 
-            if observedButtonContainer !== buttonContainer {
-                buttonContainerObservation?.invalidate()
-                observedButtonContainer = buttonContainer
-                buttonContainerObservation = buttonContainer.observe(\.frame, options: [.new]) { [weak self] _, _ in
-                    self?.perform(#selector(Coordinator.handleDeferredApply), with: nil, afterDelay: 0)
-                }
-                hierarchyChanged = true
-            }
+            observedButtonContainer = buttonContainer
+            observedTitlebarContainer = titlebarContainer
+        }
 
-            if observedTitlebarContainer !== titlebarContainer {
-                observedTitlebarContainer = titlebarContainer
-                hierarchyChanged = true
-            }
+        private func bindButtonFrameObservers() {
+            closeButtonFrameObservation?.invalidate()
+            miniaturizeButtonFrameObservation?.invalidate()
+            zoomButtonFrameObservation?.invalidate()
 
-            if hierarchyChanged {
-                originalsWindowID = nil
-                originalButtonFrames = nil
-                originalButtonContainerFrame = nil
+            closeButtonFrameObservation = observedCloseButton?.observe(\.frame, options: [.new]) { [weak self] _, _ in
+                self?.perform(#selector(Coordinator.handleButtonFrameMutation), with: nil, afterDelay: 0)
             }
+            miniaturizeButtonFrameObservation = observedMiniaturizeButton?.observe(\.frame, options: [.new]) { [weak self] _, _ in
+                self?.perform(#selector(Coordinator.handleButtonFrameMutation), with: nil, afterDelay: 0)
+            }
+            zoomButtonFrameObservation = observedZoomButton?.observe(\.frame, options: [.new]) { [weak self] _, _ in
+                self?.perform(#selector(Coordinator.handleButtonFrameMutation), with: nil, afterDelay: 0)
+            }
+        }
+
+        @objc private func handleButtonFrameMutation() {
+            if isApplyingShiftedFrames {
+                return
+            }
+            perform(#selector(handleDeferredApply), with: nil, afterDelay: 0)
         }
 
         private func captureOriginalFramesIfNeeded(for window: NSWindow) {
@@ -160,7 +169,6 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
             if originalsWindowID != key {
                 originalsWindowID = key
                 originalButtonFrames = nil
-                originalButtonContainerFrame = nil
             }
 
             if originalButtonFrames == nil,
@@ -173,28 +181,36 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
                     zoom: zoom.frame
                 )
             }
-
-            if originalButtonContainerFrame == nil,
-               let buttonContainer = observedButtonContainer {
-                originalButtonContainerFrame = buttonContainer.frame
-            }
         }
 
         private func applyShiftedFrames() {
             guard
-                let buttonContainer = observedButtonContainer,
-                let originalButtonContainerFrame
+                let originals = originalButtonFrames,
+                let close = observedCloseButton,
+                let miniaturize = observedMiniaturizeButton,
+                let zoom = observedZoomButton
             else {
                 return
             }
 
-            let nextOrigin = CGPoint(
-                x: originalButtonContainerFrame.origin.x + titlebarControlsOffset.width,
-                y: originalButtonContainerFrame.origin.y - titlebarControlsOffset.height
+            let projected = TrafficLightFrameProjector.shiftedOrigins(
+                from: originals,
+                offset: titlebarControlsOffset
             )
-            if buttonContainer.frame.origin != nextOrigin {
-                buttonContainer.setFrameOrigin(nextOrigin)
+
+            isApplyingShiftedFrames = true
+            defer { isApplyingShiftedFrames = false }
+
+            if close.frame.origin != projected.close {
+                close.setFrameOrigin(projected.close)
             }
+            if miniaturize.frame.origin != projected.miniaturize {
+                miniaturize.setFrameOrigin(projected.miniaturize)
+            }
+            if zoom.frame.origin != projected.zoom {
+                zoom.setFrameOrigin(projected.zoom)
+            }
+
             refreshTrafficLightTrackingAreas()
         }
 
@@ -237,8 +253,12 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
                 )
             }
 
-            buttonContainerObservation?.invalidate()
-            buttonContainerObservation = nil
+            closeButtonFrameObservation?.invalidate()
+            miniaturizeButtonFrameObservation?.invalidate()
+            zoomButtonFrameObservation?.invalidate()
+            closeButtonFrameObservation = nil
+            miniaturizeButtonFrameObservation = nil
+            zoomButtonFrameObservation = nil
 
             observedCloseButton = nil
             observedMiniaturizeButton = nil
@@ -248,7 +268,7 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
 
             originalsWindowID = nil
             originalButtonFrames = nil
-            originalButtonContainerFrame = nil
+            isApplyingShiftedFrames = false
             observedWindow = nil
         }
 
