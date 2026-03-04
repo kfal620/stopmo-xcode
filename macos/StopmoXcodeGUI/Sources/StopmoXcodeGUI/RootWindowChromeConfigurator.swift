@@ -60,8 +60,11 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
         var miniaturizeButtonFrameObservation: NSKeyValueObservation?
         var zoomButtonFrameObservation: NSKeyValueObservation?
 
+        /// Tracks which window owns the captured baseline frames.
         var originalsWindowID: ObjectIdentifier?
+        /// Immutable baseline for this window: all offsets are projected from these frames.
         var originalButtonFrames: TrafficLightFrameProjector.OriginalFrames?
+        /// Prevents observer-triggered reapply recursion while we are setting frames ourselves.
         var isApplyingShiftedFrames = false
 
         func bindWindow(_ window: NSWindow, offset: CGSize) {
@@ -100,7 +103,8 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
             guard let window = observedWindow else { return }
             synchronizeTrafficLights(in: window)
 
-            // AppKit can relayout controls after live-resize completes; rebind/reapply on later ticks.
+            // AppKit can relayout titlebar controls after live-resize completes.
+            // Reapply across multiple runloop ticks to win against late system layout passes.
             perform(#selector(handleDeferredApply), with: nil, afterDelay: 0)
             perform(#selector(handleDeferredApply), with: nil, afterDelay: 0.03)
             perform(#selector(handleDeferredApply), with: nil, afterDelay: 0.08)
@@ -134,6 +138,7 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
                 observedCloseButton = close
                 observedMiniaturizeButton = miniaturize
                 observedZoomButton = zoom
+                // Rebind when AppKit swaps button instances (common during style/layout transitions).
                 bindButtonFrameObservers()
             }
 
@@ -161,6 +166,7 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
             if isApplyingShiftedFrames {
                 return
             }
+            // If AppKit snaps controls toward system defaults, immediately project them back.
             perform(#selector(handleDeferredApply), with: nil, afterDelay: 0)
         }
 
@@ -171,6 +177,7 @@ struct RootWindowChromeConfigurator: NSViewRepresentable {
                 originalButtonFrames = nil
             }
 
+            // Critical invariant: capture once per window, never from already-shifted/current frames.
             if originalButtonFrames == nil,
                let close = observedCloseButton,
                let miniaturize = observedMiniaturizeButton,
