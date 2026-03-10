@@ -101,10 +101,12 @@ struct RootView: View {
 
     private var detailShell: some View {
         VStack(spacing: 0) {
-            RootCommandBarView {
-                await state.refreshCurrentSelection()
-            }
-            .padding(.horizontal, 8)
+            RootCommandBarView(
+                refreshAction: {
+                    await state.refreshCurrentSelection()
+                },
+                leadingContentInset: collapsedCommandBarLeadingInset
+            )
             .padding(.bottom, 6)
             .zIndex(120)
 
@@ -143,6 +145,11 @@ struct RootView: View {
         .shadow(color: AppVisualTokens.rootDetailFrameShadow, radius: 14, x: 0, y: 5)
         .ignoresSafeArea(edges: [.top, .bottom, .trailing])
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: collapsedCommandBarLeadingInset)
+    }
+
+    private var collapsedCommandBarLeadingInset: CGFloat {
+        sidebarWidth <= 1 ? RootShellMetrics.collapsedCommandBarLeadingInset : 0
     }
 
     @ViewBuilder

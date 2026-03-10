@@ -16,6 +16,7 @@ enum RootShellMetrics {
 
     // Shared offset for traffic lights and sidebar toggle.
     static let titlebarControlsOffset = CGSize(width: 8, height: 8)
+    static let collapsedCommandBarLeadingInset: CGFloat = 128
 
     // Sidebar toggle chrome and interaction.
     static let sidebarToggleSize = CGSize(width: 28, height: 28)

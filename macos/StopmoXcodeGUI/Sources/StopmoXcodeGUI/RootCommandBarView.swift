@@ -5,6 +5,9 @@ struct RootCommandBarView: View {
     @EnvironmentObject private var state: AppState
 
     let refreshAction: () async -> Void
+    var leadingContentInset: CGFloat = 0
+
+    private let chromeShape = RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
 
     var body: some View {
         ZStack {
@@ -52,6 +55,7 @@ struct RootCommandBarView: View {
                     }
                 }
             }
+            .padding(.leading, leadingContentInset)
             .zIndex(1)
 
             Text("FrameRelay")
@@ -66,40 +70,49 @@ struct RootCommandBarView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                .fill(AppVisualTokens.commandBarBaseOpaque)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+        .background {
+            GeometryReader { proxy in
+                ZStack {
+                    chromeShape
+                        .fill(AppVisualTokens.commandBarBaseOpaque)
+
+                    HStack(spacing: 0) {
+                        Rectangle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        state.selectedHub.accentColor.opacity(0.28),
+                                        state.selectedHub.accentColor.opacity(0.14),
+                                        state.selectedHub.accentColor.opacity(0.06),
+                                        .clear,
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: min(600, proxy.size.width))
+
+                        Spacer(minLength: 0)
+                    }
+
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+
+                        Rectangle()
+                            .fill(AppVisualTokens.commandBarRightNeutralScrim)
+                            .frame(width: min(360, proxy.size.width))
+                    }
+                }
+                .frame(width: proxy.size.width, height: proxy.size.height)
+            }
+            .clipShape(chromeShape)
+            .allowsHitTesting(false)
+        }
+        .overlay {
+            chromeShape
                 .stroke(AppVisualTokens.commandBarBorder, lineWidth: 0.85)
-        )
-        .overlay(alignment: .leading) {
-            Rectangle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            state.selectedHub.accentColor.opacity(0.28),
-                            state.selectedHub.accentColor.opacity(0.14),
-                            state.selectedHub.accentColor.opacity(0.06),
-                            .clear,
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(width: 600)
-                .frame(maxHeight: .infinity, alignment: .leading)
                 .allowsHitTesting(false)
         }
-        .overlay(alignment: .trailing) {
-            Rectangle()
-                .fill(AppVisualTokens.commandBarRightNeutralScrim)
-                .frame(width: 360)
-                .frame(maxHeight: .infinity, alignment: .trailing)
-                .allowsHitTesting(false)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous))
         .shadow(color: AppVisualTokens.shadowRaised.opacity(0.46), radius: 7, x: 0, y: 2)
         .frame(maxWidth: .infinity, alignment: .leading)
         .zIndex(20)
