@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Data/view model for tools dpx pane.
+/// Tools pane for DPX-to-ProRes batch conversion and delivery-side diagnostics.
 struct ToolsDpxPane: View {
     @Binding var inputDir: String
     @Binding var outputDir: String

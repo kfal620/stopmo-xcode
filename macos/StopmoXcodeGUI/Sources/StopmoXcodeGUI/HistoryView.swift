@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Enumeration for history sort option.
+/// Sort modes for run-history review when operators need to emphasize failures or volume.
 private enum HistorySortOption: String, CaseIterable, Identifiable {
     case startNewest = "Start (Newest)"
     case failedHighest = "Failed (Highest)"
@@ -10,12 +10,12 @@ private enum HistorySortOption: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-/// Enumeration for history focus field.
+/// Focusable controls inside the history workspace so keyboard search can be restored.
 private enum HistoryFocusField: Hashable {
     case search
 }
 
-/// Data/view model for compare row model.
+/// One row in the run-compare view showing whether a selected field changed between runs.
 private struct CompareRowModel: Identifiable {
     let id = UUID()
     let label: String
@@ -24,7 +24,7 @@ private struct CompareRowModel: Identifiable {
     let changed: Bool
 }
 
-/// View rendering history view.
+/// Run-history workspace for reviewing processing sessions and comparing reproducibility details.
 struct HistoryView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Data/view model for tools matrix pane.
+/// Tools pane for matrix suggestion runs, review context, and applying results back into config.
 struct ToolsMatrixPane: View {
     @Binding var inputPath: String
     @Binding var cameraMake: String

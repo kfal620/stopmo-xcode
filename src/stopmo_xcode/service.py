@@ -28,19 +28,19 @@ logger = logging.getLogger(__name__)
 
 
 def _utc_now_iso() -> str:
-    """Return a UTC timestamp string used by runtime state sidecars."""
+    """Use one UTC timestamp format for runtime sidecars read by bridge and GUI code."""
 
     return datetime.now(timezone.utc).isoformat()
 
 
 def _runtime_state_path(config: AppConfig) -> Path:
-    """Return the runtime status sidecar path under the working directory."""
+    """Keep runtime status beside the configured working directory so project state stays self-contained."""
 
     return config.watch.working_dir / ".stopmo_runtime_state.json"
 
 
 def _read_runtime_state(path: Path) -> dict[str, object]:
-    """Best-effort read for runtime state, returning an empty payload on corruption."""
+    """Treat runtime sidecars as advisory state and recover cleanly from missing or corrupt files."""
 
     if not path.exists():
         return {}
@@ -54,14 +54,14 @@ def _read_runtime_state(path: Path) -> dict[str, object]:
 
 
 def _write_runtime_state(path: Path, payload: dict[str, object]) -> None:
-    """Persist runtime state JSON for GUI/bridge health and watch status surfaces."""
+    """Persist watch runtime state in the format consumed by bridge health and status payloads."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _worker_main(config: AppConfig, worker_id: str, stop_event: mp.Event) -> None:
-    """Lease and process jobs until stop is requested for this worker process."""
+    """Run one worker process until shutdown, leasing jobs from the shared queue as capacity allows."""
 
     db = QueueDB(config.watch.db_path)
     processor = JobProcessor(config=config, db=db)
@@ -81,7 +81,7 @@ def _worker_main(config: AppConfig, worker_id: str, stop_event: mp.Event) -> Non
 
 
 def _assembly_loop(config: AppConfig, stop_event: threading.Event) -> None:
-    """Assemble completed shots into delivery media when delivery mode is enabled."""
+    """Completed-shot delivery assembly that runs only when project config explicitly enables auto-assembly."""
 
     if not config.output.write_prores_on_shot_complete:
         return
@@ -128,7 +128,7 @@ def _assembly_loop(config: AppConfig, stop_event: threading.Event) -> None:
 
 
 def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None = None) -> None:
-    """Run source watching, queue dispatch, and startup crash-recovery reset handling."""
+    """Coordinate watching, worker fan-out, and startup crash recovery for the long-running ingest service."""
 
     db = QueueDB(config.watch.db_path)
     reset_count = db.reset_inflight_to_detected()
@@ -150,7 +150,7 @@ def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None 
             logger.info("queued %s shot=%s frame=%s", path.name, shot_name, frame)
 
     def should_rearm_ready_file(path: Path) -> bool:
-        """Re-arm ready files when queue rows were removed (shot delete/restart flows)."""
+        """Let deleted or restarted shots be re-enqueued without forcing operators to touch source files again."""
 
         return not db.has_source_path(path)
 
@@ -201,7 +201,7 @@ def run_watch_service(config: AppConfig, shutdown_event: threading.Event | None 
 
 
 def transcode_one(config: AppConfig, input_path: Path, output_dir: Path | None = None) -> Path:
-    """Run a single frame through the worker pipeline for deterministic debug output."""
+    """Reuse the production worker path for one-off debugging so single-frame output matches watch output."""
 
     db = QueueDB(config.watch.db_path)
     processor = JobProcessor(config=config, db=db)

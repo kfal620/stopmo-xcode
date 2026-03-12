@@ -90,7 +90,7 @@ class QueueDB:
 
     @staticmethod
     def _now() -> str:
-        """Return current UTC timestamp for row update metadata."""
+        """UTC timestamp helper for queue row updates and lifecycle mutations."""
 
         return datetime.now(timezone.utc).isoformat()
 
@@ -159,7 +159,7 @@ class QueueDB:
             return False
 
     def has_source_path(self, source_path: Path) -> bool:
-        """Return whether a queue job row exists for a source path."""
+        """Whether a source path is already represented in the queue database."""
 
         row = self._conn.execute(
             "SELECT 1 FROM jobs WHERE source_path = ? LIMIT 1",
@@ -325,7 +325,7 @@ class QueueDB:
         )
 
     def stats(self) -> dict[str, int]:
-        """Return counts per queue state for status and monitoring surfaces."""
+        """Per-state queue counts used by status, monitoring, and bridge payloads."""
 
         rows = self._conn.execute(
             "SELECT state, COUNT(*) AS n FROM jobs GROUP BY state ORDER BY state"
@@ -333,7 +333,7 @@ class QueueDB:
         return {row["state"]: int(row["n"]) for row in rows}
 
     def shot_state_counts(self, shot_name: str) -> dict[str, int]:
-        """Return per-state counts for a single shot with convenience totals."""
+        """Per-state counts for a single shot, plus convenience totals for recovery decisions."""
 
         rows = self._conn.execute(
             """
@@ -556,6 +556,6 @@ class QueueDB:
 
 
 def asdict(job: Job) -> dict[str, Any]:
-    """Convert a typed job row to a plain dictionary payload."""
+    """Plain dictionary projection of a typed job row for JSON-oriented callers."""
 
     return dataclasses.asdict(job)

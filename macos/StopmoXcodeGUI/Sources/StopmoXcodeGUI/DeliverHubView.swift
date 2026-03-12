@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering deliver hub view.
+/// Top-level delivery workspace container that switches between day-wrap controls and run history.
 struct DeliverHubView: View {
     @EnvironmentObject private var state: AppState
 

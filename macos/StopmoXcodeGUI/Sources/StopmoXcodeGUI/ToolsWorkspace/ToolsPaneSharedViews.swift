@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering tools preflight summary view.
+/// Compact preflight summary shared across tool panes before a run begins.
 struct ToolsPreflightSummaryView: View {
     let preflight: ToolPreflight
     let context: ToolKind
@@ -29,7 +29,7 @@ struct ToolsPreflightSummaryView: View {
     }
 }
 
-/// Data/view model for tools recents menu row.
+/// Recent-item menu row used across tools panes for quick input and output recall.
 struct ToolsRecentsMenuRow: View {
     let title: String
     let values: [String]

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering setup view.
+/// Setup and health workspace for choosing the repo root, config path, and runtime environment.
 struct SetupView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false
@@ -568,7 +568,7 @@ struct SetupView: View {
     }
 }
 
-/// Data/view model for dependency row.
+/// One dependency readiness row shown in the setup health summary.
 private struct DependencyRow {
     let name: String
     let ok: Bool

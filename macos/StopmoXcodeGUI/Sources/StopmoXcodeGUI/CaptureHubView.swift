@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering capture hub view.
+/// Top-level capture workspace that hosts live monitoring and capture-side tooling.
 struct CaptureHubView: View {
     @EnvironmentObject private var state: AppState
 

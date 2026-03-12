@@ -1,6 +1,6 @@
 import Foundation
 
-/// Data/view model for live snapshot fetch limits.
+/// Fetch-size policy for live snapshots so each workspace asks the bridge for only the context it needs.
 struct LiveSnapshotFetchLimits: Equatable {
     let queueLimit: Int
     let logTailLines: Int
@@ -8,7 +8,7 @@ struct LiveSnapshotFetchLimits: Equatable {
     let shotsLimit: Int
 }
 
-/// Enumeration for live refresh planner.
+/// Planner that maps the current UI selection to refresh scope, monitoring policy, and fetch limits.
 enum LiveRefreshPlanner {
     static func refreshKind(
         selectedHub: LifecycleHub,

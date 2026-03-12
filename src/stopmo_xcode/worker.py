@@ -38,14 +38,14 @@ logger = logging.getLogger(__name__)
 
 
 def _warn_nan_inf(rgb: np.ndarray, source_path: Path) -> None:
-    """Emit warning if decode output contains non-finite pixel values."""
+    """Surface decode corruption early so broken frames do not silently propagate into DPX output."""
 
     if not np.isfinite(rgb).all():
         logger.warning("non-finite values detected in decoded frame: %s", source_path)
 
 
 def _warn_clipping(rgb: np.ndarray, source_path: Path, threshold: float = 0.01) -> None:
-    """Emit warning when pre-transform clipping exceeds a coarse threshold."""
+    """Flag heavy pre-transform clipping because it usually indicates exposure or decode problems upstream."""
 
     clipped = np.mean(rgb >= 1.0)
     if clipped > threshold:
@@ -53,7 +53,7 @@ def _warn_clipping(rgb: np.ndarray, source_path: Path, threshold: float = 0.01) 
 
 
 def _wb_delta(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
-    """Return max absolute channel delta between two white-balance multiplier sets."""
+    """Measure WB drift against the locked shot reference so warning thresholds stay channel-agnostic."""
 
     av = np.array(a, dtype=np.float32)
     bv = np.array(b, dtype=np.float32)
@@ -61,7 +61,7 @@ def _wb_delta(a: tuple[float, float, float, float], b: tuple[float, float, float
 
 
 def _iso_compensation_stops(iso: float | None, target_ei: int) -> float | None:
-    """Compute deterministic ISO-based exposure compensation term in stops."""
+    """Translate ISO metadata into the deterministic exposure term allowed by the pipeline contract."""
 
     if iso is None or iso <= 0.0 or target_ei <= 0:
         return None
@@ -69,7 +69,7 @@ def _iso_compensation_stops(iso: float | None, target_ei: int) -> float | None:
 
 
 def _shutter_compensation_stops(frame_shutter_s: float | None, target_shutter_s: float | None) -> float | None:
-    """Compute deterministic shutter compensation term in stops."""
+    """Translate shutter metadata into a formula-based compensation term instead of adaptive normalization."""
 
     if frame_shutter_s is None or frame_shutter_s <= 0.0:
         return None
@@ -79,7 +79,7 @@ def _shutter_compensation_stops(frame_shutter_s: float | None, target_shutter_s:
 
 
 def _aperture_compensation_stops(frame_aperture_f: float | None, target_aperture_f: float | None) -> float | None:
-    """Compute deterministic aperture compensation term in stops."""
+    """Translate aperture metadata into the deterministic compensation term used when explicitly enabled."""
 
     if frame_aperture_f is None or frame_aperture_f <= 0.0:
         return None
@@ -147,7 +147,7 @@ def _write_truth_pack(
     logc: np.ndarray,
     dpx_path: Path,
 ) -> None:
-    """Write optional truth-frame QC artifacts beside primary DPX output."""
+    """Persist QC-friendly truth artifacts beside the master DPX without altering delivery interpretation."""
 
     truth_dir = shot_dir / "truth_frame"
     truth_dir.mkdir(parents=True, exist_ok=True)
@@ -173,7 +173,7 @@ def _write_truth_pack(
 
 
 def _metadata_for_frame(meta: Any) -> dict[str, Any]:
-    """Serialize decode metadata and normalize shutter formatting for JSON sidecars."""
+    """Normalize per-frame metadata into a stable sidecar shape for audit and support tooling."""
 
     data = asdict(meta)
     data["source_path"] = str(meta.source_path)
@@ -182,10 +182,10 @@ def _metadata_for_frame(meta: Any) -> dict[str, Any]:
 
 
 class JobProcessor:
-    """Process queue jobs through decode, xform, write, and sidecar persistence."""
+    """Own the deterministic per-frame pipeline from leased queue row through final derived artifacts."""
 
     def __init__(self, config: AppConfig, db: QueueDB) -> None:
-        """Initialize decoder and color pipeline dependencies for worker execution."""
+        """Initialize shared decode and color dependencies once per worker process."""
 
         self.config = config
         self.db = db
@@ -199,7 +199,7 @@ class JobProcessor:
         self._preview_warning_once: set[str] = set()
 
     def process_job(self, job: Job) -> None:
-        """Process one leased job through canonical queue lifecycle transitions."""
+        """Advance one leased job through the required queue states without breaking determinism guarantees."""
 
         source_path = Path(job.source_path)
         logger.info("processing job=%s source=%s", job.id, source_path)
@@ -321,7 +321,7 @@ class JobProcessor:
         frame_number: int,
         logc: np.ndarray,
     ) -> None:
-        """Best-effort latest/first shot preview generation for GUI thumbnails."""
+        """Refresh GUI preview artifacts without letting optional encoders fail the primary frame job."""
 
         try:
             latest = write_latest_preview(
@@ -348,7 +348,7 @@ class JobProcessor:
             logger.exception("preview generation failed unexpectedly for shot_dir=%s", shot_dir)
 
     def _maybe_log_preview_warning_once(self, status: PreviewWriteStatus) -> None:
-        """Emit warning categories at most once per worker lifecycle."""
+        """Deduplicate noisy optional-artifact warnings so one bad dependency does not flood logs."""
 
         reason = status.reason or ""
         if reason in {"", "throttled", "not_earlier"}:
@@ -369,7 +369,7 @@ class JobProcessor:
         metadata: dict[str, Any],
         effective_offset_stops: float,
     ) -> None:
-        """Persist per-frame metadata and per-shot manifest records."""
+        """Persist provenance records that let operators trace a DPX back to locked shot settings and source RAW."""
 
         shot_dir = self.config.watch.output_dir / job.shot_name
         shot_dir.mkdir(parents=True, exist_ok=True)

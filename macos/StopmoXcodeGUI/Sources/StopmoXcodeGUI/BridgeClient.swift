@@ -144,7 +144,7 @@ struct BridgeClient: Sendable {
         return FileManager.default.currentDirectoryPath
     }
 
-    /// Return packaged bridge launcher path when app is running in bundled mode.
+    /// Packaged bridge launcher path when the app is running in bundled mode.
     private func bundledLauncherPath() -> String? {
         let fm = FileManager.default
         var candidates: [String] = []
@@ -160,7 +160,7 @@ struct BridgeClient: Sendable {
         return nil
     }
 
-    /// Build launch context for either bundled runtime or editable external backend.
+    /// Launch context builder for either the bundled runtime or an editable external backend.
     private func resolveLaunchContext(workspaceRoot: String) throws -> BridgeLaunchContext {
         let resolvedWorkspace = resolveWorkspaceRoot(workspaceRoot)
         var isDir: ObjCBool = false

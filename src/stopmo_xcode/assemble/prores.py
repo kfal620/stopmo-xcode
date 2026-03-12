@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 class AssemblyError(RuntimeError):
-    """Raised when sequence discovery or ffmpeg assembly fails."""
+    """Raised when batch delivery cannot produce a trustworthy ProRes result."""
 
     pass
 
 
 @dataclass
 class DpxSequence:
-    """Description of one detected DPX sequence group in source tree."""
+    """One discovered DPX sequence candidate ready for flattened delivery output naming."""
 
     shot_name: str
     dpx_dir: Path
@@ -36,7 +36,7 @@ _TRAILING_FRAME_RE = re.compile(r"^(?P<prefix>.*?)(?P<frame>\d+)$")
 
 
 def _ffmpeg_env_override() -> tuple[str | None, str | None]:
-    """Return ffmpeg env override with alias precedence and key source."""
+    """Honor the new ffmpeg override first while keeping the legacy env name functional."""
 
     for key in ("FRAMERELAY_FFMPEG", "STOPMO_XCODE_FFMPEG"):
         value = os.environ.get(key)
@@ -49,7 +49,7 @@ def _ffmpeg_env_override() -> tuple[str | None, str | None]:
 
 
 def _require_ffmpeg() -> str:
-    """Resolve executable ffmpeg path from env/PATH or bundled fallback."""
+    """Find a usable ffmpeg binary before assembly begins so failures happen before partial output creation."""
 
     env_ffmpeg, env_key = _ffmpeg_env_override()
     if env_ffmpeg:
@@ -83,7 +83,7 @@ def _require_ffmpeg() -> str:
 
 
 def _run_ffmpeg(cmd: list[str], context: str) -> None:
-    """Run ffmpeg command and raise `AssemblyError` on non-zero exit."""
+    """Normalize ffmpeg failures into assembly errors with enough context for operator-facing messaging."""
 
     proc = subprocess.run(
         cmd,
@@ -100,7 +100,7 @@ def assemble_logc_prores_4444(
     out_mov: Path,
     framerate: int,
 ) -> None:
-    """Assemble one DPX sequence glob into ProRes 4444 master movie."""
+    """Master LogC3/AWG delivery movie assembly that avoids baking any display transform."""
 
     ffmpeg = _require_ffmpeg()
     out_mov.parent.mkdir(parents=True, exist_ok=True)
@@ -134,7 +134,7 @@ def assemble_rec709_review(
     out_mov: Path,
     show_lut_cube: Path,
 ) -> None:
-    """Create Rec709 review movie from master movie and show LUT."""
+    """Create an editorial review movie as a secondary artifact while preserving the untouched master."""
 
     ffmpeg = _require_ffmpeg()
     out_mov.parent.mkdir(parents=True, exist_ok=True)
@@ -159,7 +159,7 @@ def assemble_rec709_review(
 
 
 def _sequence_parts_from_stem(stem: str) -> tuple[str, str] | None:
-    """Extract raw prefix and normalized sequence name from frame stem."""
+    """Derive a stable sequence identity from frame names so batch output names stay predictable."""
 
     m = _TRAILING_FRAME_RE.match(stem)
     if m is None:
@@ -176,7 +176,7 @@ def _sequence_parts_from_stem(stem: str) -> tuple[str, str] | None:
 
 
 def discover_dpx_sequences(root_dir: Path) -> list[DpxSequence]:
-    """Discover DPX sequences under a root directory for batch conversion."""
+    """Find batch-convertible DPX sequences without assuming one exact on-disk folder naming convention."""
 
     sequences: list[DpxSequence] = []
     grouped_dirs: dict[Path, list[Path]] = {}
@@ -221,7 +221,7 @@ def convert_dpx_sequences_to_prores(
     on_sequence_complete: Callable[[DpxSequence, Path], None] | None = None,
     should_stop: Callable[[], bool] | None = None,
 ) -> list[Path]:
-    """Convert discovered DPX sequences into flattened ProRes outputs."""
+    """Flatten discovered sequences into delivery movies while guarding against naming collisions."""
 
     if output_root is None:
         output_root = input_root / "PRORES"
@@ -274,7 +274,7 @@ def convert_dpx_sequences_to_prores(
 
 
 def write_handoff_readme(path: Path) -> None:
-    """Write delivery handoff note describing interpretation contract."""
+    """Persist the interpretation contract beside delivery outputs so downstream editorial keeps plates correct."""
 
     text = (
         "STOPMO-XCODE HANDOFF\n"

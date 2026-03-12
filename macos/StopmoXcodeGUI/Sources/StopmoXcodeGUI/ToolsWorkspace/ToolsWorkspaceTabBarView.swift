@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering tools workspace tab bar view.
+/// Tab bar that switches between the capture-side utility tools without leaving the tools workspace.
 struct ToolsWorkspaceTabBarView: View {
     let tabs: [ToolsTab]
     @Binding var selectedTab: ToolsTab

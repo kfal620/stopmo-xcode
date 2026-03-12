@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _warn_if_legacy_entrypoint(invoked_as: str) -> None:
-    """Emit one-line deprecation guidance when legacy CLI name is used."""
+    """Warn only when users entered through the deprecated binary name, not the new public CLI."""
 
     if invoked_as != "stopmo-xcode":
         return
@@ -28,7 +28,7 @@ def _warn_if_legacy_entrypoint(invoked_as: str) -> None:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    """Build the top-level CLI parser and subcommand contracts."""
+    """Define the stable public CLI surface shared by manual operators and wrapper scripts."""
 
     parser = argparse.ArgumentParser(prog="framerelay")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -78,7 +78,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_watch(args: argparse.Namespace) -> int:
-    """Run the continuous watch service with config-driven worker orchestration."""
+    """Start the long-running ingest service using the same config path the GUI and bridge honor."""
 
     from stopmo_xcode.service import run_watch_service
 
@@ -89,7 +89,7 @@ def _cmd_watch(args: argparse.Namespace) -> int:
 
 
 def _cmd_transcode_one(args: argparse.Namespace) -> int:
-    """Transcode one source frame through the same deterministic worker pipeline."""
+    """Run one frame through the production pipeline for deterministic debugging and calibration checks."""
 
     from stopmo_xcode.service import transcode_one
 
@@ -105,7 +105,7 @@ def _cmd_transcode_one(args: argparse.Namespace) -> int:
 
 
 def _cmd_status(args: argparse.Namespace) -> int:
-    """Emit queue state counts and recent jobs for operational triage."""
+    """Expose queue health in either human-readable or machine-readable form for operational triage."""
 
     config = load_config(args.config)
     configure_logging(config.log_level, config.log_file)
@@ -157,7 +157,7 @@ def _cmd_status(args: argparse.Namespace) -> int:
 
 
 def _cmd_suggest_matrix(args: argparse.Namespace) -> int:
-    """Suggest a camera-to-reference matrix using metadata heuristics and fallbacks."""
+    """Surface matrix suggestion heuristics as a CLI workflow that can also persist a reviewable report."""
 
     from stopmo_xcode.color.matrix_suggest import suggest_camera_to_reference_matrix
 
@@ -203,7 +203,7 @@ def _cmd_suggest_matrix(args: argparse.Namespace) -> int:
 
 
 def _cmd_dpx_to_prores(args: argparse.Namespace) -> int:
-    """Batch-convert nested DPX shot folders into ProRes outputs."""
+    """Run delivery assembly from the CLI while preserving the same defaults used by app workflows."""
 
     from stopmo_xcode.assemble import convert_dpx_sequences_to_prores
 
@@ -235,7 +235,7 @@ def _cmd_dpx_to_prores(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Parse args, dispatch command handlers, and normalize fatal error reporting."""
+    """Dispatch CLI commands and keep fatal failures on a predictable stderr-and-exit-code contract."""
 
     if argv is None:
         _warn_if_legacy_entrypoint(Path(sys.argv[0]).name)

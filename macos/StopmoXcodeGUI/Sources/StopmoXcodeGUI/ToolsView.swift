@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// View rendering tools view.
+/// Capture-side tools workspace that hosts transcode, matrix, and delivery utility panes.
 struct ToolsView: View {
     @EnvironmentObject private var state: AppState
 

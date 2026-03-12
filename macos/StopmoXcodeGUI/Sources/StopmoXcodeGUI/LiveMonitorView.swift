@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering live monitor view.
+/// Capture workspace surface for live queue progress, telemetry, and recent activity context.
 struct LiveMonitorView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.hubContentWidth) private var hubContentWidth

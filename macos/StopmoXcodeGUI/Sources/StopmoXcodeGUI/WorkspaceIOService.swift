@@ -2,14 +2,14 @@ import AppKit
 import Foundation
 import UniformTypeIdentifiers
 
-/// Result payload for path open result.
+/// Finder-open outcome used to decide whether the UI should fall back to opening a parent folder.
 enum PathOpenResult {
     case openedTarget
     case openedParent
     case missing
 }
 
-/// Data/view model for workspace access resolution.
+/// Resolved security-scoped workspace bookmark, including whether the bookmark had to be refreshed.
 struct WorkspaceAccessResolution {
     let url: URL
     let bookmarkWasStale: Bool
@@ -17,7 +17,7 @@ struct WorkspaceAccessResolution {
 }
 
 @MainActor
-/// Service type for workspace ioservice.
+/// AppKit-facing workspace helper that owns file pickers, Finder actions, and security-scoped bookmarks.
 struct WorkspaceIOService {
     func chooseWorkspaceDirectory(initialPath: String) -> URL? {
         let panel = NSOpenPanel()

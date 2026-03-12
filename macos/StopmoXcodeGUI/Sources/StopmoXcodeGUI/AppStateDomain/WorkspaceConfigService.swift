@@ -1,6 +1,6 @@
 import Foundation
 
-/// Result payload for workspace bootstrap result.
+/// Outcome of workspace bootstrap, including where config ended up and whether a template was created.
 struct WorkspaceBootstrapResult: Equatable {
     let resolvedConfigPath: String
     let createdConfig: Bool
@@ -28,7 +28,7 @@ protocol WorkspaceConfigServicing {
     func bootstrapWorkspaceIfNeeded(workspaceRoot: String, configPath: String) throws -> WorkspaceBootstrapResult
 }
 
-/// Service type for live workspace config service.
+/// Live workspace config service that resolves repo roots and bootstraps config files for new workspaces.
 struct LiveWorkspaceConfigService: WorkspaceConfigServicing {
     private static let defaultWorkspaceFolderName = "StopmoXcodeWorkspace"
 

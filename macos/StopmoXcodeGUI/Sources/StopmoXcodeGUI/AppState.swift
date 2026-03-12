@@ -3,21 +3,21 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-/// User-facing error payload for modal/alert presentation.
+/// Presentation-ready error payload for alerts and blocking task failures.
 struct PresentedError: Identifiable {
     let id = UUID()
     let title: String
     let message: String
 }
 
-/// Notification severity used across toasts and notification center rows.
+/// Shared notification severity used by both transient toasts and the persistent notification center.
 enum NotificationKind: String, Sendable {
     case info
     case warning
     case error
 }
 
-/// Notification center record shared by toast and full-history presentation.
+/// Notification record stored in AppState and rendered in both toast and history contexts.
 struct NotificationRecord: Identifiable, Sendable {
     let id = UUID()
     let kind: NotificationKind
@@ -39,7 +39,7 @@ struct NotificationRecord: Identifiable, Sendable {
 }
 
 @MainActor
-/// Main UI state orchestrator that coordinates bridge calls and workspace flows.
+/// Main application state owner that coordinates bridge IO, monitoring, and workspace-specific reducers.
 final class AppState: ObservableObject {
     @Published var selectedHub: LifecycleHub = .configure
     @Published var selectedConfigurePanel: ConfigurePanel = .projectSettings
@@ -163,13 +163,13 @@ final class AppState: ObservableObject {
 
     // MARK: - Monitoring Controls
 
-    /// Restart the live monitoring loop using current panel and polling settings.
+    /// Restart background polling after panel or cadence changes alter what should be refreshed.
     func restartMonitoringLoop() {
         stopMonitoringLoop()
         startMonitoringLoop(force: true)
     }
 
-    /// Refresh backend/runtime health checks and update status messaging.
+    /// Reload backend readiness data and update top-level status messaging from the result.
     func refreshHealth() async {
         await runBlockingTask(label: "Checking runtime health") {
             let repoRoot = self.repoRoot
@@ -180,7 +180,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Load config from bridge and replace current editable in-memory state.
+    /// Reload the editable config document from the bridge and replace the current in-memory form state.
     func loadConfig() async {
         await runBlockingTask(label: "Loading config") {
             let repoRoot = self.repoRoot
@@ -194,7 +194,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Persist current (or override) config document through bridge write flow.
+    /// Persist the active config document through the bridge and replace local state with the normalized result.
     func saveConfig(config overrideConfig: StopmoConfigDocument? = nil) async {
         await runBlockingTask(label: "Saving config") {
             let repoRoot = self.repoRoot
@@ -210,7 +210,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Start watch service, apply live snapshots, and surface preflight/start errors.
+    /// Start watch service, sync the resulting live state, and surface any startup blockers or launch failures.
     func startWatchService() async {
         let shouldResumeMonitoring = monitoringCoordinator.isRunning
         if shouldResumeMonitoring {
@@ -250,7 +250,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Stop watch service and rehydrate state snapshots after shutdown completes.
+    /// Stop watch service, then refresh dependent state so the UI reflects the final shutdown snapshot.
     func stopWatchService() async {
         let shouldResumeMonitoring = monitoringCoordinator.isRunning
         if shouldResumeMonitoring {
@@ -318,7 +318,7 @@ final class AppState: ObservableObject {
         )
     }
 
-    /// Enumeration for refresh kind.
+    /// Logical refresh targets used to map the current workspace selection to the right data fetch.
     enum RefreshKind: Equatable {
         case health
         case config
@@ -1078,7 +1078,7 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Enumeration for live refresh source.
+    /// Whether a live-data refresh came from an explicit user action or the background monitor loop.
     private enum LiveRefreshSource {
         case manual
         case monitor

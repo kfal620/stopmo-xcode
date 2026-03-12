@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering project logging section view.
+/// Project settings section for log verbosity and optional log-file routing.
 struct ProjectLoggingSectionView: View {
     @Binding var logLevel: String
     @Binding var logFile: String?

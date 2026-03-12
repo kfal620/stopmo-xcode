@@ -1,6 +1,6 @@
 import Foundation
 
-/// Data/view model for app state dependencies.
+/// Dependency bundle used to construct AppState with live services or targeted test doubles.
 struct AppStateDependencies {
     let bridgeService: BridgeServicing
     let workspaceConfigService: WorkspaceConfigServicing

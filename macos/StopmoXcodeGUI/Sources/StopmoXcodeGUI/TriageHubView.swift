@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering triage hub view.
+/// Top-level triage workspace that switches between shot health, queue, and diagnostics panels.
 struct TriageHubView: View {
     @EnvironmentObject private var state: AppState
 

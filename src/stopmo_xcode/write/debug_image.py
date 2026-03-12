@@ -8,7 +8,7 @@ import numpy as np
 
 
 def write_linear_debug_tiff(path: Path, rgb: np.ndarray) -> None:
-    """Write float linear RGB array to TIFF when debug output is enabled."""
+    """Persist a float linear RGB TIFF for debugging when that optional artifact is enabled."""
 
     try:
         import tifffile  # type: ignore

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering project presets section view.
+/// Project editor section for browsing, comparing, and applying saved config presets.
 struct ProjectPresetsSectionView: View {
     @Binding var presetNameInput: String
     @Binding var selectedPresetName: String

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering project watch section view.
+/// Project settings section for source discovery, worker throughput, and shot matching policy.
 struct ProjectWatchSectionView: View {
     @Binding var watch: StopmoConfigDocument.Watch
     @State private var showAdvancedTiming: Bool = false

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Data/view model for queue depth sparkline.
+/// Compact queue-depth trend sparkline used in capture monitoring and status summaries.
 struct QueueDepthSparkline: View {
     let values: [Int]
 

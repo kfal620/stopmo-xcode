@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering root command bar view.
+/// Top-level command bar that exposes the most common app-wide actions and status affordances.
 struct RootCommandBarView: View {
     @EnvironmentObject private var state: AppState
 

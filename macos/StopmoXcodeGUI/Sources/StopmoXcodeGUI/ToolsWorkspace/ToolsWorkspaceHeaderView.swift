@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering tools workspace header view.
+/// Shared tools-workspace header that summarizes the active tool and most recent run state.
 struct ToolsWorkspaceHeaderView: View {
     let title: String
     let subtitle: String

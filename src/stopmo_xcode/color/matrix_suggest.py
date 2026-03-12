@@ -33,7 +33,7 @@ KNOWN_CAMERA_TO_XYZ_D65: dict[str, np.ndarray] = {
 
 @dataclass
 class MatrixSuggestion:
-    """Structured matrix suggestion report for CLI and GUI payloads."""
+    """Reviewable matrix recommendation shared across CLI, GUI, and saved report outputs."""
 
     input_path: Path
     camera_make: str | None
@@ -47,7 +47,7 @@ class MatrixSuggestion:
     notes: tuple[str, ...]
 
     def to_json_dict(self) -> dict[str, Any]:
-        """Serialize suggestion report into JSON-compatible primitives."""
+        """Transport-safe projection of the suggestion that preserves its review context."""
 
         return {
             "input_path": str(self.input_path),
@@ -63,7 +63,7 @@ class MatrixSuggestion:
         }
 
     def to_yaml_block(self) -> str:
-        """Render matrix suggestion as `pipeline.camera_to_reference_matrix` YAML snippet."""
+        """Render the exact YAML fragment operators can paste into project config."""
 
         rows = [
             f"    - [{row[0]:.8f}, {row[1]:.8f}, {row[2]:.8f}]"
@@ -73,7 +73,7 @@ class MatrixSuggestion:
 
 
 def _normalize_camera_key(make: str | None, model: str | None) -> str | None:
-    """Normalize make/model text to lookup key for known-camera table."""
+    """Collapse metadata spelling noise so known-camera fallbacks hit the same lookup table."""
 
     text = " ".join([v for v in [make, model] if v]).strip().lower()
     if not text:
@@ -83,7 +83,7 @@ def _normalize_camera_key(make: str | None, model: str | None) -> str | None:
 
 
 def lookup_known_camera_to_xyz_d65(make: str | None, model: str | None) -> np.ndarray | None:
-    """Return known camera->XYZ(D65) matrix for a make/model pair when available."""
+    """Provide a curated fallback matrix when RAW metadata does not expose a usable transform."""
 
     key = _normalize_camera_key(make, model)
     if key is None:
@@ -100,14 +100,14 @@ def lookup_known_camera_to_xyz_d65(make: str | None, model: str | None) -> np.nd
 
 
 def _xy_to_xyz(xy: np.ndarray) -> np.ndarray:
-    """Convert xy chromaticity to unit-luminance XYZ vector."""
+    """Turn chromaticity coordinates into XYZ white points for adaptation math."""
 
     x, y = float(xy[0]), float(xy[1])
     return np.array([x / y, 1.0, (1.0 - x - y) / y], dtype=np.float64)
 
 
 def _bradford_adaptation(src_white_xy: np.ndarray, dst_white_xy: np.ndarray) -> np.ndarray:
-    """Build Bradford chromatic adaptation matrix between source and destination white."""
+    """Adapt source white to the ACES reference white without changing the camera matrix contract."""
 
     m = np.array(
         [
@@ -129,7 +129,7 @@ def _bradford_adaptation(src_white_xy: np.ndarray, dst_white_xy: np.ndarray) -> 
 
 
 def _camera_xyz_d65_to_aces2065_1(camera_to_xyz_d65: np.ndarray) -> np.ndarray:
-    """Convert camera->XYZ(D65) matrix to camera->ACES2065-1 matrix."""
+    """Map a camera-to-XYZ matrix into the ACES2065-1 reference space expected by config."""
 
     xyz_d65_to_xyz_d60 = _bradford_adaptation(D65_WHITE, AP0_WHITE)
     xyz_d60_to_ap0 = np.linalg.inv(rgb_to_xyz_matrix(AP0_PRIMARIES, AP0_WHITE))
@@ -137,7 +137,7 @@ def _camera_xyz_d65_to_aces2065_1(camera_to_xyz_d65: np.ndarray) -> np.ndarray:
 
 
 def _coerce_to_3x3(value: Any) -> tuple[np.ndarray | None, list[str]]:
-    """Normalize matrix-like metadata payloads into finite 3x3 matrix when possible."""
+    """Reshape vendor-specific matrix payloads into the 3x3 form the rest of the pipeline understands."""
 
     notes: list[str] = []
     if value is None:
@@ -178,7 +178,7 @@ def _coerce_to_3x3(value: Any) -> tuple[np.ndarray | None, list[str]]:
 
 
 def _extract_make_model_exiftool(path: Path) -> tuple[str | None, str | None]:
-    """Read camera make/model via exiftool when rawpy metadata is missing."""
+    """Use exiftool as a metadata fallback so camera lookup can still work without rawpy support."""
 
     exiftool = shutil.which("exiftool")
     if exiftool is None:
@@ -210,7 +210,7 @@ def suggest_camera_to_reference_matrix(
     camera_make_override: str | None = None,
     camera_model_override: str | None = None,
 ) -> MatrixSuggestion:
-    """Suggest camera-to-reference matrix with provenance, confidence, and notes."""
+    """Produce a camera-to-reference recommendation with enough provenance to audit or override it."""
 
     if reference_space != "ACES2065-1":
         raise ValueError("Only ACES2065-1 reference is currently supported.")

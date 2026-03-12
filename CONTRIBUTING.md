@@ -32,4 +32,5 @@ Thanks for contributing to `stopmo-xcode`.
 
 - Add module/type/function docs for touched production code when intent is non-obvious.
 - Prioritize comments on invariants, contracts, and edge-case handling.
-- Avoid comments that merely restate syntax.
+- Reject comments that merely restate syntax or obvious control flow.
+- Rewrite placeholder phrases like `Return X`, `Data/view model for Y`, or `Enumeration for Z` into contract-oriented wording.

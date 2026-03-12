@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// View rendering root sidebar view.
+/// Primary app sidebar that drives top-level workspace navigation and status emphasis.
 struct RootSidebarView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -152,7 +152,7 @@ struct RootSidebarView: View {
     }
 }
 
-/// Data/view model for sidebar badge.
+/// Sidebar badge model for surfacing queue, warning, or activity counts beside a hub.
 private struct SidebarBadge {
     let label: String
     let tone: StatusTone

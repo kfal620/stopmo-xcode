@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Data/view model for delivery shot list pane.
+/// Shot-selection pane for day-wrap delivery, including readiness state and preview access.
 struct DeliveryShotListPane: View {
     let readyShotEvaluations: [ShotHealthEvaluation]
     let notReadyShotEvaluations: [ShotHealthEvaluation]
@@ -218,7 +218,7 @@ struct DeliveryShotListPane: View {
     }
 }
 
-/// Data/view model for deliverable shots pane.
+/// Ready-shot list used when operators need to launch delivery from explicit shot selections.
 private struct DeliverableShotsPane<Rows: View>: View {
     let readyCount: Int
     let selectedCount: Int

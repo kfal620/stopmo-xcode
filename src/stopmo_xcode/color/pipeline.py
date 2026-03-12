@@ -77,7 +77,7 @@ class ColorPipeline:
         return logc
 
     def version_hash(self) -> str:
-        """Return stable short hash for effective color-pipeline configuration."""
+        """Stable short hash for the effective color-pipeline configuration."""
 
         payload: dict[str, Any] = {
             "camera_to_reference_matrix": [[float(v) for v in row] for row in self.cfg.camera_to_reference_matrix],

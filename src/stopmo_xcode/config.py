@@ -1,4 +1,4 @@
-"""Load and validate project configuration for pipeline, watch, and output behavior."""
+"""Project configuration loading and normalization for watch, pipeline, and output policy."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from typing import Any
 
 @dataclass
 class WatchConfig:
-    """Runtime watch settings for source ingest, polling, and worker concurrency."""
+    """Filesystem and worker settings that define how new source frames enter the pipeline."""
 
     source_dir: Path
     working_dir: Path
@@ -26,7 +26,7 @@ class WatchConfig:
 
 @dataclass
 class PipelineConfig:
-    """Deterministic color/exposure settings shared by worker and tool commands."""
+    """Deterministic image-processing policy shared by watch, transcode, and tooling entry points."""
 
     camera_to_reference_matrix: tuple[tuple[float, float, float], ...] = (
         (1.0, 0.0, 0.0),
@@ -54,7 +54,7 @@ class PipelineConfig:
 
 @dataclass
 class OutputConfig:
-    """Output-side toggles for sidecars, truth packs, and delivery artifacts."""
+    """Controls which derived artifacts are emitted once frames leave the core DPX pipeline."""
 
     emit_per_frame_json: bool = True
     emit_truth_frame_pack: bool = True
@@ -67,7 +67,7 @@ class OutputConfig:
 
 @dataclass
 class AppConfig:
-    """Top-level app configuration loaded from YAML and normalized to typed values."""
+    """Canonical typed config assembled from YAML before any service or bridge code consumes it."""
 
     watch: WatchConfig
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
@@ -77,7 +77,7 @@ class AppConfig:
 
 
 def _as_tuple_matrix(raw: list[list[float]]) -> tuple[tuple[float, float, float], ...]:
-    """Validate and normalize a 3x3 matrix payload into an immutable tuple form."""
+    """Freeze matrix config into an immutable 3x3 value so downstream code cannot mutate pipeline state."""
 
     if len(raw) != 3 or any(len(row) != 3 for row in raw):
         raise ValueError("camera_to_reference_matrix must be 3x3")
@@ -85,7 +85,7 @@ def _as_tuple_matrix(raw: list[list[float]]) -> tuple[tuple[float, float, float]
 
 
 def _expand_path(value: str | None, base: Path) -> Path | None:
-    """Resolve relative paths against config location; preserve missing optional values."""
+    """Interpret config paths relative to the config file so copied project folders remain portable."""
 
     if value in (None, ""):
         return None
@@ -96,7 +96,7 @@ def _expand_path(value: str | None, base: Path) -> Path | None:
 
 
 def _require(data: dict[str, Any], key: str) -> Any:
-    """Fetch a required key from a config section or raise a structured error."""
+    """Raise a config-focused error as soon as a required project field is absent."""
 
     if key not in data:
         raise ValueError(f"missing required config key: {key}")
@@ -104,7 +104,7 @@ def _require(data: dict[str, Any], key: str) -> Any:
 
 
 def load_config(path: str | Path) -> AppConfig:
-    """Load YAML config and materialize normalized typed config with defaults."""
+    """Project config loader that normalizes defaults before any pipeline code starts using it."""
 
     try:
         import yaml  # type: ignore
@@ -187,7 +187,7 @@ def load_config(path: str | Path) -> AppConfig:
 
 
 def ensure_dirs(config: AppConfig) -> None:
-    """Create required runtime directories referenced by the active configuration."""
+    """Materialize runtime directories eagerly so watch and bridge flows fail before processing starts."""
 
     config.watch.source_dir.mkdir(parents=True, exist_ok=True)
     config.watch.working_dir.mkdir(parents=True, exist_ok=True)

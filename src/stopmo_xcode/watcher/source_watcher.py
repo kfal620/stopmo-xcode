@@ -59,7 +59,7 @@ class SourceWatcher:
         self._stop_event.set()
 
     def _is_candidate(self, path: Path) -> bool:
-        """Return whether a path matches extension and file checks."""
+        """Whether a filesystem entry qualifies for tracking as a source candidate."""
 
         return path.is_file() and path.suffix.lower() in self.include_extensions
 

@@ -8,6 +8,19 @@ This project uses comments to preserve intent and invariants, not to narrate syn
 - Document contracts at module/type/function boundaries.
 - Keep comments concise and stable under normal refactors.
 
+## Bad Vs Good
+
+- Bad: `Return queue snapshot.`
+  Good: `Capture the queue state shape consumed by polling clients without exposing database rows directly.`
+- Bad: `Write preview image.`
+  Good: `Persist a lightweight preview artifact so the GUI can inspect pipeline output without opening DPX masters.`
+- Bad: `Data/view model for queue job record.`
+  Good: `Bridge-facing queue item model shared by triage, monitoring, and delivery screens.`
+- Bad: `Enumeration for operation status.`
+  Good: `Lifecycle states the GUI uses to distinguish cancellable work from terminal outcomes.`
+
+Prefer one sentence, but make it about contract, invariant, ownership, or compatibility. Delete comments that cannot justify their existence at that level.
+
 ## Python (`src/stopmo_xcode`)
 
 - Add a module docstring to each module.
@@ -29,6 +42,8 @@ This project uses comments to preserve intent and invariants, not to narrate syn
 ## Anti-Patterns
 
 - Avoid comments that restate obvious code behavior.
+- Avoid leading with generic verbs like `Return`, `Write`, `Load`, or `Convert` unless the rest of the sentence explains the semantic contract.
+- Avoid placeholder type docs such as `Data/view model for...`, `Enumeration for...`, or `Service type for...`.
 - Avoid stale implementation-detail comments that are likely to drift.
 - Avoid broad block comments where precise docstrings are better.
 

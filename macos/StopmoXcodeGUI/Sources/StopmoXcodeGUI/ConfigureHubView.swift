@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering configure hub view.
+/// Top-level configure workspace that switches between project settings, health, and calibration surfaces.
 struct ConfigureHubView: View {
     @EnvironmentObject private var state: AppState
 

@@ -25,14 +25,14 @@ TERMINAL_OPERATION_STATES = {"succeeded", "failed", "cancelled"}
 
 
 def _utc_now_iso() -> str:
-    """Return UTC timestamp string for operation snapshots and event records."""
+    """Generate the stable UTC timestamp format shared by snapshots and append-only events."""
 
     return datetime.now(timezone.utc).isoformat()
 
 
 @dataclass(frozen=True)
 class QueueJobStatus:
-    """Serializable job status row used by CLI bridge and GUI surfaces."""
+    """Normalized queue row exposed to polling clients without leaking database internals."""
 
     id: int
     state: str
@@ -46,7 +46,7 @@ class QueueJobStatus:
 
 @dataclass(frozen=True)
 class QueueStatus:
-    """Queue-level status payload with per-state counts and recent jobs."""
+    """Queue snapshot consumed by CLI status output, bridge polling, and live monitoring."""
 
     db_path: str
     counts: dict[str, int]
@@ -55,7 +55,7 @@ class QueueStatus:
 
 @dataclass(frozen=True)
 class MatrixSuggestResult:
-    """Result payload for matrix suggestion plus optional JSON report output path."""
+    """Matrix suggestion response, including any persisted report path surfaced back to the caller."""
 
     report: MatrixSuggestion
     payload: dict[str, object]
@@ -64,7 +64,7 @@ class MatrixSuggestResult:
 
 @dataclass(frozen=True)
 class DpxToProresResult:
-    """Result payload for DPX-to-ProRes batch conversion operations."""
+    """Normalized output summary for a batch assembly run, independent of transport surface."""
 
     input_dir: Path
     output_dir: Path
@@ -73,7 +73,7 @@ class DpxToProresResult:
 
 @dataclass(frozen=True)
 class OperationEvent:
-    """Single append-only operation event emitted during async execution."""
+    """Immutable lifecycle event recorded for polling, streaming, and post-run diagnostics."""
 
     seq: int
     operation_id: str
@@ -85,7 +85,7 @@ class OperationEvent:
 
 @dataclass(frozen=True)
 class OperationSnapshot:
-    """Current operation snapshot used by polling and status APIs."""
+    """Stable polling view of a long-running operation exposed to bridge and GUI clients."""
 
     id: str
     kind: str
@@ -103,7 +103,7 @@ class OperationSnapshot:
 
 @dataclass
 class _OperationRuntime:
-    """Mutable runtime record used internally by the operation manager."""
+    """Internal mutable state that backs public snapshots while an operation is still executing."""
 
     id: str
     kind: str
@@ -122,16 +122,16 @@ class _OperationRuntime:
 
 
 class OperationCancelled(RuntimeError):
-    """Internal sentinel for operations cancelled through cooperative stop hooks."""
+    """Internal sentinel used to convert cooperative stop requests into terminal cancelled state."""
 
     pass
 
 
 class _OperationManager:
-    """Thread-safe in-memory operation/event registry for GUI and bridge workflows."""
+    """In-memory operation registry that gives bridge and GUI flows a shared async lifecycle model."""
 
     def __init__(self, max_events: int = 5000) -> None:
-        """Initialize operation/event stores with bounded event history."""
+        """Bound retained event history so long-lived sessions cannot grow memory without limit."""
 
         self._lock = threading.RLock()
         self._operations: dict[str, _OperationRuntime] = {}
@@ -145,7 +145,7 @@ class _OperationManager:
         metadata: dict[str, object] | None = None,
         cancellable: bool = False,
     ) -> _OperationRuntime:
-        """Create a new operation runtime and emit creation event."""
+        """Register a new operation before work starts so clients can poll from the first lifecycle event."""
 
         now = _utc_now_iso()
         operation_id = f"op_{uuid.uuid4().hex}"
@@ -165,7 +165,7 @@ class _OperationManager:
         return runtime
 
     def bind_thread(self, operation_id: str, worker_thread: threading.Thread) -> None:
-        """Associate a background worker thread with a tracked operation."""
+        """Attach the worker thread so waiters and cancellation flows can observe execution state."""
 
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -173,7 +173,7 @@ class _OperationManager:
                 runtime.worker_thread = worker_thread
 
     def mark_started(self, operation_id: str) -> None:
-        """Transition operation to running and emit lifecycle event."""
+        """Move a pending operation into running state and publish the state transition once."""
 
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -190,7 +190,7 @@ class _OperationManager:
         message: str | None = None,
         payload: dict[str, object] | None = None,
     ) -> None:
-        """Emit an event for an operation if it is still tracked."""
+        """Append a lifecycle event only while the operation is still present in the registry."""
 
         with self._lock:
             if operation_id not in self._operations:
@@ -206,7 +206,7 @@ class _OperationManager:
         message: str | None = None,
         payload: dict[str, object] | None = None,
     ) -> None:
-        """Update clamped progress and optionally emit a typed progress event."""
+        """Clamp progress to the public 0-1 contract and optionally emit a correlated progress event."""
 
         clamped = max(0.0, min(1.0, float(progress)))
         with self._lock:
@@ -221,7 +221,7 @@ class _OperationManager:
                 self._emit_locked(operation_id, event_type, message=message, payload=progress_payload)
 
     def succeed(self, operation_id: str, result: dict[str, object] | None = None) -> None:
-        """Mark operation successful and finalize result payload."""
+        """Finalize a successful operation with the result payload callers will read afterward."""
 
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -234,7 +234,7 @@ class _OperationManager:
             self._emit_locked(operation_id, "operation_succeeded", payload=result)
 
     def cancel_complete(self, operation_id: str, result: dict[str, object] | None = None) -> None:
-        """Mark operation cancelled and finalize partial result payload."""
+        """Publish terminal cancelled state while preserving any partial result the caller can still inspect."""
 
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -246,7 +246,7 @@ class _OperationManager:
             self._emit_locked(operation_id, "operation_cancelled", payload=result)
 
     def fail(self, operation_id: str, error: str) -> None:
-        """Mark operation failed and persist a stable error message."""
+        """Store a terminal failure message that remains stable across later polling calls."""
 
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -258,7 +258,7 @@ class _OperationManager:
             self._emit_locked(operation_id, "operation_failed", message=runtime.error)
 
     def request_cancel(self, operation_id: str) -> bool:
-        """Request cooperative cancellation for cancellable non-terminal operations."""
+        """Signal cooperative cancellation only for operations that can still transition cleanly."""
 
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -273,7 +273,7 @@ class _OperationManager:
             return True
 
     def get(self, operation_id: str) -> OperationSnapshot | None:
-        """Return current operation snapshot for an operation id."""
+        """Latest immutable view for one operation id while it remains in the registry."""
 
         with self._lock:
             runtime = self._operations.get(operation_id)
@@ -282,7 +282,7 @@ class _OperationManager:
             return self._to_snapshot(runtime)
 
     def list(self, limit: int = 100) -> tuple[OperationSnapshot, ...]:
-        """List newest operations first, bounded by `limit`."""
+        """Expose recent operations in reverse creation order for history and diagnostics views."""
 
         with self._lock:
             runtimes = sorted(
@@ -299,7 +299,7 @@ class _OperationManager:
         operation_id: str | None = None,
         limit: int = 200,
     ) -> tuple[OperationEvent, ...]:
-        """Fetch events after sequence number, optionally scoped to one operation."""
+        """Stream append-only events after a cursor, optionally narrowed to one tracked operation."""
 
         with self._lock:
             out: list[OperationEvent] = []
@@ -314,7 +314,7 @@ class _OperationManager:
             return tuple(out)
 
     def wait(self, operation_id: str, timeout_seconds: float | None = None) -> OperationSnapshot | None:
-        """Join operation worker thread and return the latest snapshot."""
+        """Block on the worker thread, then return whichever snapshot represents the latest terminal state."""
 
         worker: threading.Thread | None = None
         with self._lock:
@@ -328,7 +328,7 @@ class _OperationManager:
         return self.get(operation_id)
 
     def _to_snapshot(self, runtime: _OperationRuntime) -> OperationSnapshot:
-        """Convert mutable runtime state into immutable snapshot payload."""
+        """Freeze mutable runtime fields into the immutable payload exposed to API consumers."""
 
         return OperationSnapshot(
             id=runtime.id,
@@ -353,7 +353,7 @@ class _OperationManager:
         message: str | None = None,
         payload: dict[str, object] | None = None,
     ) -> None:
-        """Append an event while lock is held and enforce max event retention."""
+        """Append an event under lock so snapshot and event ordering stay consistent for pollers."""
 
         event = OperationEvent(
             seq=self._next_seq,
@@ -373,7 +373,7 @@ _OPERATIONS = _OperationManager()
 
 
 def _collect_status_from_db_path(db_path: Path, limit: int = 20) -> QueueStatus:
-    """Collect queue state counts and recent jobs from an explicit DB path."""
+    """Queue snapshot builder for callers that already resolved the database location."""
 
     db = QueueDB(db_path)
     try:
@@ -407,7 +407,7 @@ def _start_async_operation(
     cancellable: bool,
     runner: Callable[[_OperationRuntime], dict[str, object] | None],
 ) -> str:
-    """Run a callable in a daemon thread and register full operation lifecycle state."""
+    """Start background work under tracked lifecycle state so polling and cancellation stay consistent."""
 
     runtime = _OPERATIONS.create(kind=kind, metadata=metadata, cancellable=cancellable)
 
@@ -432,7 +432,7 @@ def _start_async_operation(
 
 
 def run_watch(config_path: str | Path) -> None:
-    """Run watch service in-process using config path input."""
+    """Run the watch service in-process for API callers that do not need background tracking."""
 
     config = load_config(config_path)
     configure_logging(config.log_level, config.log_file)
@@ -444,7 +444,7 @@ def run_transcode_one(
     input_path: str | Path,
     output_dir: str | Path | None = None,
 ) -> Path:
-    """Run single-frame transcode in-process and return resulting output path."""
+    """Execute the deterministic single-frame pipeline and return the resulting output artifact path."""
 
     config = load_config(config_path)
     configure_logging(config.log_level, config.log_file)
@@ -455,7 +455,7 @@ def run_transcode_one(
 
 
 def get_status(config_path: str | Path, limit: int = 20) -> QueueStatus:
-    """Return current queue status for a config file."""
+    """Current queue snapshot for a config, including recent job rows used by triage surfaces."""
 
     config = load_config(config_path)
     configure_logging(config.log_level, config.log_file)
@@ -468,7 +468,7 @@ def suggest_matrix(
     camera_model_override: str | None = None,
     write_json_path: str | Path | None = None,
 ) -> MatrixSuggestResult:
-    """Suggest a camera matrix and optionally persist a JSON report payload."""
+    """Produce a matrix suggestion and optional persisted report for CLI, GUI, and automation flows."""
 
     resolved_input = Path(input_path).expanduser().resolve()
     report = suggest_camera_to_reference_matrix(
@@ -494,7 +494,7 @@ def convert_dpx_to_prores(
     framerate: int = 24,
     overwrite: bool = True,
 ) -> DpxToProresResult:
-    """Convert DPX sequences to ProRes and return normalized output metadata."""
+    """Run DPX batch assembly and normalize the result into a transport-agnostic summary object."""
 
     resolved_input = Path(input_dir).expanduser().resolve()
     resolved_output = Path(output_dir).expanduser().resolve() if output_dir else None
@@ -518,7 +518,7 @@ def start_watch_operation(
     status_poll_interval_seconds: float = 1.0,
     recent_limit: int = 20,
 ) -> str:
-    """Start cancellable watch operation with periodic queue-status event emission."""
+    """Start watch as a cancellable background operation and keep pollers fed with queue snapshots."""
 
     resolved_config_path = Path(config_path).expanduser().resolve()
 
@@ -590,7 +590,7 @@ def start_transcode_one_operation(
     input_path: str | Path,
     output_dir: str | Path | None = None,
 ) -> str:
-    """Start one-shot transcode operation and publish progress lifecycle events."""
+    """Start a one-shot transcode under the shared operation envelope used by tool workflows."""
 
     resolved_config_path = Path(config_path).expanduser().resolve()
     resolved_input_path = Path(input_path).expanduser().resolve()
@@ -628,7 +628,7 @@ def start_suggest_matrix_operation(
     camera_model_override: str | None = None,
     write_json_path: str | Path | None = None,
 ) -> str:
-    """Start matrix-suggestion operation and publish result payload as operation result."""
+    """Run matrix suggestion under the shared async envelope so GUI tools can poll and inspect events."""
 
     resolved_input_path = Path(input_path).expanduser().resolve()
     resolved_write_json = Path(write_json_path).expanduser().resolve() if write_json_path else None
@@ -666,7 +666,7 @@ def start_dpx_to_prores_operation(
     framerate: int = 24,
     overwrite: bool = True,
 ) -> str:
-    """Start cancellable DPX-to-ProRes batch operation with per-sequence progress events."""
+    """Run delivery assembly as a cancellable operation that emits per-sequence progress for the UI."""
 
     resolved_input = Path(input_dir).expanduser().resolve()
     resolved_output = Path(output_dir).expanduser().resolve() if output_dir else None
@@ -739,13 +739,13 @@ def start_dpx_to_prores_operation(
 
 
 def get_operation(operation_id: str) -> OperationSnapshot | None:
-    """Fetch current snapshot for a tracked operation id."""
+    """Current public snapshot for one tracked operation."""
 
     return _OPERATIONS.get(operation_id)
 
 
 def list_operations(limit: int = 100) -> tuple[OperationSnapshot, ...]:
-    """List operation snapshots in reverse-chronological creation order."""
+    """Recent operation snapshots for history-style consumers."""
 
     return _OPERATIONS.list(limit=limit)
 
@@ -756,18 +756,18 @@ def poll_operation_events(
     operation_id: str | None = None,
     limit: int = 200,
 ) -> tuple[OperationEvent, ...]:
-    """Poll operation events after sequence cursor with optional operation filter."""
+    """Operation events after a cursor so clients can incrementally hydrate timelines."""
 
     return _OPERATIONS.poll_events(after_seq=after_seq, operation_id=operation_id, limit=limit)
 
 
 def wait_for_operation(operation_id: str, timeout_seconds: float | None = None) -> OperationSnapshot | None:
-    """Block until operation thread exits (or timeout), then return final snapshot."""
+    """Wait for completion when a caller needs a terminal snapshot instead of background polling."""
 
     return _OPERATIONS.wait(operation_id, timeout_seconds=timeout_seconds)
 
 
 def cancel_operation(operation_id: str) -> bool:
-    """Request cancellation for a tracked operation, if cancellable."""
+    """Forward a cooperative cancel request and report whether the operation can still honor it."""
 
     return _OPERATIONS.request_cancel(operation_id)

@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-/// Enumeration for delivery layout metrics.
+/// Centralized layout constants that keep the day-wrap workspace balanced across viewport sizes.
 enum DeliveryLayoutMetrics {
     static let minViewportHeight: CGFloat = 420
     static let viewportTopBottomInsetCompensation: CGFloat = 8

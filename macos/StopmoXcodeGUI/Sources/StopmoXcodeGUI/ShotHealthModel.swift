@@ -1,6 +1,6 @@
 import Foundation
 
-/// State model for shot health state.
+/// Shot-level health buckets used to summarize whether a shot is clean, inflight, or needs attention.
 enum ShotHealthState: String, CaseIterable, Identifiable {
     case clean = "Clean"
     case issues = "Issues"
@@ -23,7 +23,7 @@ enum ShotHealthState: String, CaseIterable, Identifiable {
     }
 }
 
-/// Data/view model for shot health evaluation.
+/// Computed triage assessment for one shot, including delivery readiness and user-facing summary text.
 struct ShotHealthEvaluation: Identifiable {
     let shot: ShotSummaryRow
     let healthState: ShotHealthState
@@ -34,7 +34,7 @@ struct ShotHealthEvaluation: Identifiable {
     var id: String { shot.id }
 }
 
-/// Enumeration for shot health model.
+/// Policy helpers that derive triage health state and delivery readiness from shot summary data.
 enum ShotHealthModel {
     static func evaluate(_ shot: ShotSummaryRow) -> ShotHealthEvaluation {
         let healthState = healthState(for: shot)

@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// Enumeration for queue focus field.
+/// Focusable controls inside the queue workspace so keyboard filtering can be restored predictably.
 private enum QueueFocusField: Hashable {
     case search
 }
 
-/// View rendering queue view.
+/// Queue workspace for inspecting individual frame jobs and running recovery actions.
 struct QueueView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

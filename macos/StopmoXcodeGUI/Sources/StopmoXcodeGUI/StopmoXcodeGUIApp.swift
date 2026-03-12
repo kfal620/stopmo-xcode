@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-/// Data/view model for the FrameRelay macOS app.
+/// Main FrameRelay app entry point that wires shared state into the root window scene.
 struct StopmoXcodeGUIApp: App {
     @StateObject private var state = AppState()
 

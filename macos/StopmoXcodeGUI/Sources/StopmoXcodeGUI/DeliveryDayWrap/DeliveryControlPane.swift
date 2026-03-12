@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering delivery control pane view.
+/// Right-hand delivery workspace pane that combines live run state, batch controls, and diagnostics shortcuts.
 struct DeliveryControlPaneView: View {
     let availableHeight: CGFloat
     let runState: DeliveryRunState
@@ -117,7 +117,7 @@ struct DeliveryControlPaneView: View {
     }
 }
 
-/// Data/view model for delivery run status panel.
+/// Compact delivery status summary that keeps progress, scope, and latest output visible at a glance.
 private struct DeliveryRunStatusPanel: View {
     let runState: DeliveryRunState
     let openLatestOutput: () -> Void
@@ -188,7 +188,7 @@ private struct DeliveryRunStatusPanel: View {
     }
 }
 
-/// Data/view model for delivery run events panel.
+/// Expandable timeline of delivery events used for quick inspection without leaving day-wrap.
 private struct DeliveryRunEventsPanel: View {
     @Binding var isExpanded: Bool
     let events: [DeliveryRunEvent]
@@ -265,7 +265,7 @@ private struct DeliveryRunEventsPanel: View {
     }
 }
 
-/// Data/view model for delivery event tone badge.
+/// Small visual marker that encodes delivery event tone without repeating status text.
 private struct DeliveryEventToneBadge: View {
     let tone: StatusTone
     let symbolName: String
@@ -287,7 +287,7 @@ private struct DeliveryEventToneBadge: View {
     }
 }
 
-/// Data/view model for batch config disclosure panel.
+/// Collapsed-by-default batch configuration editor for DPX-to-ProRes runs.
 private struct BatchConfigDisclosurePanel: View {
     @Binding var isExpanded: Bool
     @Binding var dpxInputDir: String
@@ -378,7 +378,7 @@ private struct BatchConfigDisclosurePanel: View {
     }
 }
 
-/// Data/view model for delivery advanced diagnostics panel.
+/// Auxiliary diagnostics panel that links current delivery context to deeper history and triage tools.
 private struct DeliveryAdvancedDiagnosticsPanel: View {
     let envelope: ToolOperationEnvelope?
     let runEvents: [DeliveryRunEvent]

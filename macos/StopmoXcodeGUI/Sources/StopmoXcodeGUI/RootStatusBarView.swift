@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering root status bar view.
+/// Transient root status banner that surfaces current task state and the latest recoverable error.
 struct RootStatusBarView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

@@ -29,7 +29,7 @@ def _build_header(
     project: str,
     description: str,
 ) -> bytes:
-    """Build minimal DPX v2 header payload for RGB10 image data."""
+    """Construct the minimal DPX v2 header needed for LogC3/AWG RGB10 plate output."""
 
     header = bytearray(HEADER_SIZE)
 
@@ -93,7 +93,7 @@ def _pack_rgb10(image: np.ndarray) -> bytes:
 
 
 def write_dpx10_logc_awg(path: Path, logc_awg_rgb: np.ndarray, creator: str = "stopmo-xcode") -> None:
-    """Write HxWx3 LogC3/AWG float image to DPX RGB10 file on disk."""
+    """Persist a LogC3/AWG RGB image as a DPX plate that matches the interpretation contract."""
 
     if logc_awg_rgb.ndim != 3 or logc_awg_rgb.shape[2] != 3:
         raise ValueError(f"expected HxWx3 RGB image, got {logc_awg_rgb.shape}")

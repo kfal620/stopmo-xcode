@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Data/view model for tools transcode pane.
+/// Tools pane for one-off frame transcodes that should mirror production pipeline output.
 struct ToolsTranscodePane: View {
     @Binding var inputPath: String
     @Binding var outputDir: String

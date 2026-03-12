@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering project pipeline section view.
+/// Project settings section for deterministic color, exposure, and LUT policy.
 struct ProjectPipelineSectionView: View {
     @Binding var pipeline: StopmoConfigDocument.Pipeline
     let isBusy: Bool

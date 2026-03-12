@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// View rendering project output section view.
+/// Project settings section for delivery defaults and optional review/debug artifacts.
 struct ProjectOutputSectionView: View {
     @Binding var output: StopmoConfigDocument.Output
     @State private var showAdvancedFramePackaging: Bool = false

@@ -20,13 +20,13 @@ PREVIEW_RENDER_INTENT = "logc_awg"
 
 
 def _utc_now_iso() -> str:
-    """Return UTC timestamp string used by preview sidecar metadata."""
+    """Use one UTC timestamp format for preview provenance sidecars."""
 
     return datetime.now(timezone.utc).isoformat()
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    """Best-effort JSON object read for preview sidecars."""
+    """Treat preview sidecars as optional hints and recover cleanly from missing or bad JSON."""
 
     if not path.exists():
         return {}
@@ -38,7 +38,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _atomic_write_bytes(path: Path, payload: bytes) -> None:
-    """Atomically replace a file payload to avoid partially-written JPEGs."""
+    """Replace preview artifacts atomically so the GUI never reads half-written files."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_suffix(path.suffix + ".tmp")
@@ -47,13 +47,13 @@ def _atomic_write_bytes(path: Path, payload: bytes) -> None:
 
 
 def _atomic_write_json(path: Path, payload: dict[str, object]) -> None:
-    """Atomically write JSON sidecar payload with stable formatting."""
+    """Preview sidecar writer that keeps metadata atomically synchronized with the image artifact on disk."""
 
     _atomic_write_bytes(path, (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode("utf-8"))
 
 
 def _best_effort_remove(path: Path) -> None:
-    """Best-effort unlink for stale alternate preview variants."""
+    """Remove stale alternate preview encodings without letting cleanup failures affect frame success."""
 
     try:
         if path.exists():
@@ -64,7 +64,7 @@ def _best_effort_remove(path: Path) -> None:
 
 
 def _downsample_logc_for_preview(logc: np.ndarray, max_edge: int) -> np.ndarray:
-    """Downsample logc input via integer stepping to reduce preview compute cost."""
+    """Cheaply subsample preview data because thumbnails do not justify full-resolution processing cost."""
 
     if logc.ndim != 3 or logc.shape[2] < 3:
         raise ValueError("logc preview input must be HxWx3 array")
@@ -77,7 +77,7 @@ def _downsample_logc_for_preview(logc: np.ndarray, max_edge: int) -> np.ndarray:
 
 
 def _preview_rgb8_from_logc(logc: np.ndarray, max_edge: int) -> np.ndarray:
-    """Convert LogC3/AWG frame data into compact 8-bit signal-space preview pixels."""
+    """Derive lightweight preview pixels while keeping the master DPX interpretation unchanged."""
 
     sampled = _downsample_logc_for_preview(logc, max_edge=max_edge)
     signal = np.clip(sampled, 0.0, 1.0)
@@ -85,7 +85,7 @@ def _preview_rgb8_from_logc(logc: np.ndarray, max_edge: int) -> np.ndarray:
 
 
 def _encode_preview_jpeg(logc: np.ndarray, *, max_edge: int, quality: int) -> bytes | None:
-    """Encode preview JPEG bytes, returning None when PIL is unavailable."""
+    """Prefer JPEG previews when Pillow is present because they are cheap for the GUI to load."""
 
     try:
         from PIL import Image
@@ -105,7 +105,7 @@ def _encode_preview_jpeg(logc: np.ndarray, *, max_edge: int, quality: int) -> by
 
 
 def _encode_preview_tiff(logc: np.ndarray, *, max_edge: int) -> bytes | None:
-    """Encode preview TIFF bytes, returning None when tifffile is unavailable."""
+    """Fall back to TIFF previews when JPEG encoding support is unavailable in the environment."""
 
     try:
         import tifffile  # type: ignore
@@ -120,7 +120,7 @@ def _encode_preview_tiff(logc: np.ndarray, *, max_edge: int) -> bytes | None:
 
 @dataclass(frozen=True)
 class PreviewWriteStatus:
-    """Status response for preview generation attempts."""
+    """Outcome metadata for optional preview writes so callers can log skips without treating them as failures."""
 
     path: Path | None
     wrote: bool
@@ -139,7 +139,7 @@ def write_latest_preview(
     quality: int = PREVIEW_JPEG_QUALITY,
     throttle_seconds: float = PREVIEW_LATEST_THROTTLE_SECONDS,
 ) -> PreviewWriteStatus:
-    """Write/update the per-shot latest preview JPEG with mtime throttling."""
+    """Advance the shots latest preview only when selection rules say the new frame should win."""
 
     preview_dir = shot_dir / "preview"
     jpg_path = preview_dir / "latest.jpg"
@@ -243,7 +243,7 @@ def update_first_preview_if_earlier(
     max_edge: int = PREVIEW_MAX_EDGE,
     quality: int = PREVIEW_JPEG_QUALITY,
 ) -> PreviewWriteStatus:
-    """Write first preview JPEG only when no first exists or frame number is earlier."""
+    """Preserve the earliest preview frame for a shot unless render intent changes require regeneration."""
 
     preview_dir = shot_dir / "preview"
     jpg_path = preview_dir / "first.jpg"

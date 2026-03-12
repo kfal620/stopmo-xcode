@@ -1,17 +1,17 @@
 import SwiftUI
 
-/// Enumeration for logs focus field.
+/// Focusable controls inside the logs workspace so keyboard-driven search can be restored predictably.
 private enum LogsFocusField: Hashable {
     case search
 }
 
-/// Data/view model for diagnostic hint.
+/// Likely-cause and suggested-action copy associated with a known diagnostic warning code.
 private struct DiagnosticHint {
     let likelyCause: String
     let suggestedAction: String
 }
 
-/// View rendering logs diagnostics view.
+/// Diagnostics workspace for structured logs, warning triage, and exportable support context.
 struct LogsDiagnosticsView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

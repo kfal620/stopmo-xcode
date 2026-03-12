@@ -1,6 +1,6 @@
 import Foundation
 
-/// Top-level lifecycle navigation hubs for the desktop app.
+/// Primary navigation hubs that partition the app into configure, capture, triage, and delivery workflows.
 enum LifecycleHub: String, CaseIterable, Identifiable {
     case configure = "Configure"
     case capture = "Capture"
@@ -36,7 +36,7 @@ enum LifecycleHub: String, CaseIterable, Identifiable {
     }
 }
 
-/// Configure workspace sub-panels.
+/// Configure subpanels that own project setup, health checks, and calibration tasks.
 enum ConfigurePanel: String, CaseIterable, Identifiable {
     case projectSettings = "Project Settings"
     case workspaceHealth = "Workspace & Health"
@@ -56,7 +56,7 @@ enum ConfigurePanel: String, CaseIterable, Identifiable {
     }
 }
 
-/// Triage workspace sub-panels.
+/// Triage subpanels that split shot review, queue recovery, and diagnostics work.
 enum TriagePanel: String, CaseIterable, Identifiable {
     case shots = "Shots"
     case queue = "Queue"
@@ -76,7 +76,7 @@ enum TriagePanel: String, CaseIterable, Identifiable {
     }
 }
 
-/// Deliver workspace sub-panels.
+/// Delivery subpanels for active day-wrap work versus historical runs.
 enum DeliverPanel: String, CaseIterable, Identifiable {
     case dayWrap = "Day Wrap"
     case runHistory = "Run History"
@@ -93,7 +93,7 @@ enum DeliverPanel: String, CaseIterable, Identifiable {
     }
 }
 
-/// Aggregated delivery run status presented in the deliver workspace.
+/// Lifecycle states the deliver workspace uses to summarize an active or recent batch run.
 enum DeliveryRunStatus: String, Codable, Sendable {
     case idle = "Idle"
     case running = "Running"
@@ -102,13 +102,13 @@ enum DeliveryRunStatus: String, Codable, Sendable {
     case failed = "Failed"
 }
 
-/// Delivery run mode for either explicit selection or full day-wrap batch.
+/// Whether delivery is operating on an explicit selection or the full day-wrap batch scope.
 enum DeliveryRunKind: String, Codable, Sendable {
     case selectedShots = "Selected Shots"
     case dayWrapBatch = "Day Wrap Batch"
 }
 
-/// Visual tone used for per-event delivery run timeline rows.
+/// Presentation tone applied to delivery timeline events so the UI can distinguish success from risk.
 enum DeliveryRunEventTone: String, Codable, Sendable {
     case neutral
     case success
@@ -116,7 +116,7 @@ enum DeliveryRunEventTone: String, Codable, Sendable {
     case danger
 }
 
-/// Individual delivery run event row rendered in operation history UI.
+/// One delivery timeline entry shown in day-wrap progress and run-history surfaces.
 struct DeliveryRunEvent: Identifiable, Codable, Sendable {
     var id: String
     var timestampUtc: String
@@ -126,7 +126,7 @@ struct DeliveryRunEvent: Identifiable, Codable, Sendable {
     var shotName: String?
 }
 
-/// Summary state for active/last delivery run progress and events.
+/// Current delivery progress model shared by the day-wrap pane and run-history affordances.
 struct DeliveryRunState: Codable, Sendable {
     var kind: DeliveryRunKind
     var status: DeliveryRunStatus
@@ -157,7 +157,7 @@ struct DeliveryRunState: Codable, Sendable {
     }
 }
 
-/// Runtime/backend health payload returned by Python bridge health command.
+/// Backend readiness snapshot returned by the Python bridge for setup and troubleshooting screens.
 struct BridgeHealth: Codable, Sendable {
     var backendMode: String?
     var backendRoot: String?
@@ -180,9 +180,9 @@ struct BridgeHealth: Codable, Sendable {
     var watchDbPath: String?
 }
 
-/// Editable project config document mirrored between bridge JSON and Swift UI.
+/// Editable project document mirrored between bridge JSON payloads and Swift form state.
 struct StopmoConfigDocument: Codable, Sendable {
-    /// Watch section values controlling source ingest and queue worker behavior.
+    /// Watch settings that define source discovery, queue persistence, and worker fan-out.
     struct Watch: Codable, Sendable {
         var sourceDir: String
         var workingDir: String
@@ -197,7 +197,7 @@ struct StopmoConfigDocument: Codable, Sendable {
         var shotRegex: String?
     }
 
-    /// Pipeline section values controlling deterministic color/exposure behavior.
+    /// Pipeline settings that lock deterministic color, exposure, and optional LUT behavior.
     struct Pipeline: Codable, Sendable {
         var cameraToReferenceMatrix: [[Double]]
         var exposureOffsetStops: Double
@@ -219,7 +219,7 @@ struct StopmoConfigDocument: Codable, Sendable {
         var ocioOutputSpace: String
     }
 
-    /// Output section values controlling sidecars, debug artifacts, and delivery.
+    /// Output settings that decide which review, provenance, and delivery artifacts are emitted.
     struct Output: Codable, Sendable {
         var emitPerFrameJson: Bool
         var emitTruthFramePack: Bool
@@ -290,7 +290,7 @@ extension StopmoConfigDocument {
     }
 }
 
-/// Data/view model for queue job record.
+/// Bridge-facing queue row model shared by monitoring, triage, and watch status screens.
 struct QueueJobRecord: Codable, Sendable, Identifiable {
     var id: Int
     var state: String
@@ -304,7 +304,7 @@ struct QueueJobRecord: Codable, Sendable, Identifiable {
     var updatedAt: String
 }
 
-/// Data/view model for queue snapshot.
+/// Queue snapshot consumed by live monitoring, queue recovery, and watch status UI.
 struct QueueSnapshot: Codable, Sendable {
     var dbPath: String
     var counts: [String: Int]
@@ -312,7 +312,7 @@ struct QueueSnapshot: Codable, Sendable {
     var recent: [QueueJobRecord]
 }
 
-/// Result payload for queue retry result.
+/// Result of a failed-job retry action, including the refreshed queue snapshot used to repaint the UI.
 struct QueueRetryResult: Codable, Sendable {
     var retried: Int
     var requestedIds: [Int]
@@ -321,7 +321,7 @@ struct QueueRetryResult: Codable, Sendable {
     var queue: QueueSnapshot
 }
 
-/// Result payload for shot-scoped queue mutation operations.
+/// Result of a shot-level queue mutation such as restart or delete, with cleanup details for confirmation UI.
 struct QueueShotMutationResult: Codable, Sendable {
     var action: String
     var shotName: String
@@ -337,7 +337,7 @@ struct QueueShotMutationResult: Codable, Sendable {
     var queue: QueueSnapshot
 }
 
-/// Data/view model for shot summary row.
+/// Per-shot summary row used by triage health boards and delivery overview surfaces.
 struct ShotSummaryRow: Codable, Sendable, Identifiable {
     var shotName: String
     var state: String
@@ -361,16 +361,16 @@ struct ShotSummaryRow: Codable, Sendable, Identifiable {
     var id: String { shotName }
 }
 
-/// Data/view model for shots summary snapshot.
+/// Shot summary snapshot returned from the bridge for triage-focused views.
 struct ShotsSummarySnapshot: Codable, Sendable {
     var dbPath: String
     var count: Int
     var shots: [ShotSummaryRow]
 }
 
-/// State model for watch service state.
+/// Combined watch-process, queue-progress, and preflight state returned by bridge polling.
 struct WatchServiceState: Codable, Sendable {
-    /// Data/view model for crash recovery.
+    /// Last-known startup/shutdown recovery metadata used to explain automatic inflight resets.
     struct CrashRecovery: Codable, Sendable {
         var lastStartupUtc: String?
         var lastShutdownUtc: String?
@@ -395,7 +395,7 @@ struct WatchServiceState: Codable, Sendable {
     var crashRecovery: CrashRecovery?
 }
 
-/// Data/view model for operation event record.
+/// One append-only operation event rendered in tool timelines and diagnostics panes.
 struct OperationEventRecord: Codable, Sendable, Identifiable {
     var seq: Int
     var operationId: String
@@ -407,7 +407,7 @@ struct OperationEventRecord: Codable, Sendable, Identifiable {
     var id: Int { seq }
 }
 
-/// Data/view model for operation snapshot record.
+/// Current public view of a tracked backend operation, including progress and terminal outcome fields.
 struct OperationSnapshotRecord: Codable, Sendable {
     var id: String
     var kind: String
@@ -423,14 +423,14 @@ struct OperationSnapshotRecord: Codable, Sendable {
     var result: [String: JSONValue]?
 }
 
-/// Data/view model for tool operation envelope.
+/// Synchronous bridge envelope that pairs the latest operation snapshot with its event history.
 struct ToolOperationEnvelope: Codable, Sendable {
     var operationId: String
     var operation: OperationSnapshotRecord
     var events: [OperationEventRecord]
 }
 
-/// Data/view model for log entry record.
+/// Structured log row used by diagnostics tables and filtered log views.
 struct LogEntryRecord: Codable, Sendable, Identifiable {
     var timestamp: String?
     var severity: String
@@ -441,7 +441,7 @@ struct LogEntryRecord: Codable, Sendable, Identifiable {
     var id: String { "\(timestamp ?? "none")|\(logger)|\(raw)" }
 }
 
-/// Data/view model for diagnostic warning record.
+/// Promoted warning record extracted from logs so the UI can group actionable issues.
 struct DiagnosticWarningRecord: Codable, Sendable, Identifiable {
     var code: String
     var severity: String
@@ -452,7 +452,7 @@ struct DiagnosticWarningRecord: Codable, Sendable, Identifiable {
     var id: String { "\(code)|\(timestamp ?? "none")|\(message)" }
 }
 
-/// Data/view model for logs diagnostics snapshot.
+/// Diagnostics snapshot that combines parsed logs, warning records, and current queue context.
 struct LogsDiagnosticsSnapshot: Codable, Sendable {
     var configPath: String
     var logSources: [String]
@@ -463,7 +463,7 @@ struct LogsDiagnosticsSnapshot: Codable, Sendable {
     var watchPid: Int?
 }
 
-/// Data/view model for history run record.
+/// One inferred processing run grouped from queue history for day-wrap review and support triage.
 struct HistoryRunRecord: Codable, Sendable, Identifiable {
     var runId: String
     var startUtc: String
@@ -480,7 +480,7 @@ struct HistoryRunRecord: Codable, Sendable, Identifiable {
     var id: String { runId }
 }
 
-/// Data/view model for history summary snapshot.
+/// History snapshot returned from the bridge for run-history screens and diagnostics export.
 struct HistorySummarySnapshot: Codable, Sendable {
     var configPath: String
     var dbPath: String
@@ -488,14 +488,14 @@ struct HistorySummarySnapshot: Codable, Sendable {
     var runs: [HistoryRunRecord]
 }
 
-/// Result payload for diagnostics bundle result.
+/// Output details for a generated diagnostics bundle that can be handed to support or engineering.
 struct DiagnosticsBundleResult: Codable, Sendable {
     var bundlePath: String
     var createdAtUtc: String
     var sizeBytes: Int
 }
 
-/// Data/view model for validation item.
+/// Validation item returned by config and preflight checks, keyed for stable list rendering.
 struct ValidationItem: Codable, Sendable, Identifiable {
     var code: String
     var message: String
@@ -504,7 +504,7 @@ struct ValidationItem: Codable, Sendable, Identifiable {
     var id: String { "\(code)|\(field)|\(message)" }
 }
 
-/// Data/view model for config validation snapshot.
+/// Config validation snapshot used to decide whether startup blockers should be shown.
 struct ConfigValidationSnapshot: Codable, Sendable {
     var configPath: String
     var ok: Bool
@@ -512,7 +512,7 @@ struct ConfigValidationSnapshot: Codable, Sendable {
     var warnings: [ValidationItem]
 }
 
-/// Data/view model for watch preflight.
+/// Preflight result the UI uses to decide whether watch startup can proceed safely.
 struct WatchPreflight: Codable, Sendable {
     var configPath: String
     var ok: Bool
@@ -521,7 +521,7 @@ struct WatchPreflight: Codable, Sendable {
     var healthChecks: [String: Bool]
 }
 
-/// Enumeration for jsonvalue.
+/// Loosely typed JSON bridge value used when Swift needs to preserve arbitrary backend payloads.
 enum JSONValue: Codable, Sendable {
     case string(String)
     case number(Double)

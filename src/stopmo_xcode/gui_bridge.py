@@ -29,7 +29,7 @@ def _read_env_alias(
     *,
     default: str | None = None,
 ) -> tuple[str | None, str | None]:
-    """Resolve env alias with primary precedence, returning value and source key."""
+    """Honor FrameRelay env names first while still accepting legacy compatibility aliases."""
 
     primary_val = os.environ.get(primary_key)
     if primary_val is not None and primary_val.strip():
@@ -43,13 +43,13 @@ def _read_env_alias(
 
 
 def _legacy_env_warning(*, primary_key: str, legacy_key: str) -> str:
-    """Format consistent warning text for deprecated env variable usage."""
+    """Keep deprecation guidance consistent anywhere bridge payloads surface legacy env usage."""
 
     return f"{legacy_key} is deprecated; use {primary_key}."
 
 
 def _cfg_to_dict(config: AppConfig) -> dict[str, object]:
-    """Serialize typed config dataclasses into bridge-friendly JSON payload shape."""
+    """Project typed config into the JSON shape shared by the GUI and automation clients."""
 
     return {
         "watch": {
@@ -104,7 +104,7 @@ def _cfg_to_dict(config: AppConfig) -> dict[str, object]:
 
 
 def _read_json_stdin() -> dict[str, Any]:
-    """Read and validate JSON object payload from stdin."""
+    """Require bridge commands to start from a JSON object payload instead of ad-hoc stdin text."""
 
     raw = sys.stdin.read()
     if not raw.strip():
@@ -116,7 +116,7 @@ def _read_json_stdin() -> dict[str, Any]:
 
 
 def _pick(data: dict[str, Any], *keys: str) -> Any:
-    """Return first present key from aliases or raise if none exist."""
+    """Accept multiple payload aliases for one required field so old GUI payloads still decode."""
 
     for key in keys:
         if key in data:
@@ -125,7 +125,7 @@ def _pick(data: dict[str, Any], *keys: str) -> Any:
 
 
 def _optional(data: dict[str, Any], *keys: str, default: Any = None) -> Any:
-    """Return first present key from aliases, otherwise a provided default."""
+    """Apply bridge field aliases for optional inputs before falling back to the semantic default."""
 
     for key in keys:
         if key in data:
@@ -134,7 +134,7 @@ def _optional(data: dict[str, Any], *keys: str, default: Any = None) -> Any:
 
 
 def _to_bool(value: Any) -> bool:
-    """Normalize booleans from bool/number/string bridge payload values."""
+    """Accept common GUI/JSON truthy spellings while preserving a strict boolean contract."""
 
     if isinstance(value, bool):
         return value
@@ -150,7 +150,7 @@ def _to_bool(value: Any) -> bool:
 
 
 def _to_path(value: Any) -> Path:
-    """Resolve required path-like value to absolute `Path`."""
+    """Normalize required filesystem inputs before config validation or file writes run."""
 
     if value in (None, ""):
         raise ValueError("required path value is missing")
@@ -158,7 +158,7 @@ def _to_path(value: Any) -> Path:
 
 
 def _to_optional_path(value: Any) -> Path | None:
-    """Resolve optional path-like value to absolute `Path` when provided."""
+    """Preserve omitted path fields while normalizing any provided override to an absolute path."""
 
     if value in (None, ""):
         return None
@@ -166,7 +166,7 @@ def _to_optional_path(value: Any) -> Path | None:
 
 
 def _to_float(value: Any, *, default: float | None = None) -> float:
-    """Normalize required numeric payload field into float."""
+    """Coerce numeric bridge fields into the typed config form expected by backend services."""
 
     if value in (None, ""):
         if default is not None:
@@ -176,7 +176,7 @@ def _to_float(value: Any, *, default: float | None = None) -> float:
 
 
 def _to_optional_float(value: Any) -> float | None:
-    """Normalize optional numeric payload field into float."""
+    """Keep empty optional numeric fields absent instead of inventing bridge-only sentinel values."""
 
     if value in (None, ""):
         return None
@@ -184,7 +184,7 @@ def _to_optional_float(value: Any) -> float | None:
 
 
 def _to_int(value: Any, *, default: int | None = None) -> int:
-    """Normalize required integer payload field into int."""
+    """Coerce integer-valued bridge fields while still failing fast on missing required data."""
 
     if value in (None, ""):
         if default is not None:
@@ -194,7 +194,7 @@ def _to_int(value: Any, *, default: int | None = None) -> int:
 
 
 def _to_matrix(raw: Any) -> tuple[tuple[float, float, float], ...]:
-    """Validate and normalize camera matrix payload into a typed 3x3 tuple."""
+    """Enforce the immutable 3x3 matrix contract shared by config, worker, and bridge payloads."""
 
     if not isinstance(raw, list) or len(raw) != 3:
         raise ValueError("camera_to_reference_matrix must be a 3x3 list")
@@ -207,7 +207,7 @@ def _to_matrix(raw: Any) -> tuple[tuple[float, float, float], ...]:
 
 
 def _payload_to_config(payload: dict[str, Any]) -> AppConfig:
-    """Convert bridge JSON payload into normalized typed app config."""
+    """Rebuild typed config from GUI payloads while honoring field aliases and stable defaults."""
 
     watch_raw = _pick(payload, "watch")
     pipeline_raw = _pick(payload, "pipeline")
@@ -318,7 +318,7 @@ def _payload_to_config(payload: dict[str, Any]) -> AppConfig:
 
 
 def _config_to_yaml_payload(config: AppConfig) -> dict[str, object]:
-    """Convert typed config into YAML-compatible primitive payload."""
+    """Flatten typed config back into YAML-safe primitives without changing user-visible schema."""
 
     return {
         "watch": {
@@ -369,7 +369,7 @@ def _config_to_yaml_payload(config: AppConfig) -> dict[str, object]:
 
 
 def read_config_payload(config_path: str | Path) -> dict[str, object]:
-    """Load config and return a GUI-friendly JSON payload."""
+    """Normalized config document loaded from disk for the GUI editor state."""
 
     cfg = load_config(config_path)
     payload = _cfg_to_dict(cfg)
@@ -378,7 +378,7 @@ def read_config_payload(config_path: str | Path) -> dict[str, object]:
 
 
 def write_config_payload(config_path: str | Path, payload: dict[str, Any]) -> dict[str, object]:
-    """Validate and save config payload, returning resolved persisted config."""
+    """Persist an edited GUI config, then reload it so callers receive the canonical resolved values."""
 
     try:
         import yaml  # type: ignore
@@ -401,7 +401,7 @@ def write_config_payload(config_path: str | Path, payload: dict[str, Any]) -> di
 
 
 def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
-    """Return runtime health/dependency diagnostics for GUI preflight surfaces."""
+    """Report backend/runtime readiness details that drive GUI preflight and setup messaging."""
 
     runtime_mode_raw, runtime_mode_source = _read_env_alias(
         "FRAMERELAY_RUNTIME_MODE",
@@ -531,13 +531,13 @@ def health_payload(config_path: str | Path | None = None) -> dict[str, object]:
 
 
 def _now_utc_iso() -> str:
-    """Return UTC timestamp string for bridge state payloads."""
+    """Stamp bridge payloads with a consistent UTC format for polling and event timelines."""
 
     return datetime.now(timezone.utc).isoformat()
 
 
 def _queue_status_from_config(config_path: str | Path, limit: int = 200) -> dict[str, object]:
-    """Collect queue counts and recent job rows for a given config."""
+    """Summarize queue state in the bridge payload shape consumed by monitoring and triage screens."""
 
     cfg = load_config(config_path)
     db = QueueDB(cfg.watch.db_path)
@@ -569,13 +569,13 @@ def _queue_status_from_config(config_path: str | Path, limit: int = 200) -> dict
 
 
 def queue_status_payload(config_path: str | Path, limit: int = 200) -> dict[str, object]:
-    """Public queue-status payload wrapper used by CLI bridge command."""
+    """Expose queue status through a stable command handler boundary for CLI and GUI callers."""
 
     return _queue_status_from_config(config_path=config_path, limit=limit)
 
 
 def _remove_shot_generated_outputs(cfg: AppConfig, shot_name: str) -> dict[str, int]:
-    """Delete generated output artifacts for one shot under configured output root."""
+    """Remove derived shot artifacts without touching sources outside the configured output root."""
 
     output_root = cfg.watch.output_dir.expanduser().resolve()
     shot_root = (cfg.watch.output_dir / shot_name).expanduser().resolve()
@@ -608,7 +608,7 @@ def _remove_shot_generated_outputs(cfg: AppConfig, shot_name: str) -> dict[str, 
 
 
 def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = None) -> dict[str, object]:
-    """Reset failed jobs to detected state, optionally scoped to specific ids."""
+    """Requeue failed jobs by clearing terminal-error state while leaving completed work untouched."""
 
     cfg = load_config(config_path)
     db = QueueDB(cfg.watch.db_path)
@@ -663,7 +663,7 @@ def queue_retry_failed_payload(config_path: str | Path, ids: list[int] | None = 
 
 
 def queue_retry_shot_failed_payload(config_path: str | Path, shot_name: str) -> dict[str, object]:
-    """Retry failed jobs for one shot only."""
+    """Retry only the failed frames for an idle shot so operators do not restart successful work."""
 
     cfg = load_config(config_path)
     normalized_shot = shot_name.strip()
@@ -706,7 +706,7 @@ def queue_restart_shot_payload(
     clean_output: bool = True,
     reset_locks: bool = True,
 ) -> dict[str, object]:
-    """Restart one shot from the beginning by resetting all rows to detected."""
+    """Rebuild a shot from scratch, optionally clearing derived outputs and persisted shot locks."""
 
     cfg = load_config(config_path)
     normalized_shot = shot_name.strip()
@@ -750,7 +750,7 @@ def queue_delete_shot_payload(
     shot_name: str,
     delete_outputs: bool = False,
 ) -> dict[str, object]:
-    """Delete one shot from queue tables with optional output cleanup."""
+    """Remove one shot from queue state, with optional cleanup of its generated delivery artifacts."""
 
     cfg = load_config(config_path)
     normalized_shot = shot_name.strip()
@@ -789,7 +789,7 @@ def queue_delete_shot_payload(
 
 
 def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str, object]:
-    """Aggregate per-shot queue/assembly summary rows for triage surfaces."""
+    """Assemble the shot-centric snapshot used by triage boards and delivery overview screens."""
 
     preview_backfill_max_edge = 960
     preview_backfill_jpeg_qv = 3
@@ -926,7 +926,7 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
         marker.write_text(now_utc + "\n", encoding="utf-8")
 
     def _preview_payload(shot_root: Path) -> dict[str, object]:
-        """Return additive preview path metadata for one shot root."""
+        """Expose best-available preview assets, including compatibility fallbacks for older shot folders."""
 
         preview_dir = shot_root / "preview"
         first_path = _preview_variant_path(preview_dir, "first")
@@ -1062,14 +1062,14 @@ def shots_summary_payload(config_path: str | Path, limit: int = 500) -> dict[str
 
 
 def _watch_state_file(config_path: str | Path) -> Path:
-    """Return GUI watch-state sidecar path under config working directory."""
+    """Locate the GUI-owned sidecar used to remember watch process state between bridge calls."""
 
     cfg = load_config(config_path)
     return cfg.watch.working_dir / ".stopmo_gui_watch.json"
 
 
 def _read_watch_state(path: Path) -> dict[str, Any] | None:
-    """Best-effort read of watch-state sidecar; return `None` when unavailable."""
+    """Treat the GUI watch-state sidecar as optional state and ignore missing or corrupt copies."""
 
     if not path.exists():
         return None
@@ -1083,14 +1083,14 @@ def _read_watch_state(path: Path) -> dict[str, Any] | None:
 
 
 def _write_watch_state(path: Path, payload: dict[str, Any]) -> None:
-    """Persist watch-state sidecar consumed by GUI watch controls."""
+    """Persist the GUI watch-state sidecar that bridges start/stop state across commands."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def _is_pid_running(pid: int | None) -> bool:
-    """Check whether a pid currently appears alive from this process context."""
+    """Best-effort liveness probe used to detect stale watch-state records."""
 
     if pid is None or pid <= 0:
         return False
@@ -1106,7 +1106,7 @@ def _is_pid_running(pid: int | None) -> bool:
 
 
 def _tail_lines(path: Path | None, max_lines: int = 40) -> list[str]:
-    """Read trailing log lines without loading full files into memory."""
+    """Tail logs cheaply so diagnostics views stay responsive even with large backend log files."""
 
     if path is None or not path.exists():
         return []
@@ -1147,7 +1147,7 @@ _LOG_LINE_RE = re.compile(
 
 
 def _parse_log_lines(lines: list[str], severity_filter: set[str] | None = None) -> list[dict[str, object]]:
-    """Parse log lines into structured records with optional severity filtering."""
+    """Normalize plain log text into structured entries that diagnostics UI can sort and filter."""
 
     out: list[dict[str, object]] = []
     for line in lines:
@@ -1177,7 +1177,7 @@ def _parse_log_lines(lines: list[str], severity_filter: set[str] | None = None) 
 
 
 def _collect_diagnostic_warnings(log_entries: list[dict[str, object]]) -> list[dict[str, object]]:
-    """Extract known warning signatures from parsed logs for UI diagnostics."""
+    """Promote known warning signatures into explicit diagnostic records for operator-facing triage."""
 
     warnings: list[dict[str, object]] = []
     patterns: tuple[tuple[str, str], ...] = (
@@ -1206,7 +1206,7 @@ def _collect_diagnostic_warnings(log_entries: list[dict[str, object]]) -> list[d
 
 
 def _read_log_lines(log_path: Path, limit: int = 400) -> list[str]:
-    """Read bounded tail of a log file for diagnostics payloads."""
+    """Bounded log tail used to keep diagnostics payloads small and predictable."""
 
     if not log_path.exists():
         return []
@@ -1214,7 +1214,7 @@ def _read_log_lines(log_path: Path, limit: int = 400) -> list[str]:
 
 
 def _load_cfg_for_path(config_path: str | Path) -> tuple[Path, AppConfig]:
-    """Resolve config path and load typed config in one helper."""
+    """Resolve a config path once so downstream payload builders share the same canonical location."""
 
     cfg_path = Path(config_path).expanduser().resolve()
     cfg = load_config(cfg_path)
@@ -1222,14 +1222,14 @@ def _load_cfg_for_path(config_path: str | Path) -> tuple[Path, AppConfig]:
 
 
 def _runtime_state_file(config_path: str | Path) -> Path:
-    """Return service runtime-state sidecar path."""
+    """Locate the watch-service sidecar that captures last-known runtime health and shutdown state."""
 
     cfg = load_config(config_path)
     return cfg.watch.working_dir / ".stopmo_runtime_state.json"
 
 
 def _read_runtime_state(path: Path) -> dict[str, object]:
-    """Best-effort read of watch service runtime-state payload."""
+    """Treat runtime-state metadata as advisory input rather than a hard dependency."""
 
     if not path.exists():
         return {}
@@ -1243,7 +1243,7 @@ def _read_runtime_state(path: Path) -> dict[str, object]:
 
 
 def validate_config_payload(config_path: str | Path) -> dict[str, object]:
-    """Validate config semantics and path accessibility for watch readiness."""
+    """User-facing validation report that decides whether watch startup should be blocked."""
 
     cfg_path, cfg = _load_cfg_for_path(config_path)
     errors: list[dict[str, str]] = []
@@ -1347,7 +1347,7 @@ def validate_config_payload(config_path: str | Path) -> dict[str, object]:
 
 
 def watch_preflight_payload(config_path: str | Path) -> dict[str, object]:
-    """Combine config validation and runtime checks into start-blocker result."""
+    """Combine validation and live runtime checks into the start/stop readiness model the GUI expects."""
 
     cfg_path, cfg = _load_cfg_for_path(config_path)
     validation = validate_config_payload(cfg_path)
@@ -1376,7 +1376,7 @@ def watch_preflight_payload(config_path: str | Path) -> dict[str, object]:
 
 
 def watch_start_payload(config_path: str | Path) -> dict[str, object]:
-    """Start background watch process when preflight passes and persist state."""
+    """Launch the background watch process only after preflight passes, then record bridge-visible state."""
 
     cfg_path = Path(config_path).expanduser().resolve()
     cfg = load_config(cfg_path)
@@ -1432,7 +1432,7 @@ def watch_start_payload(config_path: str | Path) -> dict[str, object]:
 
 
 def watch_stop_payload(config_path: str | Path, timeout_seconds: float = 5.0) -> dict[str, object]:
-    """Request graceful watch stop and escalate to terminate when needed."""
+    """Prefer graceful watch shutdown, but escalate so stale workers do not strand the GUI in running state."""
 
     cfg_path = Path(config_path).expanduser().resolve()
     state_file = _watch_state_file(cfg_path)
@@ -1463,7 +1463,7 @@ def watch_stop_payload(config_path: str | Path, timeout_seconds: float = 5.0) ->
 
 
 def watch_state_payload(config_path: str | Path, queue_limit: int = 200, log_tail_lines: int = 40) -> dict[str, object]:
-    """Return combined process/queue/progress/watch-runtime state payload."""
+    """Combined watch snapshot polled by capture, queue, and health surfaces."""
 
     cfg_path = Path(config_path).expanduser().resolve()
     state_file = _watch_state_file(cfg_path)
@@ -1519,7 +1519,7 @@ def logs_diagnostics_payload(
     severity: str | None = None,
     limit: int = 400,
 ) -> dict[str, object]:
-    """Return structured logs and derived diagnostic warning summaries."""
+    """Bundle parsed logs with promoted warning summaries for diagnostics-focused screens."""
 
     cfg_path, cfg = _load_cfg_for_path(config_path)
     watch_state = watch_state_payload(cfg_path, queue_limit=200, log_tail_lines=max(1, int(limit)))
@@ -1561,7 +1561,7 @@ def logs_diagnostics_payload(
 
 
 def history_summary_payload(config_path: str | Path, *, limit: int = 30, gap_minutes: int = 30) -> dict[str, object]:
-    """Build grouped run-history snapshots using queue timestamps and gap heuristic."""
+    """Group queue activity into operator-readable run history using idle gaps as session boundaries."""
 
     cfg_path, cfg = _load_cfg_for_path(config_path)
     conn = sqlite3.connect(str(cfg.watch.db_path), timeout=30, isolation_level=None)
@@ -1680,7 +1680,7 @@ def copy_diagnostics_bundle_payload(
     out_dir: str | Path | None = None,
     log_limit: int = 400,
 ) -> dict[str, object]:
-    """Write a diagnostics bundle JSON with health, queue, logs, and history data."""
+    """Capture a support bundle with the same health, queue, and diagnostics views shown in the GUI."""
 
     cfg_path, cfg = _load_cfg_for_path(config_path)
     now = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -1707,7 +1707,7 @@ def copy_diagnostics_bundle_payload(
 
 
 def _wait_operation_with_events(operation_id: str, timeout_seconds: float | None = None) -> dict[str, object]:
-    """Wait for an async operation and return snapshot plus full event stream."""
+    """Resolve an async tool operation into the envelope shape expected by synchronous bridge callers."""
 
     snapshot = app_api.wait_for_operation(operation_id, timeout_seconds=timeout_seconds)
     if snapshot is None:
@@ -1724,7 +1724,7 @@ def transcode_one_payload(
     input_path: str | Path,
     output_dir: str | Path | None = None,
 ) -> dict[str, object]:
-    """Run transcode-one operation via app API and return operation envelope."""
+    """Expose single-frame transcode as a bridge envelope so GUI tools share the async operation model."""
 
     op_id = app_api.start_transcode_one_operation(
         config_path=Path(config_path).expanduser().resolve(),
@@ -1742,7 +1742,7 @@ def suggest_matrix_payload(
     camera_model_override: str | None = None,
     write_json_path: str | Path | None = None,
 ) -> dict[str, object]:
-    """Run matrix suggestion operation via app API and return operation envelope."""
+    """Expose matrix suggestion through the shared async envelope used by other bridge tool actions."""
 
     op_id = app_api.start_suggest_matrix_operation(
         input_path=Path(input_path).expanduser().resolve(),
@@ -1761,7 +1761,7 @@ def dpx_to_prores_payload(
     framerate: int = 24,
     overwrite: bool = True,
 ) -> dict[str, object]:
-    """Run DPX-to-ProRes operation via app API and return operation envelope."""
+    """Expose DPX-to-ProRes batching through the same operation envelope used by tool workflows."""
 
     op_id = app_api.start_dpx_to_prores_operation(
         input_dir=Path(input_dir).expanduser().resolve(),
@@ -1775,7 +1775,7 @@ def dpx_to_prores_payload(
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    """Build JSON bridge CLI parser and command contracts."""
+    """Define the bridge command surface that Swift and automation clients call directly."""
 
     parser = argparse.ArgumentParser(prog="framerelay-gui-bridge")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -1915,7 +1915,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Dispatch bridge command handlers and print JSON responses."""
+    """Dispatch bridge commands and keep every code path on a JSON-in/JSON-out contract."""
 
     parser = _build_parser()
     args = parser.parse_args(argv)

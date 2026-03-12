@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// Enumeration for project editor section.
+/// Sections inside the project editor that group config fields by operational concern.
 private enum ProjectEditorSection: String, CaseIterable, Identifiable {
     case watch = "Watch"
     case pipeline = "Pipeline"
@@ -42,7 +42,7 @@ private enum ProjectEditorSection: String, CaseIterable, Identifiable {
     }
 }
 
-/// View rendering project view.
+/// Configure workspace view for editing project config, presets, and related validation state.
 struct ProjectView: View {
     @EnvironmentObject private var state: AppState
     var embedded: Bool = false

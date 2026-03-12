@@ -11,7 +11,7 @@ from typing import Any
 
 @dataclass
 class ShotManifest:
-    """Shot-level manifest payload persisted beside DPX outputs."""
+    """Shot-level provenance record that captures the locked settings behind a DPX sequence."""
 
     shot_name: str
     target_ei: int
@@ -26,7 +26,7 @@ class ShotManifest:
 
 @dataclass
 class FrameRecord:
-    """Per-frame provenance payload persisted for auditability."""
+    """Per-frame provenance record that links each DPX file back to source metadata and hashes."""
 
     shot_name: str
     frame_number: int
@@ -37,13 +37,13 @@ class FrameRecord:
 
 
 def utc_now_iso() -> str:
-    """Return UTC timestamp string for manifest/record creation metadata."""
+    """Use one UTC timestamp format across manifest and frame-record provenance files."""
 
     return datetime.now(timezone.utc).isoformat()
 
 
 def write_shot_manifest(path: Path, manifest: ShotManifest) -> None:
-    """Write shot manifest JSON file with stable formatting."""
+    """Persist shot provenance in a stable JSON layout so diffs and support bundles stay readable."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:
@@ -52,7 +52,7 @@ def write_shot_manifest(path: Path, manifest: ShotManifest) -> None:
 
 
 def write_frame_record(path: Path, record: FrameRecord) -> None:
-    """Write per-frame record JSON file with stable formatting."""
+    """Persist per-frame provenance in a stable JSON layout for debugging and audit trails."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as f:

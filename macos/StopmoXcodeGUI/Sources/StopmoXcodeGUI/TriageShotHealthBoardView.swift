@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Enumeration for triage recovery mode.
+/// Recovery drawer modes for queue repair versus diagnostics review.
 private enum TriageRecoveryMode: String, CaseIterable, Identifiable {
     case queue = "Queue Recovery"
     case diagnostics = "Diagnostics"
@@ -8,7 +8,7 @@ private enum TriageRecoveryMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-/// Enumeration for triage shot filter.
+/// Shot filters that decide which health-board rows remain visible.
 private enum TriageShotFilter: String, CaseIterable, Identifiable {
     case all = "All"
     case issues = "Issues"
@@ -18,14 +18,14 @@ private enum TriageShotFilter: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-/// Enumeration for pending shot action confirmations.
+/// Destructive shot actions that require an explicit confirmation step.
 private enum TriageShotPendingActionKind {
     case restart
     case deleteDB
     case deleteDBAndOutputs
 }
 
-/// Data/view model for generated artifact summary for one shot.
+/// Count of generated artifacts so destructive confirmations can describe what will be removed.
 private struct ShotGeneratedArtifactsSummary {
     var fileCount: Int
     var dirCount: Int
@@ -33,7 +33,7 @@ private struct ShotGeneratedArtifactsSummary {
     var hasArtifacts: Bool { fileCount + dirCount > 0 }
 }
 
-/// Data/view model for shot action requiring user confirmation.
+/// Pending destructive shot action, including the selected shot and any generated artifact counts.
 private struct TriageShotPendingAction: Identifiable {
     let id = UUID()
     let kind: TriageShotPendingActionKind
@@ -41,7 +41,7 @@ private struct TriageShotPendingAction: Identifiable {
     let artifacts: ShotGeneratedArtifactsSummary
 }
 
-/// View rendering triage shot health board view.
+/// Primary triage board for evaluating shot completion, previewing output, and launching recovery actions.
 struct TriageShotHealthBoardView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.hubContentWidth) private var hubContentWidth

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Enumeration for tools recents store.
+/// Persistence helpers for recent tool inputs and outputs shown in the tools workspace.
 enum ToolsRecentsStore {
     static let maxEntries = 8
 

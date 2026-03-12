@@ -59,7 +59,7 @@ class CubeLUT:
 
 
 def load_cube(path: Path) -> CubeLUT:
-    """Load an Iridas `.cube` 3D LUT file into `CubeLUT` representation."""
+    """Parse an Iridas `.cube` file into the in-memory LUT form used by the pipeline."""
 
     size = None
     domain_min = np.array([0.0, 0.0, 0.0], dtype=np.float32)

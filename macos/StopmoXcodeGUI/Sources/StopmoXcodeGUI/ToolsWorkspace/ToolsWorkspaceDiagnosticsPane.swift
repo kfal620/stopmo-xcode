@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Data/view model for tools workspace diagnostics pane.
+/// Diagnostics pane for the tools workspace, combining recent events with a higher-level progress timeline.
 struct ToolsWorkspaceDiagnosticsPane: View {
     @Binding var latestEvents: [OperationEventRecord]
     @Binding var toolTimeline: [ToolTimelineItem]

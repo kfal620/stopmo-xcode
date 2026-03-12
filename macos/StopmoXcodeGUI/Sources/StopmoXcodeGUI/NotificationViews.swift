@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Data/view model for notification bell button.
+/// Toolbar bell button that surfaces unread notification count and opens the notification center.
 struct NotificationBellButton: View {
     @EnvironmentObject private var state: AppState
 
@@ -20,7 +20,7 @@ struct NotificationBellButton: View {
     }
 }
 
-/// View rendering notification dock view.
+/// Bottom-of-window notification host that presents the currently active toast.
 struct NotificationDockView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -44,7 +44,7 @@ struct NotificationDockView: View {
     }
 }
 
-/// Data/view model for notification presentation modifier.
+/// View modifier that attaches toast presentation to the app shell without duplicating layout code.
 private struct NotificationPresentationModifier: ViewModifier {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -67,7 +67,7 @@ extension View {
     }
 }
 
-/// View rendering notification toast view.
+/// Transient toast card for the active notification surfaced by AppState.
 private struct NotificationToastView: View {
     let notification: NotificationRecord
     let dismiss: () -> Void
@@ -158,7 +158,7 @@ private struct NotificationToastView: View {
     }
 }
 
-/// Data/view model for notifications center panel.
+/// Popover panel that shows the full notification history and secondary actions.
 struct NotificationsCenterPanel: View {
     @EnvironmentObject private var state: AppState
 
