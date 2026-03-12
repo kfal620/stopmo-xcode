@@ -226,6 +226,81 @@ enum CaptureMonitorFormatting {
         ]
     }
 
+    static func activeShotSummaryMetrics(
+        shot: ShotSummaryRow,
+        evaluation: ShotHealthEvaluation
+    ) -> [CaptureKPIMetric] {
+        [
+            metric(
+                id: "health",
+                label: "Health",
+                value: evaluation.healthState.rawValue,
+                tone: evaluation.healthState.tone
+            ),
+            metric(
+                id: "converted",
+                label: "Converted",
+                value: "\(shot.doneFrames)/\(max(shot.totalFrames, 0))",
+                tone: evaluation.isDeliverable ? .success : .neutral
+            ),
+            metric(
+                id: "inflight",
+                label: "In Flight",
+                value: "\(shot.inflightFrames)",
+                tone: shot.inflightFrames > 0 ? .warning : .neutral
+            ),
+            metric(
+                id: "failed",
+                label: "Failed",
+                value: "\(shot.failedFrames)",
+                tone: shot.failedFrames > 0 ? .danger : .neutral
+            ),
+        ]
+    }
+
+    static func watchSummaryMetrics(
+        queueCounts: [String: Int],
+        isRunning: Bool,
+        inflightFrames: Int,
+        completedFrames: Int,
+        monitoringStatusLabel: String,
+        monitoringTone: StatusTone
+    ) -> [CaptureKPIMetric] {
+        [
+            metric(
+                id: "watcher",
+                label: "Watcher",
+                value: isRunning ? "Running" : "Stopped",
+                tone: isRunning ? .success : .warning
+            ),
+            metric(id: "queue", label: "Queue", value: "\(queueCounts.values.reduce(0, +))", tone: .neutral),
+            metric(
+                id: "inflight",
+                label: "In Flight",
+                value: "\(inflightFrames)",
+                tone: inflightFrames > 0 ? .warning : .neutral
+            ),
+            metric(
+                id: "completed",
+                label: "Completed",
+                value: "\(completedFrames)",
+                tone: completedFrames > 0 ? .success : .neutral
+            ),
+            metric(
+                id: "failed",
+                label: "Failed",
+                value: "\(queueCounts["failed", default: 0])",
+                tone: queueCounts["failed", default: 0] > 0 ? .danger : .neutral
+            ),
+            metric(
+                id: "polling",
+                label: "Polling",
+                value: monitoringStatusLabel,
+                tone: monitoringTone
+            ),
+        ]
+    }
+
     private static func metric(
         id: String,
         label: String,

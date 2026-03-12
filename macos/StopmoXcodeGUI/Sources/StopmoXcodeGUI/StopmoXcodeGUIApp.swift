@@ -9,7 +9,7 @@ struct StopmoXcodeGUIApp: App {
         WindowGroup("FrameRelay") {
             RootView()
                 .environmentObject(state)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
                 .frame(minWidth: 1120, minHeight: 760)
         }
         .windowStyle(.hiddenTitleBar)
@@ -44,34 +44,34 @@ struct StopmoXcodeGUIApp: App {
             }
 
             CommandMenu("Navigate") {
-                Button("Configure") { state.selectedHub = .configure }
+                Button(LifecycleHub.configure.displayTitle) { state.selectedHub = .configure }
                     .keyboardShortcut("1", modifiers: [.command])
-                Button("Capture") { state.selectedHub = .capture }
+                Button(LifecycleHub.capture.displayTitle) { state.selectedHub = .capture }
                     .keyboardShortcut("2", modifiers: [.command])
-                Button("Triage") { state.selectedHub = .triage }
+                Button(LifecycleHub.triage.displayTitle) { state.selectedHub = .triage }
                     .keyboardShortcut("3", modifiers: [.command])
-                Button("Deliver") { state.selectedHub = .deliver }
+                Button(LifecycleHub.deliver.displayTitle) { state.selectedHub = .deliver }
                     .keyboardShortcut("4", modifiers: [.command])
 
                 Divider()
 
                 Menu("Configure Panels") {
-                    Button("Project Settings") {
+                    Button(ConfigurePanel.projectSettings.displayTitle) {
                         state.selectedHub = .configure
                         state.selectedConfigurePanel = .projectSettings
                     }
-                    Button("Workspace & Health") {
+                    Button(ConfigurePanel.workspaceHealth.displayTitle) {
                         state.selectedHub = .configure
                         state.selectedConfigurePanel = .workspaceHealth
                     }
-                    Button("Calibration") {
+                    Button(ConfigurePanel.calibration.displayTitle) {
                         state.selectedHub = .configure
                         state.selectedConfigurePanel = .calibration
                     }
                 }
 
-                Menu("Triage Workspaces") {
-                    Button("Shot Health Board") {
+                Menu("Review Workspaces") {
+                    Button(TriagePanel.shots.displayTitle) {
                         state.selectedHub = .triage
                         state.selectedTriagePanel = .shots
                     }

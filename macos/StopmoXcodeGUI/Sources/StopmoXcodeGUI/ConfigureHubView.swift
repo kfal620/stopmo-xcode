@@ -1,46 +1,9 @@
 import SwiftUI
 
-/// Top-level configure workspace that switches between project settings, health, and calibration surfaces.
+/// Top-level configure workspace that now renders as one unified setup canvas.
 struct ConfigureHubView: View {
-    @EnvironmentObject private var state: AppState
-
     var body: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            panelPicker
-
-            Group {
-                switch state.selectedConfigurePanel {
-                case .workspaceHealth:
-                    SetupView(embedded: true)
-                case .projectSettings:
-                    ProjectView(embedded: true)
-                case .calibration:
-                    ToolsView(mode: .utilitiesOnly, embedded: true)
-                }
-            }
+        ConfigureWorkspaceView()
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }
-        .padding(.horizontal, StopmoUI.Spacing.md)
-        .padding(.top, StopmoUI.Spacing.xs)
-        .padding(.bottom, StopmoUI.Spacing.sm)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    private var panelPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: StopmoUI.Spacing.xs) {
-                ForEach(ConfigurePanel.allCases) { panel in
-                    PanelChipButton(
-                        label: panel.rawValue,
-                        iconName: panel.iconName,
-                        isSelected: state.selectedConfigurePanel == panel,
-                        accentColor: LifecycleHub.configure.accentColor
-                    ) {
-                        state.selectedConfigurePanel = panel
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 }

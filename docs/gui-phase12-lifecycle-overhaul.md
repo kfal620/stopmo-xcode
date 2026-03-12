@@ -1,6 +1,7 @@
 # GUI Phase 12 Lifecycle IA Overhaul
 
-Phase 12 established the lifecycle hub model (`Configure`, `Capture`, `Triage`, `Deliver`).
+Phase 12 established the lifecycle hub model (`Configure`, `Capture`, `Review`, `Deliver`).
+Internally, the third hub still uses `triage` identifiers for compatibility.
 Phase 13 refines these hubs into time-horizon-first primary surfaces. See:
 
 - `/Users/kyle/Developer/stopmo-xcode/docs/gui-phase13-pipeline-surfaces.md`
@@ -32,26 +33,26 @@ Top-level navigation:
 2. `Project` -> `Configure / Project Settings`
 3. `Tools (Transcode One, Suggest Matrix)` -> `Configure / Calibration`
 4. `Live Monitor` -> `Capture / Live Capture`
-5. `Shots` -> `Triage / Shots`
-6. `Queue` -> `Triage / Queue`
-7. `Logs & Diagnostics` -> `Triage / Diagnostics`
+5. `Shots` -> `Review / Shots`
+6. `Queue` -> `Review / Queue`
+7. `Logs & Diagnostics` -> `Review / Diagnostics`
 8. `Tools (DPX To ProRes)` -> `Deliver / Day Wrap`
 9. `History` -> `Deliver / Run History`
 
 ## Interaction Changes
 
-1. New top-level hubs: `Configure`, `Capture`, `Triage`, `Deliver`.
+1. New top-level hubs: `Configure`, `Capture`, `Review`, `Deliver`.
 2. New panel selectors inside hubs (chip-based).
 3. Stage-specific header accents and hierarchy via lifecycle design components.
 4. Cross-stage CTAs:
-   - Capture -> Open Triage / Open Deliver
-   - Triage -> Open Deliver (Day Wrap)
+   - Capture -> Open Review / Open Deliver
+   - Review -> Open Deliver (Day Wrap)
    - Deliver -> Back to Capture
 5. Command bar context now shows `Hub / Panel`.
 6. Keyboard navigation changed:
    - `Cmd+1` Configure
    - `Cmd+2` Capture
-   - `Cmd+3` Triage
+   - `Cmd+3` Review
    - `Cmd+4` Deliver
    - Panel-level navigation is available under `Navigate` submenus.
 
@@ -80,7 +81,7 @@ Top-level navigation:
 3. Refresh routing is panel-aware via `refreshKindForCurrentSelection()`.
 4. Monitoring gating is panel-aware:
    - Capture: always monitored
-   - Triage: monitored for Shots/Queue only
+   - Review: monitored for Shots/Queue only
    - Configure/Deliver: not continuously monitored
 
 ## ToolsView Split
@@ -100,8 +101,8 @@ All critical actions from baseline remain reachable.
 ## Phase 13 Delta (Additive)
 
 1. Capture is active-shot-first with a lighter, collapsed activity/log presentation.
-2. Triage default path is a card-based shot health board with inline detail expansion.
-3. Queue/Diagnostics remain available as advanced workspaces and through the Triage recovery drawer.
+2. Review default path is now a three-pane list-detail shot workspace with an actions inspector.
+3. Queue/Diagnostics remain available as advanced workspaces and through Review shortcuts.
 4. Deliver Day Wrap combines batch controls and per-shot deliver CTAs; run timeline/events are collapsed under Advanced.
 
 ## Validation
@@ -120,7 +121,7 @@ All critical actions from baseline remain reachable.
 
 1. Configure workspace paths and config; run health + validation + preflight.
 2. Capture: start watch and verify queue/KPI/activity updates.
-3. Triage: inspect shots, retry failed queue rows, review diagnostics and export bundle.
+3. Review: inspect shots, retry failed queue rows, review diagnostics and export bundle.
 4. Deliver: run Day Wrap DPX->ProRes and verify output list/actions.
 5. Deliver: open Run History and compare two runs.
 6. Verify command bar start/stop/refresh and Hub/Panel context chip.

@@ -6,45 +6,30 @@ struct DeliverHubView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            panelPicker
-
-            Group {
-                switch state.selectedDeliverPanel {
-                case .dayWrap:
-                    DeliveryDayWrapView()
-                case .runHistory:
+            switch state.selectedDeliverPanel {
+            case .dayWrap:
+                DeliveryDayWrapView()
+            case .runHistory:
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    ToolbarStrip(title: "Run History") {
+                        HStack(spacing: StopmoUI.Spacing.sm) {
+                            Button("Back to Deliver") {
+                                state.selectedDeliverPanel = .dayWrap
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            Spacer(minLength: 0)
+                        }
+                    }
                     HistoryView(embedded: true)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, StopmoUI.Spacing.md)
-        .padding(.top, StopmoUI.Spacing.xs)
-        .padding(.bottom, StopmoUI.Spacing.sm)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             if state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Task { await state.loadConfig() }
-            }
-        }
-    }
-
-    private var panelPicker: some View {
-        ToolbarStrip(title: "Deliver Surfaces") {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: StopmoUI.Spacing.xxs) {
-                    ForEach(DeliverPanel.allCases) { panel in
-                        PanelChipButton(
-                            label: panel.rawValue,
-                            iconName: panel.iconName,
-                            isSelected: state.selectedDeliverPanel == panel,
-                            accentColor: LifecycleHub.deliver.accentColor
-                        ) {
-                            state.selectedDeliverPanel = panel
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }

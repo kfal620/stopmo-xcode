@@ -22,7 +22,7 @@ deterministic RAW -> LogC3/AWG pipeline used in CLI workflows.
 
 - Deterministic RAW processing pipeline (shot-stable WB/exposure policy).
 - Queue-backed crash-safe processing and resume behavior.
-- GUI surfaces for health checks, watch state, triage, diagnostics, and delivery.
+- GUI surfaces for health checks, watch state, review, diagnostics, and delivery.
 - Batch DPX -> ProRes delivery workflows.
 - Config + operation parity between GUI bridge and CLI commands.
 
@@ -35,7 +35,7 @@ deterministic RAW -> LogC3/AWG pipeline used in CLI workflows.
 ## Troubleshooting
 
 - Open `Configure > Workspace & Health` to check environment/runtime status.
-- Use `Triage > Diagnostics` to inspect logs and export diagnostics bundles.
+- Use `Review > Diagnostics` to inspect logs and export diagnostics bundles.
 - For release build and notarization details, see `macos/StopmoXcodeGUI/RELEASE.md`.
 
 ## Documentation

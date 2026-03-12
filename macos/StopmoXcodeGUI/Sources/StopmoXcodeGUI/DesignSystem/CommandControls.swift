@@ -199,17 +199,17 @@ struct CommandIconButton: View {
     }
 
     private var iconColor: Color {
-        isDisabled ? Color.secondary.opacity(0.6) : Color.primary
+        isDisabled ? AppVisualTokens.textTertiary : AppVisualTokens.textPrimary
     }
 
     private var hoverBackground: Color {
         guard !isDisabled else { return .clear }
-        return isHovered ? Color.primary.opacity(0.12) : .clear
+        return isHovered ? Color.black.opacity(0.055) : .clear
     }
 
     private var hoverBorder: Color {
         guard !isDisabled else { return .clear }
-        return isHovered ? Color.primary.opacity(0.16) : .clear
+        return isHovered ? AppVisualTokens.borderStrong.opacity(0.8) : .clear
     }
 
     private var tooltipBubble: some View {

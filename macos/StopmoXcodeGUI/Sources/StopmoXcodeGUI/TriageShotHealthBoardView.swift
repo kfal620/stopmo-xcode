@@ -41,7 +41,7 @@ private struct TriageShotPendingAction: Identifiable {
     let artifacts: ShotGeneratedArtifactsSummary
 }
 
-/// Primary triage board for evaluating shot completion, previewing output, and launching recovery actions.
+/// Primary review board for evaluating shot completion, previewing output, and launching recovery actions.
 struct TriageShotHealthBoardView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.hubContentWidth) private var hubContentWidth
@@ -110,80 +110,69 @@ struct TriageShotHealthBoardView: View {
     }
 
     private var toolbarStrip: some View {
-        ToolbarStrip(title: "Shot Health Toolbar") {
-            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                HStack(alignment: .center, spacing: StopmoUI.Spacing.xs) {
-                    Picker("State", selection: $shotFilter) {
-                        ForEach(TriageShotFilter.allCases) { filter in
-                            Text(filter.rawValue).tag(filter)
+        ToolbarStrip(title: "Review") {
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                SummaryFactStrip(
+                    facts: [
+                        SummaryFact(id: "clean", label: "Clean", value: "\(cleanCount)", tone: .success),
+                        SummaryFact(id: "issues", label: "Issues", value: "\(issuesCount)", tone: issuesCount > 0 ? .danger : .neutral),
+                        SummaryFact(id: "inflight", label: "Inflight", value: "\(inflightCount)", tone: inflightCount > 0 ? .warning : .neutral),
+                        SummaryFact(id: "total", label: "Shots", value: "\(filteredEvaluations.count)", tone: .neutral),
+                    ],
+                    minItemWidth: 92,
+                    compact: true
+                )
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .center, spacing: StopmoUI.Spacing.xs) {
+                        Picker("State", selection: $shotFilter) {
+                            ForEach(TriageShotFilter.allCases) { filter in
+                                Text(filter.rawValue).tag(filter)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: 320)
+                        TextField("Search shot/state/path", text: $searchText)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 320)
+                        Spacer(minLength: 0)
                     }
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 320)
-                    TextField("Search shot/state/path", text: $searchText)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(maxWidth: 300)
-                    Spacer(minLength: 0)
-                }
-                HStack(spacing: StopmoUI.Spacing.xs) {
-                    StatusChip(label: "Clean \(cleanCount)", tone: .success, density: .compact)
-                    StatusChip(label: "Issues \(issuesCount)", tone: issuesCount > 0 ? .danger : .neutral, density: .compact)
-                    StatusChip(label: "Inflight \(inflightCount)", tone: inflightCount > 0 ? .warning : .neutral, density: .compact)
-                    StatusChip(label: "Total \(filteredEvaluations.count)", tone: .neutral, density: .compact)
+
+                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                        Picker("State", selection: $shotFilter) {
+                            ForEach(TriageShotFilter.allCases) { filter in
+                                Text(filter.rawValue).tag(filter)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        TextField("Search shot/state/path", text: $searchText)
+                            .textFieldStyle(.roundedBorder)
+                    }
                 }
             }
         }
     }
 
     private var triageWorkspaceLayout: some View {
-        Group {
-            if hubContentWidth > 0, hubContentWidth < 980 {
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
-                    recoveryDrawerCard
-                    shotsPanel
-                }
-            } else {
-                AdaptiveColumns(breakpoint: 980, spacing: StopmoUI.Spacing.md) {
-                    shotsPanel
-                } secondary: {
-                    recoveryDrawerCard
-                }
-            }
-        }
-    }
-
-    private var shotsPanel: some View {
-        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            shotsPanelHeader
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
             healthBoardCard
-        }
-    }
-
-    private var shotsPanelHeader: some View {
-        HStack(spacing: StopmoUI.Spacing.xs) {
-            Text("Shots")
-                .font(.headline.weight(.semibold))
-            Image(systemName: "info.circle")
-                .foregroundStyle(AppVisualTokens.textSecondary)
-                .help("Shots processed from RAW -> DPX.")
-            Spacer(minLength: 0)
+            recoveryDrawerCard
         }
     }
 
     private var healthBoardCard: some View {
         SectionCard(
             "Health Board",
-            subtitle: "Expand cards for full shot detail and recovery actions.",
+            subtitle: "Shot validation first. Recovery and diagnostics stay secondary.",
             density: .compact,
             surfaceLevel: .panel,
             chrome: .quiet,
-            showTitle: false,
             showSubtitle: false
         ) {
             if filteredEvaluations.isEmpty {
                 EmptyStateCard(message: "No shots available for current filters.")
             } else {
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                LazyVGrid(columns: shotBoardColumns, spacing: StopmoUI.Spacing.sm) {
                     ForEach(filteredEvaluations) { evaluation in
                         shotCard(evaluation)
                     }
@@ -195,39 +184,54 @@ struct TriageShotHealthBoardView: View {
     private func shotCard(_ evaluation: ShotHealthEvaluation) -> some View {
         let shot = evaluation.shot
         let isExpanded = expandedShotNames.contains(shot.shotName)
-        let updatedLabel = ShotHealthModel.updatedDisplayLabel(for: shot)
 
         return VStack(alignment: .leading, spacing: DenseShotRowStyle.spacing) {
             Button {
                 toggleExpanded(shot.shotName)
             } label: {
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .foregroundStyle(.secondary)
-                    ShotThumbnailView(
-                        shot: shot,
-                        preferredKind: .first,
-                        baseOutputDir: state.config.watch.outputDir,
-                        width: 58,
-                        height: 34,
-                        cornerRadius: 6,
-                        onOpenLightbox: { previewPath in
-                            previewLightboxItem = ShotLightboxItem(
-                                shot: shot,
-                                previewKind: .first,
-                                previewPath: previewPath,
-                                shotRootPath: shotRootPath(for: shot)
-                            )
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    HStack(alignment: .top, spacing: StopmoUI.Spacing.sm) {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .foregroundStyle(.secondary)
+                        ShotThumbnailView(
+                            shot: shot,
+                            preferredKind: .first,
+                            baseOutputDir: state.config.watch.outputDir,
+                            width: 64,
+                            height: 40,
+                            cornerRadius: 6,
+                            onOpenLightbox: { previewPath in
+                                previewLightboxItem = ShotLightboxItem(
+                                    shot: shot,
+                                    previewKind: .first,
+                                    previewPath: previewPath,
+                                    shotRootPath: shotRootPath(for: shot)
+                                )
+                            }
+                        )
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(shot.shotName)
+                                .appTextRole(.primaryMeta)
+                                .lineLimit(2)
+                            Text(evaluation.issueSummary)
+                                .metadataTextStyle(.secondary)
+                                .lineLimit(2)
                         }
+
+                        Spacer(minLength: 0)
+                        StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
+                    }
+
+                    SummaryFactStrip(
+                        facts: [
+                            SummaryFact(id: "\(shot.id)-completion", label: "Completion", value: evaluation.completionLabel, tone: evaluation.isDeliverable ? .success : .neutral),
+                            SummaryFact(id: "\(shot.id)-updated", label: "Updated", value: ShotHealthModel.updatedDisplayLabel(for: shot).replacingOccurrences(of: "Updated ", with: ""), tone: .neutral),
+                            SummaryFact(id: "\(shot.id)-parity", label: "Parity", value: parityLabel(for: shot), tone: parityTone(for: evaluation)),
+                        ],
+                        minItemWidth: 92,
+                        compact: true
                     )
-                    Text(shot.shotName)
-                        .font(.subheadline.weight(.semibold))
-                    StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
-                    StatusChip(label: evaluation.completionLabel, tone: evaluation.isDeliverable ? .success : .warning, density: .compact)
-                    Text(updatedLabel)
-                        .metadataTextStyle(.tertiary)
-                        .help(shot.lastUpdatedAt ?? "No update timestamp")
-                    Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -242,16 +246,31 @@ struct TriageShotHealthBoardView: View {
                 Button("Open Folder") {
                     state.openPathInFinder(shotRootPath(for: shot))
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
                 .controlSize(.small)
 
-                Button("Restart Shot") {
-                    requestRestartShot(shot)
+                if shot.failedFrames > 0 {
+                    Button("Retry Failed") {
+                        Task { await state.retryFailedJobsForShot(shot.shotName) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(isShotInflight(shot))
+                } else {
+                    Button("Restart Shot") {
+                        requestRestartShot(shot)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(isShotInflight(shot))
+                    .help(isShotInflight(shot) ? "Shot has inflight jobs. Wait until idle or stop watch first." : "Reset this shot and rebuild from beginning.")
+                }
+
+                Button("Inspect Queue") {
+                    state.selectedTriagePanel = .queue
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
-                .disabled(isShotInflight(shot))
-                .help(isShotInflight(shot) ? "Shot has inflight jobs. Wait until idle or stop watch first." : "Reset this shot and rebuild from beginning.")
 
                 Menu("More") {
                     Button("Retry Failed Frames") {
@@ -371,8 +390,8 @@ struct TriageShotHealthBoardView: View {
 
     private var recoveryDrawerCard: some View {
         SectionCard(
-            "Recovery",
-            subtitle: "Queue retry and diagnostics actions.",
+            "Advanced",
+            subtitle: "Queue recovery and diagnostics when a shot needs deeper inspection.",
             density: .compact,
             surfaceLevel: .panel,
             chrome: .quiet,
@@ -397,12 +416,9 @@ struct TriageShotHealthBoardView: View {
                 }
                 .padding(.top, StopmoUI.Spacing.xs)
             } label: {
-                DisclosureRowLabel(title: "Show Recovery Tools", isExpanded: $showRecoveryDrawer) {
-                    HStack(spacing: StopmoUI.Spacing.xs) {
-                        StatusChip(label: "Failed \(failedQueueCount)", tone: failedQueueCount > 0 ? .danger : .neutral, density: .compact)
-                        StatusChip(label: "Inflight \(inflightQueueCount)", tone: inflightQueueCount > 0 ? .warning : .neutral, density: .compact)
-                        StatusChip(label: "Warnings \(state.logsDiagnostics?.warnings.count ?? 0)", tone: (state.logsDiagnostics?.warnings.count ?? 0) > 0 ? .warning : .neutral, density: .compact)
-                    }
+                DisclosureRowLabel(title: "Show Advanced Tools", isExpanded: $showRecoveryDrawer) {
+                    Text(advancedSummaryLabel)
+                        .metadataTextStyle(.tertiary)
                 }
             }
         }
@@ -410,11 +426,15 @@ struct TriageShotHealthBoardView: View {
 
     private var queueRecoveryContent: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                StatusChip(label: "Failed \(failedQueueCount)", tone: failedQueueCount > 0 ? .danger : .neutral, density: .compact)
-                StatusChip(label: "Inflight \(inflightQueueCount)", tone: inflightQueueCount > 0 ? .warning : .neutral, density: .compact)
-                StatusChip(label: "Total \(state.queueSnapshot?.total ?? 0)", tone: .neutral, density: .compact)
-            }
+            SummaryFactStrip(
+                facts: [
+                    SummaryFact(id: "failed", label: "Failed", value: "\(failedQueueCount)", tone: failedQueueCount > 0 ? .danger : .neutral),
+                    SummaryFact(id: "inflight", label: "Inflight", value: "\(inflightQueueCount)", tone: inflightQueueCount > 0 ? .warning : .neutral),
+                    SummaryFact(id: "total", label: "Total", value: "\(state.queueSnapshot?.total ?? 0)", tone: .neutral),
+                ],
+                minItemWidth: 96,
+                compact: true
+            )
 
             HStack(spacing: StopmoUI.Spacing.sm) {
                 Button("Retry Failed") {
@@ -463,10 +483,14 @@ struct TriageShotHealthBoardView: View {
 
     private var diagnosticsRecoveryContent: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                StatusChip(label: "Warnings \(state.logsDiagnostics?.warnings.count ?? 0)", tone: (state.logsDiagnostics?.warnings.count ?? 0) > 0 ? .warning : .neutral, density: .compact)
-                StatusChip(label: "Entries \(state.logsDiagnostics?.entries.count ?? 0)", tone: .neutral, density: .compact)
-            }
+            SummaryFactStrip(
+                facts: [
+                    SummaryFact(id: "warnings", label: "Warnings", value: "\(state.logsDiagnostics?.warnings.count ?? 0)", tone: (state.logsDiagnostics?.warnings.count ?? 0) > 0 ? .warning : .neutral),
+                    SummaryFact(id: "entries", label: "Entries", value: "\(state.logsDiagnostics?.entries.count ?? 0)", tone: .neutral),
+                ],
+                minItemWidth: 120,
+                compact: true
+            )
 
             HStack(spacing: StopmoUI.Spacing.sm) {
                 Button("Refresh Diagnostics") {
@@ -532,11 +556,26 @@ struct TriageShotHealthBoardView: View {
                 row.shot.outputMovPath ?? "",
                 row.shot.reviewMovPath ?? "",
                 row.readinessReason ?? "",
+                row.issueSummary,
             ]
             .joined(separator: " ")
             .lowercased()
             return haystack.contains(term)
         }
+    }
+
+    private var shotBoardColumns: [GridItem] {
+        if hubContentWidth > 1420 {
+            return [
+                GridItem(.flexible(minimum: 360, maximum: 520), spacing: StopmoUI.Spacing.sm, alignment: .top),
+                GridItem(.flexible(minimum: 360, maximum: 520), spacing: StopmoUI.Spacing.sm, alignment: .top),
+            ]
+        }
+        return [GridItem(.flexible(minimum: 340, maximum: .infinity), spacing: StopmoUI.Spacing.sm, alignment: .top)]
+    }
+
+    private var advancedSummaryLabel: String {
+        "Failed \(failedQueueCount)  Inflight \(inflightQueueCount)  Warnings \(state.logsDiagnostics?.warnings.count ?? 0)"
     }
 
     private var allEvaluations: [ShotHealthEvaluation] {
@@ -735,6 +774,33 @@ struct TriageShotHealthBoardView: View {
             return .orange.opacity(0.85)
         case .queued:
             return AppVisualTokens.textSecondary.opacity(0.75)
+        }
+    }
+
+    private func parityLabel(for shot: ShotSummaryRow) -> String {
+        if shot.totalFrames <= 0 {
+            return "0 total"
+        }
+        let unresolved = max(0, shot.totalFrames - shot.doneFrames - shot.failedFrames)
+        if unresolved == 0 && shot.failedFrames == 0 {
+            return "Complete"
+        }
+        if unresolved == 0 {
+            return "\(shot.failedFrames) failed"
+        }
+        return "\(unresolved) pending"
+    }
+
+    private func parityTone(for evaluation: ShotHealthEvaluation) -> StatusTone {
+        switch evaluation.healthState {
+        case .clean:
+            return .success
+        case .issues:
+            return .danger
+        case .inflight:
+            return .warning
+        case .queued:
+            return .neutral
         }
     }
 

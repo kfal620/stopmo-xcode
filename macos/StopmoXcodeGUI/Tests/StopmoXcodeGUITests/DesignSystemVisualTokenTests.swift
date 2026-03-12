@@ -4,14 +4,14 @@ import XCTest
 final class DesignSystemVisualTokenTests: XCTestCase {
     func testSurfaceLevelNominalOpacityMapping() {
         XCTAssertEqual(SurfaceLevel.canvas.nominalFillOpacity, 0)
-        XCTAssertEqual(SurfaceLevel.panel.nominalFillOpacity, 0.045, accuracy: 0.0001)
-        XCTAssertEqual(SurfaceLevel.card.nominalFillOpacity, 0.06, accuracy: 0.0001)
-        XCTAssertEqual(SurfaceLevel.raised.nominalFillOpacity, 0.08, accuracy: 0.0001)
+        XCTAssertEqual(SurfaceLevel.panel.nominalFillOpacity, 0.03, accuracy: 0.0001)
+        XCTAssertEqual(SurfaceLevel.card.nominalFillOpacity, 0.04, accuracy: 0.0001)
+        XCTAssertEqual(SurfaceLevel.raised.nominalFillOpacity, 0.055, accuracy: 0.0001)
 
         XCTAssertEqual(SurfaceLevel.canvas.nominalBorderOpacity, 0)
-        XCTAssertEqual(SurfaceLevel.panel.nominalBorderOpacity, 0.08, accuracy: 0.0001)
-        XCTAssertEqual(SurfaceLevel.card.nominalBorderOpacity, 0.084, accuracy: 0.0001)
-        XCTAssertEqual(SurfaceLevel.raised.nominalBorderOpacity, 0.16, accuracy: 0.0001)
+        XCTAssertEqual(SurfaceLevel.panel.nominalBorderOpacity, 0.055, accuracy: 0.0001)
+        XCTAssertEqual(SurfaceLevel.card.nominalBorderOpacity, 0.0594, accuracy: 0.0001)
+        XCTAssertEqual(SurfaceLevel.raised.nominalBorderOpacity, 0.10, accuracy: 0.0001)
     }
 
     func testSidebarSubtitleProgressiveVisibilityRules() {

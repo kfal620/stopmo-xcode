@@ -1,144 +1,160 @@
 import SwiftUI
 
-/// Top-level command bar that exposes the most common app-wide actions and status affordances.
+/// Compact top toolbar for global app actions and high-signal status context.
 struct RootCommandBarView: View {
     @EnvironmentObject private var state: AppState
 
     let refreshAction: () async -> Void
     var leadingContentInset: CGFloat = 0
 
-    private let chromeShape = RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+    private let chromeShape = RoundedRectangle(cornerRadius: 16, style: .continuous)
 
     var body: some View {
-        ZStack {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                currentContextBanner
+        HStack(spacing: StopmoUI.Spacing.md) {
+            brandCluster
 
-                Spacer(minLength: 0)
+            Divider()
+                .frame(height: 24)
 
-                HStack(spacing: StopmoUI.Spacing.sm) {
-                    if state.watchServiceState?.running == true {
-                        StatusChip(label: "Watch Running", tone: .success, density: .compact)
-                    } else {
-                        StatusChip(label: "Watch Stopped", tone: .warning, density: .compact)
-                    }
+            contextCluster
 
-                    ToolbarActionCluster {
-                        CommandIconButton(
-                            systemImage: "play.fill",
-                            tooltip: "Start watch service",
-                            accessibilityLabel: "Start Watch",
-                            isDisabled: state.isBusy || (state.watchServiceState?.running ?? false)
-                        ) {
-                            Task { await state.startWatchService() }
-                        }
+            Spacer(minLength: 0)
 
-                        CommandIconButton(
-                            systemImage: "stop.fill",
-                            tooltip: "Stop watch service",
-                            accessibilityLabel: "Stop Watch",
-                            isDisabled: state.isBusy || !(state.watchServiceState?.running ?? false)
-                        ) {
-                            Task { await state.stopWatchService() }
-                        }
-
-                        CommandIconButton(
-                            systemImage: "arrow.clockwise",
-                            tooltip: "Refresh current panel",
-                            accessibilityLabel: "Refresh",
-                            isDisabled: state.isBusy
-                        ) {
-                            Task { await refreshAction() }
-                        }
-
-                        NotificationBellButton()
-                    }
-                }
+            if let status = statusChip {
+                StatusChip(label: status.label, tone: status.tone, density: .compact)
             }
-            .padding(.leading, leadingContentInset)
-            .zIndex(1)
 
-            Text("FrameRelay")
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(AppVisualTokens.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
-                .allowsHitTesting(false)
-                .zIndex(0)
-                .accessibilityHidden(true)
+            LiveStateChip(
+                isRunning: state.watchServiceState?.running ?? false,
+                runningLabel: "Watcher Live",
+                idleLabel: "Watcher Idle"
+            )
+
+            ToolbarActionCluster {
+                CommandIconButton(
+                    systemImage: "play.fill",
+                    tooltip: "Start watch service",
+                    accessibilityLabel: "Start Watch",
+                    isDisabled: state.isBusy || (state.watchServiceState?.running ?? false)
+                ) {
+                    Task { await state.startWatchService() }
+                }
+
+                CommandIconButton(
+                    systemImage: "stop.fill",
+                    tooltip: "Stop watch service",
+                    accessibilityLabel: "Stop Watch",
+                    isDisabled: state.isBusy || !(state.watchServiceState?.running ?? false)
+                ) {
+                    Task { await state.stopWatchService() }
+                }
+
+                CommandIconButton(
+                    systemImage: "arrow.clockwise",
+                    tooltip: "Refresh current panel",
+                    accessibilityLabel: "Refresh",
+                    isDisabled: state.isBusy
+                ) {
+                    Task { await refreshAction() }
+                }
+
+                NotificationBellButton()
+            }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .padding(.leading, leadingContentInset)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background {
-            GeometryReader { proxy in
-                ZStack {
-                    chromeShape
-                        .fill(AppVisualTokens.commandBarBaseOpaque)
-
-                    HStack(spacing: 0) {
-                        Rectangle()
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        state.selectedHub.accentColor.opacity(0.28),
-                                        state.selectedHub.accentColor.opacity(0.14),
-                                        state.selectedHub.accentColor.opacity(0.06),
-                                        .clear,
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .frame(width: min(600, proxy.size.width))
-
-                        Spacer(minLength: 0)
-                    }
-
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-
-                        Rectangle()
-                            .fill(AppVisualTokens.commandBarRightNeutralScrim)
-                            .frame(width: min(360, proxy.size.width))
-                    }
-                }
-                .frame(width: proxy.size.width, height: proxy.size.height)
-            }
-            .clipShape(chromeShape)
-            .allowsHitTesting(false)
-        }
-        .overlay {
+        .background(
+            chromeShape
+                .fill(AppVisualTokens.commandBarBaseOpaque)
+        )
+        .overlay(
             chromeShape
                 .stroke(AppVisualTokens.commandBarBorder, lineWidth: 0.85)
-                .allowsHitTesting(false)
-        }
-        .shadow(color: AppVisualTokens.shadowRaised.opacity(0.46), radius: 7, x: 0, y: 2)
+        )
+        .shadow(color: AppVisualTokens.shadowRaised.opacity(0.32), radius: 12, x: 0, y: 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .zIndex(20)
     }
 
-    private var currentContextBanner: some View {
-        HStack(spacing: StopmoUI.Spacing.xs) {
-            Image(systemName: state.selectedHub.iconName)
-                .foregroundStyle(state.selectedHub.accentColor)
-            Text(state.selectedHub.rawValue)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .foregroundStyle(AppVisualTokens.textPrimary)
+    private var brandCluster: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                state.selectedHub.accentColor,
+                                state.selectedHub.accentColor.opacity(0.66),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                Image(systemName: state.selectedHub.iconName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.white)
+            }
+            .frame(width: 28, height: 28)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("FrameRelay")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(AppVisualTokens.textPrimary)
+                Text(state.selectedHub.displayTitle)
+                    .metadataTextStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
-        .font(.title3.weight(.semibold))
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                .fill(state.selectedHub.accentColor.opacity(0.18))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                .stroke(state.selectedHub.accentColor.opacity(0.4), lineWidth: 0.9)
-        )
-        .frame(maxWidth: 320, alignment: .leading)
-        .accessibilityLabel(Text("Current section \(state.selectedHub.rawValue)"))
+    }
+
+    private var contextCluster: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            CommandContextChip(
+                icon: "rectangle.stack",
+                value: state.currentPanelLabel,
+                tooltip: state.hubPanelContextLabel,
+                isPrimary: true,
+                accentColor: state.selectedHub.accentColor
+            )
+            CommandContextChip(
+                icon: "folder",
+                value: shortWorkspaceLabel,
+                tooltip: state.repoRoot
+            )
+            CommandContextChip(
+                icon: "doc.text",
+                value: shortConfigLabel,
+                tooltip: state.configPath
+            )
+        }
+        .frame(maxWidth: 520, alignment: .leading)
+    }
+
+    private var shortWorkspaceLabel: String {
+        let trimmed = state.repoRoot.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "Workspace" }
+        return URL(fileURLWithPath: trimmed).lastPathComponent
+    }
+
+    private var shortConfigLabel: String {
+        let trimmed = state.configPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "Config" }
+        return URL(fileURLWithPath: trimmed).lastPathComponent
+    }
+
+    private var statusChip: (label: String, tone: StatusTone)? {
+        if state.isBusy {
+            return ("Working", .warning)
+        }
+        if state.errorMessage?.isEmpty == false {
+            return ("Needs Attention", .danger)
+        }
+        let trimmed = state.statusMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != "Ready" else {
+            return nil
+        }
+        return (trimmed, .neutral)
     }
 }

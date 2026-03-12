@@ -47,6 +47,93 @@ struct AdaptiveColumns<Primary: View, Secondary: View>: View {
     }
 }
 
+/// Standardized right-side inspector surface used by the redesigned workspaces.
+struct WorkspaceInspectorPane<Content: View>: View {
+    let title: String
+    let subtitle: String?
+    let width: CGFloat
+    @ViewBuilder let content: Content
+
+    init(
+        title: String,
+        subtitle: String? = nil,
+        width: CGFloat = 300,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.width = width
+        self.content = content()
+    }
+
+    var body: some View {
+        SectionCard(
+            title,
+            subtitle: subtitle,
+            density: .compact,
+            surfaceLevel: .raised,
+            chrome: .quiet,
+            showSubtitle: subtitle != nil
+        ) {
+            content
+        }
+        .frame(width: width, alignment: .topLeading)
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+/// Expandable bottom dock used for logs, diagnostics, queue, and timeline context.
+struct WorkspaceConsoleDock<Content: View, Trailing: View>: View {
+    let title: String
+    let summary: String?
+    @Binding var isExpanded: Bool
+    @ViewBuilder let trailing: Trailing
+    @ViewBuilder let content: Content
+
+    init(
+        title: String,
+        summary: String? = nil,
+        isExpanded: Binding<Bool>,
+        @ViewBuilder trailing: () -> Trailing = { EmptyView() },
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.summary = summary
+        _isExpanded = isExpanded
+        self.trailing = trailing()
+        self.content = content()
+    }
+
+    var body: some View {
+        SectionCard(
+            title,
+            subtitle: summary,
+            density: .compact,
+            surfaceLevel: .panel,
+            chrome: .quiet,
+            showSubtitle: false
+        ) {
+            DisclosureGroup(isExpanded: $isExpanded) {
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    content
+                }
+                .padding(.top, StopmoUI.Spacing.xs)
+            } label: {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    DisclosureRowLabel(title: title, isExpanded: $isExpanded)
+                    Spacer(minLength: 0)
+                    trailing
+                    if let summary, !summary.isEmpty {
+                        Text(summary)
+                            .metadataTextStyle(.tertiary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// Shared constants for compact shot-row presentation.
 struct DenseShotRowStyle {
     static let minHeight: CGFloat = 56
@@ -79,7 +166,7 @@ struct ToolbarStrip<Content: View>: View {
                 content
             }
             .padding(.horizontal, StopmoUI.Spacing.sm)
-            .padding(.vertical, StopmoUI.Spacing.xs)
+            .padding(.vertical, 7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -212,8 +299,7 @@ struct SectionCard<Content: View>: View {
                     VStack(alignment: .leading, spacing: headerSpacing) {
                         if showTitle {
                             Text(title)
-                                .font(density == .compact ? .subheadline.weight(.semibold) : .headline)
-                                .foregroundStyle(AppVisualTokens.textPrimary)
+                                .appTextRole(.sectionTitle)
                         }
                         if showSubtitle, let subtitle, !subtitle.isEmpty {
                             Text(subtitle)

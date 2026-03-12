@@ -9,6 +9,15 @@ enum LifecycleHub: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var displayTitle: String {
+        switch self {
+        case .triage:
+            return "Review"
+        default:
+            return rawValue
+        }
+    }
+
     var iconName: String {
         switch self {
         case .configure:
@@ -16,7 +25,7 @@ enum LifecycleHub: String, CaseIterable, Identifiable {
         case .capture:
             return "dot.radiowaves.left.and.right"
         case .triage:
-            return "stethoscope"
+            return "checklist"
         case .deliver:
             return "shippingbox"
         }
@@ -25,13 +34,13 @@ enum LifecycleHub: String, CaseIterable, Identifiable {
     var subtitle: String {
         switch self {
         case .configure:
-            return "Workspace, project settings, and calibration"
+            return "Workspace setup, recipe editing, and calibration"
         case .capture:
-            return "Live RAW to DPX conversion & telemetry"
+            return "Live shot monitoring and watch control"
         case .triage:
-            return "Converted DPX shots and diagnostics"
+            return "Shot review, recovery, and diagnostics"
         case .deliver:
-            return "DPX to ProRes assembly and history"
+            return "Day wrap delivery and run history"
         }
     }
 }
@@ -43,6 +52,17 @@ enum ConfigurePanel: String, CaseIterable, Identifiable {
     case calibration = "Calibration"
 
     var id: String { rawValue }
+
+    var displayTitle: String {
+        switch self {
+        case .projectSettings:
+            return "Project Settings"
+        case .workspaceHealth:
+            return "Health & Preflight"
+        case .calibration:
+            return "Calibration Lab"
+        }
+    }
 
     var iconName: String {
         switch self {
@@ -64,6 +84,17 @@ enum TriagePanel: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var displayTitle: String {
+        switch self {
+        case .shots:
+            return "Review Board"
+        case .queue:
+            return "Queue"
+        case .diagnostics:
+            return "Diagnostics"
+        }
+    }
+
     var iconName: String {
         switch self {
         case .shots:
@@ -82,6 +113,10 @@ enum DeliverPanel: String, CaseIterable, Identifiable {
     case runHistory = "Run History"
 
     var id: String { rawValue }
+
+    var displayTitle: String {
+        rawValue
+    }
 
     var iconName: String {
         switch self {

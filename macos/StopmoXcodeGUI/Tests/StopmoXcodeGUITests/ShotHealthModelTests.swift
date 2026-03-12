@@ -49,6 +49,33 @@ final class ShotHealthModelTests: XCTestCase {
         XCTAssertEqual(evaluation.healthState, .inflight)
         XCTAssertFalse(evaluation.isDeliverable)
         XCTAssertEqual(evaluation.readinessReason, "inflight")
+        XCTAssertEqual(evaluation.issueSummary, "6 frame(s) still converting.")
+    }
+
+    func testIssueSummaryUsesFailedFramesWhenShotNeedsAttention() {
+        let shot = makeShot(
+            shotName: "SHOT_D",
+            state: "issues",
+            totalFrames: 50,
+            doneFrames: 42,
+            failedFrames: 3,
+            inflightFrames: 0
+        )
+
+        XCTAssertEqual(ShotHealthModel.evaluate(shot).issueSummary, "3 failed frame(s) need attention.")
+    }
+
+    func testIssueSummaryMarksCleanShotsReadyForDelivery() {
+        let shot = makeShot(
+            shotName: "SHOT_E",
+            state: "done",
+            totalFrames: 24,
+            doneFrames: 24,
+            failedFrames: 0,
+            inflightFrames: 0
+        )
+
+        XCTAssertEqual(ShotHealthModel.evaluate(shot).issueSummary, "Ready for delivery.")
     }
 
     func testActiveShotResolverPrefersInflightMostRecent() {

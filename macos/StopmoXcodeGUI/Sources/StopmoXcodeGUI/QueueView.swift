@@ -26,7 +26,7 @@ struct QueueView: View {
                 if !embedded {
                     ScreenHeader(
                         title: "Queue",
-                        subtitle: "Triage jobs, retry failures, and export queue state for diagnostics."
+                        subtitle: "Review jobs, retry failures, and export queue state for diagnostics."
                     ) {
                         headerActions
                     }
@@ -92,7 +92,7 @@ struct QueueView: View {
     }
 
     private var quickActionsCard: some View {
-        SectionCard("Queue Actions", subtitle: "Common triage operations and queue status at a glance.") {
+        SectionCard("Queue Actions", subtitle: "Common recovery operations and queue status at a glance.") {
             HStack(spacing: StopmoUI.Spacing.sm) {
                 StatusChip(label: "Visible \(filteredJobs.count)", tone: .neutral)
                 StatusChip(label: "Selected \(selectedJobIDs.count)", tone: selectedJobIDs.isEmpty ? .neutral : .warning)

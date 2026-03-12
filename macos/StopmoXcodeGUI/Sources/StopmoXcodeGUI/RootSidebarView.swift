@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// Primary app sidebar that drives top-level workspace navigation and status emphasis.
+/// Primary app rail for lifecycle navigation and high-level system status.
 struct RootSidebarView: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -14,39 +14,37 @@ struct RootSidebarView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(LifecycleHub.allCases) { hub in
-                        let isSelected = state.selectedHub == hub
-                        let isHovered = hoveredHub == hub
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+            railHeader
 
-                        Button {
-                            state.selectedHub = hub
-                        } label: {
-                            sidebarRow(
-                                for: hub,
-                                isSelected: isSelected,
-                                isHovered: isHovered
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .contentShape(Rectangle())
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .onHover { hovering in
-                            withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
-                                hoveredHub = hovering ? hub : (hoveredHub == hub ? nil : hoveredHub)
-                            }
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                ForEach(LifecycleHub.allCases) { hub in
+                    let isSelected = state.selectedHub == hub
+                    let isHovered = hoveredHub == hub
+
+                    Button {
+                        state.selectedHub = hub
+                    } label: {
+                        sidebarRow(for: hub, isSelected: isSelected, isHovered: isHovered)
+                    }
+                    .buttonStyle(.plain)
+                    .contentShape(Rectangle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .onHover { hovering in
+                        withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
+                            hoveredHub = hovering ? hub : (hoveredHub == hub ? nil : hoveredHub)
                         }
                     }
                 }
-                .padding(.horizontal, 6)
-                .padding(.top, -15 + topContentInset)   /// Padding above the sidebar rows (vertically between traffic lights and sidebar rows)
-                .padding(.bottom, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            Spacer(minLength: 0)
+
+            railFooter
         }
+        .padding(.horizontal, 12)
+        .padding(.top, topContentInset + 14)
+        .padding(.bottom, 14)
         .background {
             ZStack {
                 SidebarBehindWindowMaterial()
@@ -54,6 +52,38 @@ struct RootSidebarView: View {
                     .fill(AppVisualTokens.rootSidebarTintOverlay)
             }
             .ignoresSafeArea(edges: [.top, .bottom, .leading])
+        }
+    }
+
+    private var railHeader: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("FrameRelay")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.98))
+            Text("Deterministic stop-motion ingest and delivery")
+                .font(.caption)
+                .foregroundStyle(Color.white.opacity(0.66))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var railFooter: some View {
+        SurfaceContainer(level: .panel, chrome: .quiet, cornerRadius: 14) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    LiveStateChip(
+                        isRunning: state.watchServiceState?.running == true,
+                        runningLabel: "Live",
+                        idleLabel: "Idle"
+                    )
+                    StatusChip(label: monitoringLabel, tone: monitoringTone, density: .compact)
+                }
+                Text("Use Capture for live watch control, Review for shot recovery, and Deliver for day wrap.")
+                    .font(.caption)
+                    .foregroundStyle(Color.white.opacity(0.7))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(10)
         }
     }
 
@@ -69,49 +99,63 @@ struct RootSidebarView: View {
         )
 
         return VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
-            HStack(alignment: .top, spacing: StopmoUI.Spacing.sm) {
-                Image(systemName: hub.iconName)
-                    .frame(width: 18, alignment: .leading)
-                    .foregroundStyle(isSelected ? hub.accentColor : AppVisualTokens.textSecondary)
+            HStack(alignment: .center, spacing: StopmoUI.Spacing.sm) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(hub.accentColor.opacity(isSelected ? 0.28 : 0.14))
+                    Image(systemName: hub.iconName)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.82))
+                }
+                .frame(width: 28, height: 28)
 
-                Text(hub.rawValue)
-                    .foregroundStyle(AppVisualTokens.textPrimary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(hub.displayTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.white.opacity(0.98))
+
+                    if showSubtitle {
+                        Text(hub.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(Color.white.opacity(0.62))
+                            .lineLimit(2)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
 
                 Spacer(minLength: 0)
 
                 if hub == .capture {
                     LiveStateChip(isRunning: state.watchServiceState?.running == true)
                         .help(state.watchServiceState?.running == true ? "Watcher is running" : "Watcher is stopped")
-                        .accessibilityLabel(Text(state.watchServiceState?.running == true ? "Watcher live" : "Watcher idle"))
                 } else if let badge = sidebarBadge(for: hub) {
-                    StatusChip(label: badge.label, tone: badge.tone)
+                    StatusChip(label: badge.label, tone: badge.tone, density: .compact)
                 }
             }
-
-            if showSubtitle {
-                Text(hub.subtitle)
-                    .metadataTextStyle(.secondary)
-                    .lineLimit(2)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
         }
-        .padding(.vertical, 5)
-        .padding(.horizontal, 4)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
         .background(
-            RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(
                     isSelected
-                        ? hub.accentColor.opacity(0.16)
-                        : (isHovered ? AppVisualTokens.fill(for: .panel, emphasized: true) : Color.clear)
+                        ? Color.white.opacity(0.16)
+                        : (isHovered ? Color.white.opacity(0.08) : Color.clear)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(
+                    isSelected ? Color.white.opacity(0.18) : Color.clear,
+                    lineWidth: 0.9
                 )
         )
         .overlay(alignment: .leading) {
             if isSelected {
                 RoundedRectangle(cornerRadius: 2, style: .continuous)
-                    .fill(hub.accentColor.opacity(0.88))
-                    .frame(width: 2)
-                    .padding(.vertical, 3)
-                    .padding(.leading, 1)
+                    .fill(hub.accentColor)
+                    .frame(width: 3)
+                    .padding(.vertical, 8)
             }
         }
         .animation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover), value: showSubtitle)
@@ -133,7 +177,7 @@ struct RootSidebarView: View {
         case .triage:
             let failed = state.queueSnapshot?.counts["failed"] ?? 0
             if failed > 0 {
-                return SidebarBadge(label: "\(failed)!", tone: .danger)
+                return SidebarBadge(label: "\(failed)", tone: .danger)
             }
             let warnings = state.logsDiagnostics?.warnings.count ?? 0
             if warnings > 0 {
@@ -141,14 +185,27 @@ struct RootSidebarView: View {
             }
             return nil
         case .deliver:
-            let runs = state.historySummary?.count ?? 0
-            if runs > 0 {
-                return SidebarBadge(label: "\(runs)", tone: .neutral)
+            if state.deliveryRunState.status == .running {
+                return SidebarBadge(label: "Run", tone: .warning)
             }
             return nil
         default:
             return nil
         }
+    }
+
+    private var monitoringLabel: String {
+        state.monitoringStatusLabel
+    }
+
+    private var monitoringTone: StatusTone {
+        if state.monitoringConsecutiveFailures >= 3 {
+            return .danger
+        }
+        if state.monitoringConsecutiveFailures > 0 {
+            return .warning
+        }
+        return state.monitoringEnabled ? .success : .neutral
     }
 }
 

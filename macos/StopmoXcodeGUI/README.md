@@ -72,7 +72,7 @@ FRAMERELAY_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
       - Calibration (Transcode One + Suggest Matrix)
     - Capture
       - Live Capture (watch start/stop, queue progress, activity/log tail)
-    - Triage
+    - Review
       - Shots + Queue + Diagnostics
       - Per-shot recovery actions (retry failed frames, restart clean rebuild, delete from DB, delete DB + outputs)
       - Right-rail Recovery drawer (collapsed by default, always visible)
@@ -81,7 +81,7 @@ FRAMERELAY_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
       - Run History (run summary and compare)
   - Shot previews:
     - Capture active shot uses latest processed-frame preview.
-    - Triage/Deliver shot rows use first-frame preview for shot identification.
+    - Review/Deliver shot rows use first-frame preview for shot identification.
     - Clickable thumbnails open a larger lightbox preview.
   - Refactored GUI module layout under `Sources/StopmoXcodeGUI/`:
     - `AppStateDomain` (reducers/services for `AppState` orchestration)
@@ -89,7 +89,7 @@ FRAMERELAY_ROOT="$(cd ../.. && pwd)" swift run StopmoXcodeGUI
     - `DeliveryDayWrap` (day-wrap shipping workspace components)
     - `DesignSystem` (tokenized visuals, surfaces, controls)
     - `ToolsWorkspace` (tabbed tools workspace + reducers/services)
-    - `TriageWorkspace` (triage board + queue/diagnostics reducers)
+    - `TriageWorkspace` (review workspace + queue/diagnostics reducers)
   - Resilience hardening:
     - Config validation panel in Configure
     - Watch preflight/blocker checks before start

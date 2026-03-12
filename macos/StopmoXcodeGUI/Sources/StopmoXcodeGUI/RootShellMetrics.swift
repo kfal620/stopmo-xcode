@@ -3,8 +3,8 @@ import SwiftUI
 /// Tunable layout metrics for the root shell (sidebar/titlebar/traffic lights).
 enum RootShellMetrics {
     // Split layout bounds.
-    static let sidebarMinWidth: CGFloat = 220
-    static let sidebarMaxWidth: CGFloat = 330
+    static let sidebarMinWidth: CGFloat = 180
+    static let sidebarMaxWidth: CGFloat = 260
     static let detailMinWidth: CGFloat = 780
 
     // Sidebar top clearance beneath titlebar controls.
@@ -16,7 +16,7 @@ enum RootShellMetrics {
 
     // Shared offset for traffic lights and sidebar toggle.
     static let titlebarControlsOffset = CGSize(width: 8, height: 8)
-    static let collapsedCommandBarLeadingInset: CGFloat = 128
+    static let collapsedCommandBarLeadingInset: CGFloat = 116
 
     // Sidebar toggle chrome and interaction.
     static let sidebarToggleSize = CGSize(width: 28, height: 28)

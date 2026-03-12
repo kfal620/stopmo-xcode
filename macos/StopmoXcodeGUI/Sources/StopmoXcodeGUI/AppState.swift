@@ -147,18 +147,18 @@ final class AppState: ObservableObject {
     var currentPanelLabel: String {
         switch selectedHub {
         case .configure:
-            return selectedConfigurePanel.rawValue
+            return selectedConfigurePanel.displayTitle
         case .capture:
             return "Live Capture"
         case .triage:
-            return selectedTriagePanel.rawValue
+            return selectedTriagePanel.displayTitle
         case .deliver:
-            return selectedDeliverPanel.rawValue
+            return selectedDeliverPanel.displayTitle
         }
     }
 
     var hubPanelContextLabel: String {
-        "\(selectedHub.rawValue) / \(currentPanelLabel)"
+        "\(selectedHub.displayTitle) / \(currentPanelLabel)"
     }
 
     // MARK: - Monitoring Controls
@@ -824,14 +824,14 @@ final class AppState: ObservableObject {
                     title: "Partial Shot Delivery",
                     message: "Delivered \(deliveredOutputs.count) ProRes clip(s); \(failedShots.count) shot(s) failed.",
                     likelyCause: "Some selected shots are missing DPX frames or have output naming/path conflicts.",
-                    suggestedAction: "Inspect failed shot folders in Triage > Shots, then retry failed shots or run Deliver > Day Wrap."
+                    suggestedAction: "Inspect failed shot folders in Review, then retry failed shots or run Deliver > Day Wrap."
                 )
             } else {
                 self.presentInfo(
                     title: "Shot Delivery Complete",
                     message: "Delivered \(deliveredOutputs.count) ProRes clip(s) from \(uniqueRoots.count) shot(s).",
                     likelyCause: nil,
-                    suggestedAction: "Open outputs from Triage > Shots or review runs in Deliver > Run History."
+                    suggestedAction: "Open outputs from Review or review runs in Deliver > Run History."
                 )
             }
             self.statusMessage = "Shot delivery complete"
@@ -928,7 +928,7 @@ final class AppState: ObservableObject {
                 title: "Retry Failed Frames",
                 message: "Shot name is empty.",
                 likelyCause: "No shot was selected for retry.",
-                suggestedAction: "Select a shot in Triage and retry again."
+                suggestedAction: "Select a shot in Review and retry again."
             )
             return
         }
@@ -950,7 +950,7 @@ final class AppState: ObservableObject {
                     title: "Shot Failed Frames Retried",
                     message: "Reset \(result.jobsChanged) failed frame(s) for \(trimmed).",
                     likelyCause: nil,
-                    suggestedAction: "Watch Capture/Triage to confirm frame jobs proceed through queue states."
+                    suggestedAction: "Watch Capture/Review to confirm frame jobs proceed through queue states."
                 )
             } else {
                 self.presentWarning(
@@ -971,7 +971,7 @@ final class AppState: ObservableObject {
                 title: "Restart Shot",
                 message: "Shot name is empty.",
                 likelyCause: "No shot was selected for restart.",
-                suggestedAction: "Select a shot in Triage and restart again."
+                suggestedAction: "Select a shot in Review and restart again."
             )
             return
         }
@@ -997,7 +997,7 @@ final class AppState: ObservableObject {
                 title: "Shot Restarted",
                 message: "Reset \(result.jobsChanged) frame job(s) for \(trimmed).\((resetLocks ? " Locks reset." : ""))\(cleanupSummary)",
                 likelyCause: nil,
-                suggestedAction: "Watch Capture/Triage to verify the shot rebuilds from detected."
+                suggestedAction: "Watch Capture/Review to verify the shot rebuilds from detected."
             )
             self.statusMessage = "Restarted shot \(trimmed)"
         }
@@ -1010,7 +1010,7 @@ final class AppState: ObservableObject {
                 title: "Delete Shot",
                 message: "Shot name is empty.",
                 likelyCause: "No shot was selected for delete.",
-                suggestedAction: "Select a shot in Triage and retry delete."
+                suggestedAction: "Select a shot in Review and retry delete."
             )
             return
         }
@@ -1035,7 +1035,7 @@ final class AppState: ObservableObject {
                 title: "Shot Deleted",
                 message: "Removed \(trimmed) from queue database.\(cleanupSummary)",
                 likelyCause: nil,
-                suggestedAction: "Use Capture/Triage refresh to confirm shot inventory is updated."
+                suggestedAction: "Use Capture/Review refresh to confirm shot inventory is updated."
             )
             self.statusMessage = "Deleted shot \(trimmed)"
         }
@@ -1070,7 +1070,7 @@ final class AppState: ObservableObject {
                 title: "Queue Snapshot Exported",
                 message: url.path,
                 likelyCause: nil,
-                suggestedAction: "Use this JSON snapshot for debugging or support triage."
+                suggestedAction: "Use this JSON snapshot for debugging or support review."
             )
             statusMessage = "Queue snapshot exported"
         } catch {

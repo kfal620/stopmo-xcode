@@ -30,6 +30,7 @@ struct ShotHealthEvaluation: Identifiable {
     let isDeliverable: Bool
     let completionLabel: String
     let readinessReason: String?
+    let issueSummary: String
 
     var id: String { shot.id }
 }
@@ -46,7 +47,8 @@ enum ShotHealthModel {
             healthState: healthState,
             isDeliverable: deliverable,
             completionLabel: completion,
-            readinessReason: reason
+            readinessReason: reason,
+            issueSummary: issueSummary(for: shot, healthState: healthState, isDeliverable: deliverable)
         )
     }
 
@@ -101,6 +103,14 @@ enum ShotHealthModel {
         return "not complete"
     }
 
+    static func issueSummary(for shot: ShotSummaryRow) -> String {
+        issueSummary(
+            for: shot,
+            healthState: healthState(for: shot),
+            isDeliverable: isDeliverable(shot)
+        )
+    }
+
     static func updatedDisplayLabel(for shot: ShotSummaryRow, now: Date = Date()) -> String {
         updatedDisplayLabel(for: shot.lastUpdatedAt, now: now)
     }
@@ -146,6 +156,39 @@ enum ShotHealthModel {
             return lhs.shotName.localizedCaseInsensitiveCompare(rhs.shotName) == .orderedAscending
         }
         return left > right
+    }
+
+    private static func issueSummary(
+        for shot: ShotSummaryRow,
+        healthState: ShotHealthState,
+        isDeliverable: Bool
+    ) -> String {
+        if isDeliverable {
+            return "Ready for delivery."
+        }
+
+        switch healthState {
+        case .issues:
+            if shot.failedFrames > 0 {
+                return "\(shot.failedFrames) failed frame(s) need attention."
+            }
+            if let assemblyState = shot.assemblyState, !assemblyState.isEmpty {
+                return "Assembly state: \(assemblyState)."
+            }
+            return "Shot reported issues that need review."
+        case .inflight:
+            if shot.inflightFrames > 0 {
+                return "\(shot.inflightFrames) frame(s) still converting."
+            }
+            return "Shot is still processing."
+        case .queued:
+            if shot.totalFrames == 0 {
+                return "Waiting for the first converted frames."
+            }
+            return "Shot is not complete yet."
+        case .clean:
+            return "Ready for delivery."
+        }
     }
 
 }

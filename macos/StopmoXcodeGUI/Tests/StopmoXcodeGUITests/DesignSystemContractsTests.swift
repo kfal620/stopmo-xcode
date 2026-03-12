@@ -15,8 +15,8 @@ final class DesignSystemContractsTests: XCTestCase {
 
     func testSurfaceSpecMatchesLevelChromeDefaults() {
         let panel = AppVisualTokens.surfaceSpec(for: .panel)
-        XCTAssertEqual(panel.fillOpacity, 0.045, accuracy: 0.0001)
-        XCTAssertEqual(panel.borderOpacity, 0.08, accuracy: 0.0001)
+        XCTAssertEqual(panel.fillOpacity, 0.03, accuracy: 0.0001)
+        XCTAssertEqual(panel.borderOpacity, 0.055, accuracy: 0.0001)
         XCTAssertEqual(panel.borderWidth, 0.75, accuracy: 0.0001)
         XCTAssertFalse(panel.usesRaisedShadow)
         XCTAssertEqual(panel.shadowOpacity, 0.0, accuracy: 0.0001)
@@ -24,14 +24,14 @@ final class DesignSystemContractsTests: XCTestCase {
         XCTAssertEqual(panel.shadowY, 0)
 
         let cardQuiet = AppVisualTokens.surfaceSpec(for: .card, chrome: .quiet)
-        XCTAssertEqual(cardQuiet.borderOpacity, 0.064, accuracy: 0.0001)
+        XCTAssertEqual(cardQuiet.borderOpacity, 0.044, accuracy: 0.0001)
 
         let raisedOutlined = AppVisualTokens.surfaceSpec(for: .raised, chrome: .outlined)
-        XCTAssertEqual(raisedOutlined.borderOpacity, 0.16, accuracy: 0.0001)
-        XCTAssertEqual(raisedOutlined.borderWidth, 1.0, accuracy: 0.0001)
+        XCTAssertEqual(raisedOutlined.borderOpacity, 0.10, accuracy: 0.0001)
+        XCTAssertEqual(raisedOutlined.borderWidth, 0.9, accuracy: 0.0001)
         XCTAssertTrue(raisedOutlined.usesRaisedShadow)
-        XCTAssertEqual(raisedOutlined.shadowOpacity, 1.0, accuracy: 0.0001)
-        XCTAssertEqual(raisedOutlined.shadowRadius, 8)
+        XCTAssertEqual(raisedOutlined.shadowOpacity, 0.72, accuracy: 0.0001)
+        XCTAssertEqual(raisedOutlined.shadowRadius, 6)
         XCTAssertEqual(raisedOutlined.shadowY, 2)
     }
 
@@ -43,7 +43,7 @@ final class DesignSystemContractsTests: XCTestCase {
         XCTAssertGreaterThan(hovered.fillOpacity, base.fillOpacity)
         XCTAssertGreaterThan(emphasized.fillOpacity, base.fillOpacity)
 
-        XCTAssertEqual(hovered.shadowRadius, 8)
+        XCTAssertEqual(hovered.shadowRadius, 6)
         XCTAssertEqual(hovered.shadowY, 2)
         XCTAssertGreaterThan(hovered.shadowOpacity, base.shadowOpacity)
     }

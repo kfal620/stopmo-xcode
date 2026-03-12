@@ -1,5 +1,48 @@
 import SwiftUI
 
+enum AppTextRole {
+    case pageTitle
+    case sectionTitle
+    case shotTitle
+    case primaryMeta
+    case support
+}
+
+private struct AppTextRoleModifier: ViewModifier {
+    let role: AppTextRole
+
+    func body(content: Content) -> some View {
+        switch role {
+        case .pageTitle:
+            content
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(AppVisualTokens.textPrimary)
+        case .sectionTitle:
+            content
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppVisualTokens.textPrimary)
+        case .shotTitle:
+            content
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(AppVisualTokens.textPrimary)
+        case .primaryMeta:
+            content
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(AppVisualTokens.textPrimary)
+        case .support:
+            content
+                .font(.callout)
+                .foregroundStyle(AppVisualTokens.textSecondary)
+        }
+    }
+}
+
+extension View {
+    func appTextRole(_ role: AppTextRole) -> some View {
+        modifier(AppTextRoleModifier(role: role))
+    }
+}
+
 /// Page-level title/subtitle header used at workspace roots.
 struct ScreenHeader<Trailing: View>: View {
     let title: String
@@ -19,11 +62,10 @@ struct ScreenHeader<Trailing: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
             Text(title)
-                .font(.title2.weight(.semibold))
+                .appTextRole(.pageTitle)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .appTextRole(.support)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -73,8 +115,8 @@ struct LifecycleStageHeader<Trailing: View>: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            hub.accentColor.opacity(style == .compact ? 0.18 : 0.26),
-                            hub.accentColor.opacity(style == .compact ? 0.08 : 0.14),
+                            hub.accentColor.opacity(style == .compact ? 0.12 : 0.16),
+                            hub.accentColor.opacity(style == .compact ? 0.04 : 0.07),
                             AppVisualTokens.panelFill,
                         ],
                         startPoint: .leading,
@@ -84,13 +126,13 @@ struct LifecycleStageHeader<Trailing: View>: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
-                .stroke(hub.accentColor.opacity(style == .compact ? 0.28 : 0.38), lineWidth: 0.9)
+                .stroke(hub.accentColor.opacity(style == .compact ? 0.16 : 0.22), lineWidth: 0.8)
         )
         .overlay(alignment: .leading) {
             RoundedRectangle(cornerRadius: StopmoUI.Radius.card, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [hub.accentColor.opacity(0.7), hub.accentColor.opacity(0.18)],
+                        colors: [hub.accentColor.opacity(0.55), hub.accentColor.opacity(0.10)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -134,7 +176,7 @@ struct LifecycleStageHeader<Trailing: View>: View {
     private var stageBadge: some View {
         HStack(spacing: StopmoUI.Spacing.xs) {
             Image(systemName: hub.iconName)
-            Text(hub.rawValue.uppercased())
+            Text(hub.displayTitle.uppercased())
                 .font(.caption2.weight(.bold))
         }
         .foregroundStyle(hub.accentColor)
@@ -142,11 +184,11 @@ struct LifecycleStageHeader<Trailing: View>: View {
         .padding(.vertical, style == .compact ? 2.5 : 4)
         .background(
             Capsule(style: .continuous)
-                .fill(hub.accentColor.opacity(0.24))
+                .fill(hub.accentColor.opacity(0.12))
         )
         .overlay(
             Capsule(style: .continuous)
-                .stroke(hub.accentColor.opacity(0.55), lineWidth: 0.8)
+                .stroke(hub.accentColor.opacity(0.26), lineWidth: 0.7)
         )
     }
 }
@@ -169,16 +211,16 @@ struct PanelChipButton: View {
             .font(.callout.weight(.semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
-            .foregroundStyle(isSelected ? Color.white : Color.primary)
+            .foregroundStyle(isSelected ? accentColor : AppVisualTokens.textSecondary)
             .background(
                 Capsule(style: .continuous)
-                    .fill(isSelected ? accentColor : Color.secondary.opacity(0.12))
+                    .fill(isSelected ? accentColor.opacity(0.12) : AppVisualTokens.fill(for: .panel))
             )
             .overlay(
                 Capsule(style: .continuous)
                     .stroke(
-                        isSelected ? accentColor.opacity(0.9) : Color.primary.opacity(0.08),
-                        lineWidth: isSelected ? 0 : 0.75
+                        isSelected ? accentColor.opacity(0.22) : AppVisualTokens.border(for: .panel, chrome: .quiet),
+                        lineWidth: 0.75
                     )
             )
         }
@@ -243,11 +285,11 @@ struct DisclosureRowLabel<Trailing: View>: View {
         .padding(.vertical, 3)
         .background(
             RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                .fill(Color.white.opacity(isHovered ? 0.08 : 0.0))
+                .fill(Color.white.opacity(isHovered ? 0.045 : 0.0))
         )
         .overlay(
             RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                .stroke(Color.white.opacity(isHovered ? 0.12 : 0.0), lineWidth: 0.75)
+                .stroke(Color.white.opacity(isHovered ? 0.08 : 0.0), lineWidth: 0.75)
         )
         .contentShape(Rectangle())
         .onHover { hovering in

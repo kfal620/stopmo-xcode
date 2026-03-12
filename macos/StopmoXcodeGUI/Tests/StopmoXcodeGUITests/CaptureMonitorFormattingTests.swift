@@ -106,4 +106,46 @@ final class CaptureMonitorFormattingTests: XCTestCase {
         XCTAssertEqual(metrics.first(where: { $0.id == "lastFrame" })?.tone, .warning)
         XCTAssertEqual(metrics.first(where: { $0.id == "workers" })?.tone, .warning)
     }
+
+    func testActiveShotSummaryMetricsKeepHeroOrder() {
+        let shot = ShotSummaryRow(
+            shotName: "SHOT_A",
+            state: "processing",
+            totalFrames: 40,
+            doneFrames: 24,
+            failedFrames: 0,
+            inflightFrames: 4,
+            progressRatio: 0.6,
+            lastUpdatedAt: "2026-03-12T10:00:00Z",
+            assemblyState: nil,
+            outputMovPath: nil,
+            reviewMovPath: nil,
+            exposureOffsetStops: nil,
+            wbMultipliers: nil
+        )
+
+        let metrics = CaptureMonitorFormatting.activeShotSummaryMetrics(
+            shot: shot,
+            evaluation: ShotHealthModel.evaluate(shot)
+        )
+
+        XCTAssertEqual(metrics.map(\.label), ["Health", "Converted", "In Flight", "Failed"])
+        XCTAssertEqual(metrics.first?.tone, .warning)
+    }
+
+    func testWatchSummaryMetricsPrioritizeOperationalState() {
+        let metrics = CaptureMonitorFormatting.watchSummaryMetrics(
+            queueCounts: ["done": 8, "failed": 2, "decoding": 1],
+            isRunning: true,
+            inflightFrames: 3,
+            completedFrames: 8,
+            monitoringStatusLabel: "Healthy",
+            monitoringTone: .success
+        )
+
+        XCTAssertEqual(metrics.map(\.label), ["Watcher", "Queue", "In Flight", "Completed", "Failed", "Polling"])
+        XCTAssertEqual(metrics.first?.tone, .success)
+        XCTAssertEqual(metrics.last?.tone, .success)
+        XCTAssertEqual(metrics.first(where: { $0.id == "failed" })?.tone, .danger)
+    }
 }

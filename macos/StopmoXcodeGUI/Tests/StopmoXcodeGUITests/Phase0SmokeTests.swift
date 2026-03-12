@@ -4,14 +4,18 @@ import XCTest
 final class Phase0SmokeTests: XCTestCase {
     func testPrimarySidebarSectionsArePresentAndOrdered() {
         XCTAssertEqual(
-            LifecycleHub.allCases.map(\.rawValue),
+            LifecycleHub.allCases.map(\.displayTitle),
             [
                 "Configure",
                 "Capture",
-                "Triage",
+                "Review",
                 "Deliver",
             ]
         )
+    }
+
+    func testInternalLifecycleHubIdentifiersRemainStable() {
+        XCTAssertEqual(LifecycleHub.triage.rawValue, "Triage")
     }
 
     func testSidebarSectionIdentifiersAreUnique() {
@@ -30,6 +34,13 @@ final class Phase0SmokeTests: XCTestCase {
         XCTAssertEqual(ConfigurePanel.allCases.map(\.rawValue), ["Project Settings", "Workspace & Health", "Calibration"])
         XCTAssertEqual(TriagePanel.allCases.map(\.rawValue), ["Shots", "Queue", "Diagnostics"])
         XCTAssertEqual(DeliverPanel.allCases.map(\.rawValue), ["Day Wrap", "Run History"])
+    }
+
+    func testDisplayTitlesReflectUserFacingRenameAndUnifiedConfigureCopy() {
+        XCTAssertEqual(ConfigurePanel.workspaceHealth.displayTitle, "Health & Preflight")
+        XCTAssertEqual(ConfigurePanel.calibration.displayTitle, "Calibration Lab")
+        XCTAssertEqual(TriagePanel.shots.displayTitle, "Review Board")
+        XCTAssertEqual(LifecycleHub.triage.displayTitle, "Review")
     }
 
     func testInterpretationContractDefaultsRemainStable() {

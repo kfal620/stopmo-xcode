@@ -27,13 +27,13 @@ struct StatusChip: View {
         Text(label)
             .font((density == .compact ? Font.caption2 : Font.caption).weight(.semibold))
             .foregroundStyle(tone.foreground)
-            .padding(.horizontal, StopmoUI.Spacing.xs)
-            .padding(.vertical, density == .compact ? 2 : StopmoUI.Spacing.xxs)
+            .padding(.horizontal, density == .compact ? 7 : StopmoUI.Spacing.xs)
+            .padding(.vertical, density == .compact ? 2 : 3)
             .background(tone.background)
             .clipShape(RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                    .stroke(Color.white.opacity(0.06), lineWidth: 0.5)
+                    .stroke(AppVisualTokens.borderSubtle, lineWidth: 0.5)
             )
     }
 }
@@ -52,11 +52,11 @@ struct CurrentSectionChip: View {
             .padding(.vertical, StopmoUI.Spacing.xs)
             .background(
                 RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                    .fill(accentColor.opacity(0.14))
+                    .fill(accentColor.opacity(0.10))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: StopmoUI.Radius.chip, style: .continuous)
-                    .stroke(accentColor.opacity(0.3), lineWidth: 0.75)
+                    .stroke(accentColor.opacity(0.20), lineWidth: 0.75)
             )
             .accessibilityLabel(Text("Current section \(title)"))
     }
@@ -78,6 +78,54 @@ struct KeyValueRow: View {
                 .textSelection(.enabled)
         }
         .font(.callout)
+    }
+}
+
+struct SummaryFact: Identifiable, Equatable {
+    let id: String
+    let label: String
+    let value: String
+    var tone: StatusTone = .neutral
+}
+
+struct SummaryFactStrip: View {
+    let facts: [SummaryFact]
+    var minItemWidth: CGFloat = 112
+    var compact: Bool = false
+
+    var body: some View {
+        MetricWrap(minItemWidth: minItemWidth, spacing: compact ? StopmoUI.Spacing.xs : StopmoUI.Spacing.sm) {
+            ForEach(facts) { fact in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(fact.label)
+                        .metadataTextStyle(.tertiary)
+                    Text(fact.value)
+                        .font(compact ? .subheadline.weight(.semibold) : .headline.weight(.semibold))
+                        .foregroundStyle(fact.tone == .neutral ? AppVisualTokens.textPrimary : fact.tone.foreground)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, compact ? 1 : 2)
+            }
+        }
+    }
+}
+
+struct SummaryLine: View {
+    let label: String
+    let value: String
+    var tone: StatusTone = .neutral
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.xs) {
+            Text(label)
+                .metadataTextStyle(.tertiary)
+            Spacer(minLength: 0)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(tone == .neutral ? AppVisualTokens.textPrimary : tone.foreground)
+        }
     }
 }
 
@@ -141,8 +189,7 @@ struct EmptyStateCard: View {
     var body: some View {
         SurfaceContainer(level: .card, chrome: .quiet) {
             Text(message)
-                .font(.callout)
-                .foregroundStyle(AppVisualTokens.textSecondary)
+                .appTextRole(.support)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(StopmoUI.Spacing.md)
         }
@@ -162,22 +209,22 @@ struct LiveStateChip: View {
         HStack(spacing: 5) {
             Circle()
                 .fill(dotColor)
-                .frame(width: 7, height: 7)
+                .frame(width: 6, height: 6)
                 .scaleEffect(isRunning && isPulsing ? 1.15 : 1.0)
                 .opacity(isRunning && isPulsing ? 0.75 : 1.0)
             Text(isRunning ? runningLabel : idleLabel)
                 .font(.caption2.weight(.semibold))
         }
         .foregroundStyle(isRunning ? Color.green : .secondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
         .background(
             Capsule(style: .continuous)
-                .fill(isRunning ? Color.green.opacity(0.18) : Color.secondary.opacity(0.14))
+                .fill(isRunning ? Color.green.opacity(0.12) : Color.black.opacity(0.05))
         )
         .overlay(
             Capsule(style: .continuous)
-                .stroke((isRunning ? Color.green : Color.secondary).opacity(0.25), lineWidth: 0.75)
+                .stroke((isRunning ? Color.green : AppVisualTokens.borderSubtle).opacity(0.9), lineWidth: 0.75)
         )
         .onAppear {
             setPulseAnimation()

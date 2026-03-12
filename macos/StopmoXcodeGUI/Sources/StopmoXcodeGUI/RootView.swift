@@ -16,8 +16,8 @@ struct RootView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var detailContentWidth: CGFloat = 0
-    @State private var sidebarWidth: CGFloat = 260
-    @State private var lastExpandedSidebarWidth: CGFloat = 260
+    @State private var sidebarWidth: CGFloat = 208
+    @State private var lastExpandedSidebarWidth: CGFloat = 208
     @State private var sidebarDragBaseWidth: CGFloat?
     @State private var isSidebarToggleHovered: Bool = false
 
@@ -44,7 +44,8 @@ struct RootView: View {
                 )
         }
         .background {
-            RootShellBackdropMaterial()
+            AppVisualTokens.backgroundCanvas
+                .ignoresSafeArea()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .onAppear {
@@ -68,11 +69,6 @@ struct RootView: View {
             )
         }
         .notificationPresentation()
-        .overlay(alignment: .bottomLeading) {
-            RootStatusBarView()
-                .padding(.leading, 12)
-                .padding(.bottom, 12)
-        }
         .overlay(alignment: .topLeading) {
             RootTitlebarSidebarToggleButton(
                 isCollapsed: sidebarWidth <= 1,
@@ -100,33 +96,27 @@ struct RootView: View {
     }
 
     private var detailShell: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: StopmoUI.Spacing.sm) {
             RootCommandBarView(
                 refreshAction: {
                     await state.refreshCurrentSelection()
                 },
                 leadingContentInset: collapsedCommandBarLeadingInset
             )
-            .padding(.bottom, 6)
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
             .zIndex(120)
 
             detailView
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 12)
         }
         .environment(\.hubContentWidth, detailContentWidth)
         .background {
-            ZStack {
-                AppVisualTokens.rootDetailFrameOpaqueFill
-                RadialGradient(
-                    colors: [
-                        Color.white.opacity(0.045),
-                        Color.clear,
-                    ],
-                    center: .topLeading,
-                    startRadius: 32,
-                    endRadius: 560
-                )
-                GeometryReader { proxy in
+            GeometryReader { proxy in
+                ZStack {
+                    AppVisualTokens.rootDetailFrameOpaqueFill
                     Color.clear.preference(
                         key: RootDetailWidthPreferenceKey.self,
                         value: proxy.size.width
@@ -137,12 +127,12 @@ struct RootView: View {
         .onPreferenceChange(RootDetailWidthPreferenceKey.self) { width in
             detailContentWidth = width
         }
-        .overlay {
-            DetailShellBorderShape(cornerRadius: AppVisualTokens.rootShellCornerRadius)
-                .stroke(AppVisualTokens.rootDetailFrameBorder, lineWidth: 1)
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(AppVisualTokens.rootDetailFrameBorder)
+                .frame(width: 1)
         }
-        .clipShape(RoundedRectangle(cornerRadius: AppVisualTokens.rootShellCornerRadius, style: .continuous))
-        .shadow(color: AppVisualTokens.rootDetailFrameShadow, radius: 14, x: 0, y: 5)
+        .shadow(color: AppVisualTokens.rootDetailFrameShadow, radius: 16, x: 0, y: 2)
         .ignoresSafeArea(edges: [.top, .bottom, .trailing])
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.22), value: collapsedCommandBarLeadingInset)
@@ -210,63 +200,5 @@ struct RootView: View {
 
     private func clampedSidebarWidth(_ proposed: CGFloat) -> CGFloat {
         max(RootShellMetrics.sidebarMinWidth, min(RootShellMetrics.sidebarMaxWidth, proposed))
-    }
-}
-
-private struct RootShellBackdropMaterial: View {
-    var body: some View {
-        ZStack {
-            RootBackdropVisualEffect()
-            Rectangle()
-                .fill(AppVisualTokens.rootSidebarTintOverlay)
-        }
-        .ignoresSafeArea()
-    }
-}
-
-private struct RootBackdropVisualEffect: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .underWindowBackground
-        view.blendingMode = .behindWindow
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {
-        view.material = .underWindowBackground
-        view.blendingMode = .behindWindow
-        view.state = .active
-    }
-}
-
-private struct DetailShellBorderShape: Shape {
-    let cornerRadius: CGFloat
-
-    func path(in rect: CGRect) -> Path {
-        let radius = max(0, min(cornerRadius, min(rect.width, rect.height) * 0.5))
-        var path = Path()
-
-        // Draw only top/right/bottom border so the sidebar seam stays frameless.
-        path.move(to: CGPoint(x: radius, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX - radius, y: rect.minY))
-        path.addArc(
-            center: CGPoint(x: rect.maxX - radius, y: rect.minY + radius),
-            radius: radius,
-            startAngle: .degrees(-90),
-            endAngle: .degrees(0),
-            clockwise: false
-        )
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - radius))
-        path.addArc(
-            center: CGPoint(x: rect.maxX - radius, y: rect.maxY - radius),
-            radius: radius,
-            startAngle: .degrees(0),
-            endAngle: .degrees(90),
-            clockwise: false
-        )
-        path.addLine(to: CGPoint(x: radius, y: rect.maxY))
-
-        return path
     }
 }

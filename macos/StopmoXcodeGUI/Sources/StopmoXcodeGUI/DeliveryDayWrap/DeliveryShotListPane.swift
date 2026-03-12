@@ -38,7 +38,7 @@ struct DeliveryShotListPane: View {
     var body: some View {
         SectionCard(
             "Deliverable Shots",
-            subtitle: "Select completed shots and deliver ProRes in one run.",
+            subtitle: "Ready-to-ship shots first, blocked shots second.",
             density: .compact,
             surfaceLevel: .panel,
             chrome: .quiet,
@@ -82,7 +82,7 @@ struct DeliveryShotListPane: View {
 
         return SurfaceContainer(level: .card, chrome: .quiet, cornerRadius: DenseShotRowStyle.cornerRadius) {
             VStack(alignment: .leading, spacing: DeliveryLayoutMetrics.shotRowSpacing) {
-                HStack(alignment: .center, spacing: DeliveryLayoutMetrics.shotRowActionSpacing) {
+                HStack(alignment: .top, spacing: DeliveryLayoutMetrics.shotRowActionSpacing) {
                     Button {
                         onToggleSelection(shot.shotName)
                     } label: {
@@ -106,30 +106,39 @@ struct DeliveryShotListPane: View {
                         }
                     )
 
-                    Text(shot.shotName)
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(width: DeliveryLayoutMetrics.shotNameColumnWidth, alignment: .leading)
-                        .help(shot.shotName)
-
-                    StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
-                    StatusChip(label: evaluation.completionLabel, tone: .success, density: .compact)
-                    Text(ShotHealthModel.updatedDisplayLabel(for: shot))
-                        .metadataTextStyle(.tertiary)
-                        .help(shot.lastUpdatedAt ?? "No update timestamp")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(shot.shotName)
+                            .appTextRole(.primaryMeta)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .help(shot.shotName)
+                        Text(evaluation.issueSummary)
+                            .metadataTextStyle(.secondary)
+                            .lineLimit(1)
+                    }
 
                     Spacer(minLength: 0)
+
+                    StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
                 }
 
                 ProgressView(value: progressRatio(for: shot))
                     .tint(progressTint(for: evaluation.healthState))
 
+                SummaryFactStrip(
+                    facts: [
+                        SummaryFact(id: "\(shot.id)-completion", label: "Completion", value: evaluation.completionLabel, tone: .success),
+                        SummaryFact(id: "\(shot.id)-updated", label: "Updated", value: ShotHealthModel.updatedDisplayLabel(for: shot).replacingOccurrences(of: "Updated ", with: ""), tone: .neutral),
+                    ],
+                    minItemWidth: 110,
+                    compact: true
+                )
+
                 HStack(spacing: DeliveryLayoutMetrics.shotRowActionSpacing) {
                     Button(isRunningShot ? "Delivering..." : "Deliver ProRes") {
                         onRunShot(shot)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
                     .controlSize(.mini)
                     .disabled(isBusy || !dpxRootReady || isRunningShot)
 
@@ -182,7 +191,9 @@ struct DeliveryShotListPane: View {
                                 .frame(width: DeliveryLayoutMetrics.shotNameColumnWidth, alignment: .leading)
                                 .help(evaluation.shot.shotName)
                             StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
-                            StatusChip(label: evaluation.readinessReason ?? "not ready", tone: .warning, density: .compact)
+                            Text(evaluation.issueSummary)
+                                .metadataTextStyle(.secondary)
+                                .lineLimit(1)
                             Spacer(minLength: 0)
                             Text(ShotHealthModel.updatedDisplayLabel(for: evaluation.shot))
                                 .metadataTextStyle(.tertiary)
@@ -257,13 +268,16 @@ private struct DeliverableShotsPane<Rows: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-            HStack(spacing: StopmoUI.Spacing.xs) {
-                StatusChip(label: "Ready \(readyCount)", tone: .success, density: .compact)
-                StatusChip(label: "Selected \(selectedCount)", tone: selectedCount > 0 ? .warning : .neutral, density: .compact)
-                StatusChip(label: "Not Ready \(notReadyCount)", tone: notReadyCount > 0 ? .warning : .neutral, density: .compact)
-                StatusChip(label: dpxRootReady ? "Root Ready" : "Root Missing", tone: dpxRootReady ? .success : .danger, density: .compact)
-                Spacer(minLength: 0)
-            }
+            SummaryFactStrip(
+                facts: [
+                    SummaryFact(id: "ready", label: "Ready", value: "\(readyCount)", tone: .success),
+                    SummaryFact(id: "selected", label: "Selected", value: "\(selectedCount)", tone: selectedCount > 0 ? .warning : .neutral),
+                    SummaryFact(id: "blocked", label: "Blocked", value: "\(notReadyCount)", tone: notReadyCount > 0 ? .warning : .neutral),
+                    SummaryFact(id: "root", label: "Root", value: dpxRootReady ? "Ready" : "Missing", tone: dpxRootReady ? .success : .danger),
+                ],
+                minItemWidth: 88,
+                compact: true
+            )
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) {
@@ -277,7 +291,7 @@ private struct DeliverableShotsPane<Rows: View>: View {
                         .disabled(isBusy || selectedCount == 0)
                     Spacer(minLength: 0)
                     Button("Deliver Selected", action: runSelectedAction)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .controlSize(.small)
                         .disabled(!canRunBulk)
                 }
@@ -294,7 +308,7 @@ private struct DeliverableShotsPane<Rows: View>: View {
                             .disabled(isBusy || selectedCount == 0)
                     }
                     Button("Deliver Selected", action: runSelectedAction)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .controlSize(.small)
                         .disabled(!canRunBulk)
                 }

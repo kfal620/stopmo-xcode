@@ -43,11 +43,11 @@ enum SurfaceLevel {
         case .canvas:
             return 0
         case .panel:
-            return 0.045
+            return 0.03
         case .card:
-            return 0.06
+            return 0.04
         case .raised:
-            return 0.08
+            return 0.055
         }
     }
 
@@ -56,11 +56,11 @@ enum SurfaceLevel {
         case .canvas:
             return 0
         case .panel:
-            return 0.08
+            return 0.055
         case .card:
-            return 0.084
+            return 0.0594
         case .raised:
-            return 0.16
+            return 0.10
         }
     }
 }
@@ -97,24 +97,24 @@ enum StatusTone {
         case .neutral:
             return AppVisualTokens.textPrimary
         case .success:
-            return .green
+            return Color(red: 0.16, green: 0.43, blue: 0.24)
         case .warning:
-            return .orange
+            return Color(red: 0.64, green: 0.39, blue: 0.10)
         case .danger:
-            return .red
+            return Color(red: 0.66, green: 0.19, blue: 0.20)
         }
     }
 
     var background: Color {
         switch self {
         case .neutral:
-            return Color.white.opacity(0.11)
+            return Color.black.opacity(0.055)
         case .success:
-            return Color.green.opacity(0.2)
+            return Color(red: 0.76, green: 0.90, blue: 0.80)
         case .warning:
-            return Color.orange.opacity(0.22)
+            return Color(red: 0.97, green: 0.89, blue: 0.74)
         case .danger:
-            return Color.red.opacity(0.2)
+            return Color(red: 0.96, green: 0.82, blue: 0.82)
         }
     }
 }
@@ -134,51 +134,51 @@ struct SurfaceVisualSpec: Equatable {
 enum AppVisualTokens {
     static let backgroundCanvas = LinearGradient(
         colors: [
-            Color(red: 0.055, green: 0.072, blue: 0.065),
-            Color(red: 0.048, green: 0.06, blue: 0.055),
-            Color(red: 0.045, green: 0.055, blue: 0.052),
+            Color(red: 0.97, green: 0.974, blue: 0.978),
+            Color(red: 0.956, green: 0.962, blue: 0.972),
+            Color(red: 0.942, green: 0.95, blue: 0.964),
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
 
-    static let panelFill = Color.white.opacity(0.045)
-    static let cardFill = Color.white.opacity(0.06)
-    static let raisedFill = Color.white.opacity(0.08)
+    static let panelFill = Color.white.opacity(0.72)
+    static let cardFill = Color.white.opacity(0.82)
+    static let raisedFill = Color.white.opacity(0.94)
 
-    static let borderSubtle = Color.white.opacity(0.08)
-    static let borderStrong = Color.white.opacity(0.16)
+    static let borderSubtle = Color.black.opacity(0.08)
+    static let borderStrong = Color.black.opacity(0.16)
 
-    static let textPrimary = Color.white.opacity(0.92)
-    static let textSecondary = Color.white.opacity(0.72)
-    static let textTertiary = Color.white.opacity(0.58)
+    static let textPrimary = Color(red: 0.14, green: 0.16, blue: 0.20)
+    static let textSecondary = Color(red: 0.34, green: 0.39, blue: 0.45)
+    static let textTertiary = Color(red: 0.50, green: 0.55, blue: 0.61)
 
-    static let shadowSoft = Color.black.opacity(0.14)
-    static let shadowRaised = Color.black.opacity(0.22)
+    static let shadowSoft = Color.black.opacity(0.06)
+    static let shadowRaised = Color.black.opacity(0.16)
 
     // Shell chrome tokens for command/title bar and root framing.
     static let rootShellCornerRadius: CGFloat = 18
     static let rootSidebarTintOverlay = LinearGradient(
         colors: [
-            Color(red: 0.04, green: 0.055, blue: 0.05).opacity(0.24),
-            Color(red: 0.045, green: 0.055, blue: 0.06).opacity(0.18),
-            Color(red: 0.035, green: 0.04, blue: 0.045).opacity(0.22),
+            Color(red: 0.16, green: 0.19, blue: 0.23).opacity(0.96),
+            Color(red: 0.13, green: 0.16, blue: 0.20).opacity(0.98),
+            Color(red: 0.11, green: 0.14, blue: 0.18).opacity(0.98),
         ],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
-    static let rootDetailFrameOpaqueFill = Color(red: 0.055, green: 0.063, blue: 0.07).opacity(0.985)
-    static let rootDetailFrameBorder = Color.white.opacity(0.11)
-    static let rootDetailFrameShadow = Color.black.opacity(0.34)
+    static let rootDetailFrameOpaqueFill = Color(red: 0.985, green: 0.988, blue: 0.992).opacity(0.995)
+    static let rootDetailFrameBorder = Color.black.opacity(0.07)
+    static let rootDetailFrameShadow = Color.black.opacity(0.12)
 
     // Existing command-bar tokens.
-    static let commandBarBaseOpaque = Color(red: 0.11, green: 0.13, blue: 0.125).opacity(0.94)
-    static let commandBarBorder = Color.white.opacity(0.12)
+    static let commandBarBaseOpaque = Color.white.opacity(0.86)
+    static let commandBarBorder = Color.black.opacity(0.08)
     static let commandBarRightNeutralScrim = LinearGradient(
         colors: [
             Color.clear,
-            Color.black.opacity(0.05),
-            Color.black.opacity(0.11),
+            Color.black.opacity(0.01),
+            Color.black.opacity(0.025),
         ],
         startPoint: .leading,
         endPoint: .trailing
@@ -234,29 +234,29 @@ enum AppVisualTokens {
         case .canvas:
             fillOpacity = 0
         case .panel:
-            fillOpacity = highlighted ? 0.045 * 1.15 : 0.045
+            fillOpacity = highlighted ? 0.03 * 1.18 : 0.03
         case .card:
-            fillOpacity = highlighted ? 0.06 * 1.15 : 0.06
+            fillOpacity = highlighted ? 0.04 * 1.16 : 0.04
         case .raised:
-            fillOpacity = highlighted ? 0.08 * 1.1 : 0.08
+            fillOpacity = highlighted ? 0.055 * 1.12 : 0.055
         }
 
         let borderOpacity: Double
         switch chrome {
         case .quiet:
-            borderOpacity = 0.08 * 0.8
+            borderOpacity = 0.055 * 0.8
         case .outlined:
-            borderOpacity = 0.16
+            borderOpacity = 0.10
         case .standard:
             switch level {
             case .canvas:
                 borderOpacity = 0
             case .panel:
-                borderOpacity = 0.08
+                borderOpacity = 0.055
             case .card:
-                borderOpacity = 0.08 * 1.05
+                borderOpacity = 0.055 * 1.08
             case .raised:
-                borderOpacity = 0.16 * 0.9
+                borderOpacity = 0.10 * 0.9
             }
         }
 
@@ -264,10 +264,10 @@ enum AppVisualTokens {
         return SurfaceVisualSpec(
             fillOpacity: fillOpacity,
             borderOpacity: borderOpacity,
-            borderWidth: chrome == .outlined ? 1 : 0.75,
+            borderWidth: chrome == .outlined ? 0.9 : 0.75,
             usesRaisedShadow: hasRaisedShadow,
-            shadowOpacity: hasRaisedShadow ? 1.0 : 0.0,
-            shadowRadius: hasRaisedShadow ? 8 : 0,
+            shadowOpacity: hasRaisedShadow ? (level == .raised ? 0.72 : 0.44) : 0.0,
+            shadowRadius: hasRaisedShadow ? 6 : 0,
             shadowY: hasRaisedShadow ? 2 : 0
         )
     }

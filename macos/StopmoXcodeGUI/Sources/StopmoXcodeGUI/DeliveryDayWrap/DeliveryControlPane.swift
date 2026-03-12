@@ -125,15 +125,16 @@ private struct DeliveryRunStatusPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                StatusChip(label: runState.status.rawValue, tone: toneForStatus(runState.status), density: .compact)
-                StatusChip(label: runState.kind.rawValue, tone: .neutral, density: .compact)
-                StatusChip(label: "\(runState.completed)/\(runState.total)", tone: .neutral, density: .compact)
-                if runState.failed > 0 {
-                    StatusChip(label: "Failed \(runState.failed)", tone: .danger, density: .compact)
-                }
-                Spacer(minLength: 0)
-            }
+            SummaryFactStrip(
+                facts: [
+                    SummaryFact(id: "status", label: "Status", value: runState.status.rawValue, tone: toneForStatus(runState.status)),
+                    SummaryFact(id: "scope", label: "Scope", value: runState.kind.rawValue, tone: .neutral),
+                    SummaryFact(id: "progress", label: "Progress", value: "\(runState.completed)/\(runState.total)", tone: .neutral),
+                    SummaryFact(id: "failed", label: "Failed", value: "\(runState.failed)", tone: runState.failed > 0 ? .danger : .neutral),
+                ],
+                minItemWidth: 96,
+                compact: true
+            )
 
             progressHeaderBar
 
@@ -378,7 +379,7 @@ private struct BatchConfigDisclosurePanel: View {
     }
 }
 
-/// Auxiliary diagnostics panel that links current delivery context to deeper history and triage tools.
+/// Auxiliary diagnostics panel that links current delivery context to deeper history and review tools.
 private struct DeliveryAdvancedDiagnosticsPanel: View {
     let envelope: ToolOperationEnvelope?
     let runEvents: [DeliveryRunEvent]
@@ -421,7 +422,7 @@ private struct DeliveryAdvancedDiagnosticsPanel: View {
                 Button("Open Run History", action: openRunHistory)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                Button("Open Triage Diagnostics", action: openTriageDiagnostics)
+                Button("Open Review Diagnostics", action: openTriageDiagnostics)
                     .buttonStyle(.bordered)
                     .controlSize(.small)
             }
