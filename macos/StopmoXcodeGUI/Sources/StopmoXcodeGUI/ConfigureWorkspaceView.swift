@@ -360,77 +360,95 @@ struct ConfigureWorkspaceView: View {
                     compact: true
                 )
 
-                KeyValueRow(key: "Plate Contract", value: "ARRI LogC3 EI800 + AWG")
+                KeyValueRow(key: "Plate Contract", value: "ARRI LogC3 EI800 + AWG", layout: .adaptive(availableWidth: 280))
                 KeyValueRow(
                     key: "White Balance",
                     value: editor.draftConfig.pipeline.lockWbFromFirstFrame ? "Shot-locked from first frame" : "Manual / unlocked",
-                    tone: editor.draftConfig.pipeline.lockWbFromFirstFrame ? .success : .warning
+                    tone: editor.draftConfig.pipeline.lockWbFromFirstFrame ? .success : .warning,
+                    layout: .stacked
                 )
                 KeyValueRow(
                     key: "Exposure",
                     value: deterministicExposureSummary,
-                    tone: .neutral
+                    tone: .neutral,
+                    layout: .stacked
                 )
                 KeyValueRow(
                     key: "Display LUT",
                     value: editor.draftConfig.output.showLutRec709Path == nil ? "External only" : "Override path set",
-                    tone: .neutral
+                    tone: .neutral,
+                    layout: .adaptive(availableWidth: 280)
                 )
 
                 Divider()
 
-                KeyValueRow(key: "Config", value: state.configPath)
-                KeyValueRow(key: "Workspace", value: state.repoRoot)
-                KeyValueRow(key: "Sample Config", value: state.sampleConfigPath, tone: sampleConfigExists ? .success : .warning)
-                KeyValueRow(key: "Validation", value: validationInspectorLabel, tone: validationInspectorTone)
-                KeyValueRow(key: "Preflight", value: preflightSummaryLabel, tone: preflightSummaryTone)
-                KeyValueRow(key: "Runtime", value: runtimeSummaryLabel, tone: runtimeSummaryTone)
+                KeyValueRow(key: "Config", value: state.configPath, tone: .neutral, layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "Workspace", value: state.repoRoot, tone: .neutral, layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "Sample Config", value: state.sampleConfigPath, tone: sampleConfigExists ? .success : .warning, layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "Validation", value: validationInspectorLabel, tone: validationInspectorTone, layout: .adaptive(availableWidth: 280))
+                KeyValueRow(key: "Preflight", value: preflightSummaryLabel, tone: preflightSummaryTone, layout: .adaptive(availableWidth: 280))
+                KeyValueRow(key: "Runtime", value: runtimeSummaryLabel, tone: runtimeSummaryTone, layout: .adaptive(availableWidth: 280))
             }
         }
     }
 
     private var footerBar: some View {
         SurfaceContainer(level: .raised, chrome: .quiet, cornerRadius: 14) {
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                HStack(spacing: StopmoUI.Spacing.xs) {
-                    StatusChip(
-                        label: hasUnsavedChanges ? "Unsaved Changes" : "Saved",
-                        tone: hasUnsavedChanges ? .warning : .success
-                    )
-                    StatusChip(label: validationInspectorLabel, tone: validationInspectorTone, density: .compact)
-                    StatusChip(label: preflightSummaryLabel, tone: preflightSummaryTone, density: .compact)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    footerStatusChips
+                    Spacer(minLength: 0)
+                    footerButtons
                 }
 
-                Spacer(minLength: 0)
-
-                Button("Discard") {
-                    discardLocalChanges()
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    footerStatusChips
+                    footerButtons
                 }
-                .disabled(state.isBusy || !hasUnsavedChanges)
-
-                Button("Reload") {
-                    Task { await reloadFromDisk() }
-                }
-                .disabled(state.isBusy)
-
-                Button("Validate") {
-                    Task { await state.validateConfig() }
-                }
-                .disabled(state.isBusy)
-
-                Button("Run Preflight") {
-                    Task { await state.refreshWatchPreflight() }
-                }
-                .disabled(state.isBusy)
-
-                Button("Save") {
-                    Task { await saveToDisk() }
-                }
-                .keyboardShortcut("s", modifiers: [.command])
-                .disabled(state.isBusy || !hasUnsavedChanges)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
+        }
+    }
+
+    private var footerStatusChips: some View {
+        HStack(spacing: StopmoUI.Spacing.xs) {
+            StatusChip(
+                label: hasUnsavedChanges ? "Unsaved Changes" : "Saved",
+                tone: hasUnsavedChanges ? .warning : .success
+            )
+            StatusChip(label: validationInspectorLabel, tone: validationInspectorTone, density: .compact)
+            StatusChip(label: preflightSummaryLabel, tone: preflightSummaryTone, density: .compact)
+        }
+    }
+
+    private var footerButtons: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            Button("Discard") {
+                discardLocalChanges()
+            }
+            .disabled(state.isBusy || !hasUnsavedChanges)
+
+            Button("Reload") {
+                Task { await reloadFromDisk() }
+            }
+            .disabled(state.isBusy)
+
+            Button("Validate") {
+                Task { await state.validateConfig() }
+            }
+            .disabled(state.isBusy)
+
+            Button("Run Preflight") {
+                Task { await state.refreshWatchPreflight() }
+            }
+            .disabled(state.isBusy)
+
+            Button("Save") {
+                Task { await saveToDisk() }
+            }
+            .keyboardShortcut("s", modifiers: [.command])
+            .disabled(state.isBusy || !hasUnsavedChanges)
         }
     }
 

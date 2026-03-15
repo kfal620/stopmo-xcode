@@ -26,7 +26,7 @@ enum StopmoUI {
 
     /// Animation timing constants used for interactive affordances.
     enum Motion {
-        static let hover: Double = 0.14
+        static let hover: Double = 0.10
         static let disclosure: Double = 0.18
     }
 }
@@ -225,9 +225,10 @@ enum AppVisualTokens {
         for level: SurfaceLevel,
         chrome: CardChrome = .standard,
         emphasized: Bool = false,
+        interactionStyle: SurfaceInteractionStyle = .passive,
         isHovered: Bool = false
     ) -> SurfaceVisualSpec {
-        let highlighted = emphasized || isHovered
+        let highlighted = emphasized || (interactionStyle.allowsHoverEmphasis && isHovered)
 
         let fillOpacity: Double
         switch level {
@@ -260,14 +261,14 @@ enum AppVisualTokens {
             }
         }
 
-        let hasRaisedShadow = level == .raised || emphasized || isHovered
+        let hasRaisedShadow = level == .raised || emphasized || (interactionStyle.allowsHoverEmphasis && isHovered)
         return SurfaceVisualSpec(
             fillOpacity: fillOpacity,
             borderOpacity: borderOpacity,
             borderWidth: chrome == .outlined ? 0.9 : 0.75,
             usesRaisedShadow: hasRaisedShadow,
-            shadowOpacity: hasRaisedShadow ? (level == .raised ? 0.72 : 0.44) : 0.0,
-            shadowRadius: hasRaisedShadow ? 6 : 0,
+            shadowOpacity: hasRaisedShadow ? (level == .raised ? 0.58 : 0.24) : 0.0,
+            shadowRadius: hasRaisedShadow ? 5 : 0,
             shadowY: hasRaisedShadow ? 2 : 0
         )
     }

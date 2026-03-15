@@ -40,10 +40,13 @@ struct LiveMonitorView: View {
                 inlineAlertBanner(alert)
             }
 
-            AdaptiveColumns(breakpoint: 1220, spacing: StopmoUI.Spacing.md) {
-                capturePrimaryArea
-            } secondary: {
-                captureInspector
+            ScrollView(.vertical, showsIndicators: true) {
+                AdaptiveColumns(breakpoint: 1320, spacing: StopmoUI.Spacing.md) {
+                    capturePrimaryArea
+                } secondary: {
+                    captureInspector
+                }
+                .padding(.bottom, StopmoUI.Spacing.xs)
             }
 
             WorkspaceConsoleDock(
@@ -167,41 +170,17 @@ struct LiveMonitorView: View {
         let shot = evaluation.shot
 
         return VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
-            HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
-                ShotThumbnailView(
-                    shot: shot,
-                    preferredKind: .latest,
-                    baseOutputDir: state.config.watch.outputDir,
-                    width: embedded ? 300 : 360,
-                    height: embedded ? 170 : 208,
-                    cornerRadius: 12,
-                    onOpenLightbox: { previewPath in
-                        previewLightboxItem = ShotLightboxItem(
-                            shot: shot,
-                            previewKind: .latest,
-                            previewPath: previewPath,
-                            shotRootPath: shotRootPath(for: shot)
-                        )
-                    }
-                )
-
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                    Text(shot.shotName)
-                        .appTextRole(.shotTitle)
-                        .lineLimit(2)
-                        .truncationMode(.middle)
-
-                    StatusChip(
-                        label: evaluation.healthState.rawValue,
-                        tone: evaluation.healthState.tone
-                    )
-
-                    SummaryFactStrip(
-                        facts: activeShotFacts(for: shot, evaluation: evaluation),
-                        minItemWidth: 100
-                    )
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: StopmoUI.Spacing.lg) {
+                    captureHeroPreview(for: shot)
+                    captureHeroMeta(for: shot, evaluation: evaluation)
+                        .frame(minWidth: 250, maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+                    captureHeroPreview(for: shot)
+                    captureHeroMeta(for: shot, evaluation: evaluation)
+                }
             }
 
             ProgressView(value: activeShotProgress(for: shot))
@@ -385,14 +364,14 @@ struct LiveMonitorView: View {
 
                 DisclosureGroup(isExpanded: $showWatchRuntimeDetails) {
                     VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                        KeyValueRow(key: "PID", value: watch.pid.map(String.init) ?? "-")
-                        KeyValueRow(key: "Started", value: watch.startedAtUtc ?? "-")
-                        KeyValueRow(key: "Config", value: watch.configPath)
+                        KeyValueRow(key: "PID", value: watch.pid.map(String.init) ?? "-", layout: .adaptive(availableWidth: 280))
+                        KeyValueRow(key: "Started", value: watch.startedAtUtc ?? "-", layout: .adaptive(availableWidth: 280))
+                        KeyValueRow(key: "Config", value: watch.configPath, layout: .stacked, valueStyle: .path)
                         if let logPath = watch.logPath {
-                            KeyValueRow(key: "Log", value: logPath)
+                            KeyValueRow(key: "Log", value: logPath, layout: .stacked, valueStyle: .path)
                         }
                         if let crash = watch.crashRecovery {
-                            KeyValueRow(key: "Crash Recovery", value: "reset \(crash.lastInflightResetCount) inflight jobs", tone: crash.lastInflightResetCount == 0 ? .success : .warning)
+                            KeyValueRow(key: "Crash Recovery", value: "reset \(crash.lastInflightResetCount) inflight jobs", tone: crash.lastInflightResetCount == 0 ? .success : .warning, layout: .stacked)
                         }
                     }
                     .padding(.top, StopmoUI.Spacing.xs)
@@ -466,14 +445,15 @@ struct LiveMonitorView: View {
             Text("Deterministic Recipe")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(AppVisualTokens.textSecondary)
-            KeyValueRow(key: "Plate", value: "ARRI LogC3 EI800 + AWG")
+            KeyValueRow(key: "Plate", value: "ARRI LogC3 EI800 + AWG", layout: .adaptive(availableWidth: 280))
             KeyValueRow(
                 key: "White Balance",
                 value: state.config.pipeline.lockWbFromFirstFrame ? "Shot-locked" : "Manual",
-                tone: state.config.pipeline.lockWbFromFirstFrame ? .success : .warning
+                tone: state.config.pipeline.lockWbFromFirstFrame ? .success : .warning,
+                layout: .adaptive(availableWidth: 280)
             )
-            KeyValueRow(key: "Exposure", value: String(format: "%.2f stops", state.config.pipeline.exposureOffsetStops))
-            KeyValueRow(key: "Output Root", value: state.config.watch.outputDir)
+            KeyValueRow(key: "Exposure", value: String(format: "%.2f stops", state.config.pipeline.exposureOffsetStops), layout: .adaptive(availableWidth: 280))
+            KeyValueRow(key: "Output Root", value: state.config.watch.outputDir, layout: .stacked, valueStyle: .path)
         }
     }
 
@@ -734,6 +714,46 @@ struct LiveMonitorView: View {
 
     private func summaryFact(from metric: CaptureKPIMetric) -> SummaryFact {
         SummaryFact(id: metric.id, label: metric.label, value: metric.value, tone: metric.tone)
+    }
+
+    private func captureHeroPreview(for shot: ShotSummaryRow) -> some View {
+        ShotThumbnailView(
+            shot: shot,
+            preferredKind: .latest,
+            baseOutputDir: state.config.watch.outputDir,
+            width: embedded ? 340 : 460,
+            height: embedded ? 191 : 258,
+            cornerRadius: 14,
+            style: .hero,
+            onOpenLightbox: { previewPath in
+                previewLightboxItem = ShotLightboxItem(
+                    shot: shot,
+                    previewKind: .latest,
+                    previewPath: previewPath,
+                    shotRootPath: shotRootPath(for: shot)
+                )
+            }
+        )
+    }
+
+    private func captureHeroMeta(for shot: ShotSummaryRow, evaluation: ShotHealthEvaluation) -> some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+            Text(shot.shotName)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(AppVisualTokens.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            StatusChip(
+                label: evaluation.healthState.rawValue,
+                tone: evaluation.healthState.tone
+            )
+
+            SummaryFactStrip(
+                facts: activeShotFacts(for: shot, evaluation: evaluation),
+                minItemWidth: 112
+            )
+        }
     }
 
     private var activeShotEvaluation: ShotHealthEvaluation? {

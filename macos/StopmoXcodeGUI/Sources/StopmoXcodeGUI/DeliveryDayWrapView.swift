@@ -33,17 +33,20 @@ struct DeliveryDayWrapView: View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             deliveryHeaderBar
 
-            HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
-                shotSelectionPane
-                    .frame(width: 330, alignment: .topLeading)
-                    .frame(maxHeight: .infinity, alignment: .topLeading)
+            ScrollView(.vertical, showsIndicators: true) {
+                AdaptiveColumns(breakpoint: 1380, spacing: StopmoUI.Spacing.md) {
+                    HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
+                        shotSelectionPane
+                            .frame(width: 344, alignment: .topLeading)
+                            .frame(maxHeight: .infinity, alignment: .topLeading)
 
-                runPlanPane
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-
-                inspectorPane
-                    .frame(width: 300, alignment: .topLeading)
-                    .frame(maxHeight: .infinity, alignment: .topLeading)
+                        runPlanPane
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    }
+                } secondary: {
+                    inspectorPane
+                }
+                .padding(.bottom, StopmoUI.Spacing.xs)
             }
 
             WorkspaceConsoleDock(
@@ -74,7 +77,7 @@ struct DeliveryDayWrapView: View {
                 showConsole = true
             }
         }
-        .onChange(of: state.shotsSnapshot?.shots.map(\.shotName) ?? []) { _, _ in
+        .onChange(of: deliverySnapshotSignature) { _, _ in
             syncSelectionFromSnapshot()
         }
         .onChange(of: state.deliveryRunState.status) { previous, next in
@@ -149,6 +152,8 @@ struct DeliveryDayWrapView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(evaluation.shot.shotName)
                                         .font(.caption.weight(.semibold))
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
                                     Text(evaluation.readinessReason ?? evaluation.issueSummary)
                                         .metadataTextStyle(.secondary)
                                         .lineLimit(2)
@@ -173,7 +178,7 @@ struct DeliveryDayWrapView: View {
 
         return SurfaceContainer(level: .card, chrome: .quiet, cornerRadius: 12) {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                HStack(alignment: .center, spacing: StopmoUI.Spacing.sm) {
+                HStack(alignment: .top, spacing: DenseShotRowStyle.spacing) {
                     Button {
                         toggleShotSelection(shot.shotName)
                     } label: {
@@ -187,9 +192,9 @@ struct DeliveryDayWrapView: View {
                         shot: shot,
                         preferredKind: .first,
                         baseOutputDir: state.config.watch.outputDir,
-                        width: 54,
-                        height: 34,
-                        cornerRadius: 6,
+                        width: 72,
+                        height: 44,
+                        cornerRadius: 8,
                         onOpenLightbox: { previewPath in
                             previewLightboxItem = ShotLightboxItem(
                                 shot: shot,
@@ -203,10 +208,13 @@ struct DeliveryDayWrapView: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(shot.shotName)
                             .font(.subheadline.weight(.semibold))
-                            .lineLimit(1)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                         Text(ShotHealthModel.updatedDisplayLabel(for: shot))
                             .metadataTextStyle(.secondary)
+                            .lineLimit(1)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                     Spacer(minLength: 0)
 
@@ -242,7 +250,9 @@ struct DeliveryDayWrapView: View {
                     .controlSize(.small)
                 }
             }
-            .padding(10)
+            .padding(.horizontal, DenseShotRowStyle.horizontalPadding)
+            .padding(.vertical, DenseShotRowStyle.verticalPadding)
+            .frame(minHeight: DenseShotRowStyle.minHeight, alignment: .topLeading)
         }
     }
 
@@ -326,6 +336,21 @@ struct DeliveryDayWrapView: View {
                     }
                 }
 
+                Divider()
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                    Text("Run Overview")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(AppVisualTokens.textSecondary)
+                    KeyValueRow(key: "Input Root", value: resolvedInputLabel, layout: .stacked, valueStyle: .path)
+                    KeyValueRow(key: "Destination", value: resolvedOutputLabel, layout: .stacked, valueStyle: .path)
+                    KeyValueRow(
+                        key: "Selection",
+                        value: selectedReadyShotEvaluations.isEmpty ? "All ready shots" : "\(selectedReadyShotEvaluations.count) selected shots",
+                        layout: .adaptive(availableWidth: 540)
+                    )
+                }
+
                 DisclosureGroup(isExpanded: $showAdvancedSettings) {
                     VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
                         LabeledPathField(
@@ -378,6 +403,7 @@ struct DeliveryDayWrapView: View {
                 }
             }
         }
+        .frame(minHeight: 360, alignment: .topLeading)
     }
 
     private var inspectorPane: some View {
@@ -400,7 +426,7 @@ struct DeliveryDayWrapView: View {
                     .metadataTextStyle(.secondary)
 
                 if let latest = state.deliveryRunState.latestOutputs.first {
-                    KeyValueRow(key: "Latest Output", value: latest)
+                    KeyValueRow(key: "Latest Output", value: latest, layout: .stacked, valueStyle: .path)
                     HStack(spacing: StopmoUI.Spacing.sm) {
                         Button("Open Latest Output") {
                             state.openPathInFinder(latest)
@@ -491,9 +517,9 @@ struct DeliveryDayWrapView: View {
             )
 
             if let envelope = state.deliveryOperationEnvelope {
-                KeyValueRow(key: "Operation ID", value: envelope.operationId)
-                KeyValueRow(key: "Status", value: envelope.operation.status)
-                KeyValueRow(key: "Kind", value: envelope.operation.kind)
+                KeyValueRow(key: "Operation ID", value: envelope.operationId, layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "Status", value: envelope.operation.status, layout: .adaptive(availableWidth: 360))
+                KeyValueRow(key: "Kind", value: envelope.operation.kind, layout: .adaptive(availableWidth: 360))
             } else {
                 EmptyStateCard(message: "No active delivery envelope.")
             }
@@ -675,6 +701,20 @@ struct DeliveryDayWrapView: View {
             return shot.shotName
         }
         return (base as NSString).appendingPathComponent(shot.shotName)
+    }
+
+    private var deliverySnapshotSignature: [String] {
+        (state.shotsSnapshot?.shots ?? []).map { shot in
+            [
+                shot.shotName,
+                shot.state,
+                "\(shot.doneFrames)",
+                "\(shot.failedFrames)",
+                "\(shot.inflightFrames)",
+                shot.outputMovPath ?? "",
+                shot.reviewMovPath ?? "",
+            ].joined(separator: "|")
+        }
     }
 
     private func toneForStatus(_ status: DeliveryRunStatus) -> StatusTone {

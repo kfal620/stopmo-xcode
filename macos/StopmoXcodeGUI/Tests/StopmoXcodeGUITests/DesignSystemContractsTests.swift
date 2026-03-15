@@ -9,7 +9,7 @@ final class DesignSystemContractsTests: XCTestCase {
         XCTAssertEqual(StopmoUI.Spacing.md, 14)
         XCTAssertEqual(StopmoUI.Spacing.lg, 20)
 
-        XCTAssertEqual(StopmoUI.Motion.hover, 0.14, accuracy: 0.0001)
+        XCTAssertEqual(StopmoUI.Motion.hover, 0.10, accuracy: 0.0001)
         XCTAssertEqual(StopmoUI.Motion.disclosure, 0.18, accuracy: 0.0001)
     }
 
@@ -30,21 +30,24 @@ final class DesignSystemContractsTests: XCTestCase {
         XCTAssertEqual(raisedOutlined.borderOpacity, 0.10, accuracy: 0.0001)
         XCTAssertEqual(raisedOutlined.borderWidth, 0.9, accuracy: 0.0001)
         XCTAssertTrue(raisedOutlined.usesRaisedShadow)
-        XCTAssertEqual(raisedOutlined.shadowOpacity, 0.72, accuracy: 0.0001)
-        XCTAssertEqual(raisedOutlined.shadowRadius, 6)
+        XCTAssertEqual(raisedOutlined.shadowOpacity, 0.58, accuracy: 0.0001)
+        XCTAssertEqual(raisedOutlined.shadowRadius, 5)
         XCTAssertEqual(raisedOutlined.shadowY, 2)
     }
 
     func testSurfaceSpecEmphasisAndHoverAffectVisualStrength() {
-        let base = AppVisualTokens.surfaceSpec(for: .card, emphasized: false, isHovered: false)
-        let hovered = AppVisualTokens.surfaceSpec(for: .card, emphasized: false, isHovered: true)
-        let emphasized = AppVisualTokens.surfaceSpec(for: .card, emphasized: true, isHovered: false)
+        let base = AppVisualTokens.surfaceSpec(for: .card, emphasized: false, interactionStyle: .control, isHovered: false)
+        let hovered = AppVisualTokens.surfaceSpec(for: .card, emphasized: false, interactionStyle: .control, isHovered: true)
+        let emphasized = AppVisualTokens.surfaceSpec(for: .card, emphasized: true, interactionStyle: .control, isHovered: false)
+        let passiveHovered = AppVisualTokens.surfaceSpec(for: .card, emphasized: false, interactionStyle: .passive, isHovered: true)
 
         XCTAssertGreaterThan(hovered.fillOpacity, base.fillOpacity)
         XCTAssertGreaterThan(emphasized.fillOpacity, base.fillOpacity)
 
-        XCTAssertEqual(hovered.shadowRadius, 6)
+        XCTAssertEqual(hovered.shadowRadius, 5)
         XCTAssertEqual(hovered.shadowY, 2)
         XCTAssertGreaterThan(hovered.shadowOpacity, base.shadowOpacity)
+        XCTAssertEqual(passiveHovered.fillOpacity, base.fillOpacity, accuracy: 0.0001)
+        XCTAssertEqual(passiveHovered.shadowOpacity, base.shadowOpacity, accuracy: 0.0001)
     }
 }

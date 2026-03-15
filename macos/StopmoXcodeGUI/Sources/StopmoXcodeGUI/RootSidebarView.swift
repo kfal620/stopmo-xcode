@@ -31,9 +31,7 @@ struct RootSidebarView: View {
                     .contentShape(Rectangle())
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .onHover { hovering in
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
-                            hoveredHub = hovering ? hub : (hoveredHub == hub ? nil : hoveredHub)
-                        }
+                        hoveredHub = hovering ? hub : (hoveredHub == hub ? nil : hoveredHub)
                     }
                 }
             }
@@ -119,7 +117,7 @@ struct RootSidebarView: View {
                             .font(.caption)
                             .foregroundStyle(Color.white.opacity(0.62))
                             .lineLimit(2)
-                            .transition(.opacity.combined(with: .move(edge: .top)))
+                            .transition(.opacity)
                     }
                 }
 

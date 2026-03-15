@@ -1,6 +1,42 @@
 import AppKit
 import SwiftUI
 
+enum ShotThumbnailStyle {
+    case compact
+    case hero
+}
+
+@MainActor
+final class ShotThumbnailImageStore {
+    static let shared = ShotThumbnailImageStore()
+
+    private let cache = NSCache<NSString, NSImage>()
+
+    private init() {
+        cache.countLimit = 240
+    }
+
+    static func cacheKey(path: String, reloadKey: String) -> String {
+        "\(path)|\(reloadKey)"
+    }
+
+    func image(for key: String) -> NSImage? {
+        cache.object(forKey: key as NSString)
+    }
+
+    func store(_ image: NSImage?, for key: String) {
+        guard let image else {
+            cache.removeObject(forKey: key as NSString)
+            return
+        }
+        cache.setObject(image, forKey: key as NSString)
+    }
+
+    func clear() {
+        cache.removeAllObjects()
+    }
+}
+
 /// Compact preview thumbnail with placeholder and optional lightbox action.
 struct ShotThumbnailView: View {
     let shot: ShotSummaryRow
@@ -9,6 +45,7 @@ struct ShotThumbnailView: View {
     let width: CGFloat
     let height: CGFloat
     var cornerRadius: CGFloat = 8
+    var style: ShotThumbnailStyle = .compact
     var onOpenLightbox: ((String) -> Void)? = nil
 
     @State private var image: NSImage?
@@ -44,6 +81,13 @@ struct ShotThumbnailView: View {
         return "\(shot.shotName) \(variant) preview unavailable"
     }
 
+    private var cacheKey: String? {
+        guard let path = resolvedPath else {
+            return nil
+        }
+        return ShotThumbnailImageStore.cacheKey(path: path, reloadKey: reloadKey)
+    }
+
     var body: some View {
         Button {
             guard canOpenLightbox, let path = resolvedPath else { return }
@@ -77,11 +121,11 @@ struct ShotThumbnailView: View {
                     .overlay(alignment: .topLeading) {
                         if canOpenLightbox {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                .font(.system(size: 10, weight: .semibold))
-                                .padding(4)
+                                .font(.system(size: style == .hero ? 11 : 10, weight: .semibold))
+                                .padding(style == .hero ? 5 : 4)
                                 .foregroundStyle(.white.opacity(0.95))
                                 .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-                                .padding(4)
+                                .padding(style == .hero ? 6 : 4)
                         }
                     }
             } else {
@@ -97,11 +141,18 @@ struct ShotThumbnailView: View {
         }
         .frame(width: width, height: height)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .shadow(
+            color: style == .hero ? AppVisualTokens.shadowRaised.opacity(0.18) : .clear,
+            radius: style == .hero ? 8 : 0,
+            x: 0,
+            y: style == .hero ? 3 : 0
+        )
     }
 
     private func refreshImage(forceReload: Bool = false) {
         let path = resolvedPath
         let key = reloadKey
+        let cacheKey = self.cacheKey
         guard forceReload || path != loadedPath || image == nil || loadedReloadKey != key else {
             return
         }
@@ -111,6 +162,10 @@ struct ShotThumbnailView: View {
         image = nil
 
         guard let path else { return }
+        if let cacheKey, let cached = ShotThumbnailImageStore.shared.image(for: cacheKey) {
+            image = cached
+            return
+        }
         Task.detached(priority: .utility) {
             let loaded: NSImage?
             if let data = try? Data(contentsOf: URL(fileURLWithPath: path), options: .mappedIfSafe) {
@@ -120,6 +175,9 @@ struct ShotThumbnailView: View {
             }
             await MainActor.run {
                 guard loadedPath == path, loadedReloadKey == key else { return }
+                if let cacheKey {
+                    ShotThumbnailImageStore.shared.store(loaded, for: cacheKey)
+                }
                 image = loaded
             }
         }

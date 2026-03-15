@@ -6,6 +6,22 @@ enum CardDensity {
     case compact
 }
 
+/// Interaction semantics for shared rounded surfaces.
+enum SurfaceInteractionStyle {
+    case passive
+    case control
+    case navigation
+
+    var allowsHoverEmphasis: Bool {
+        switch self {
+        case .passive:
+            return false
+        case .control, .navigation:
+            return true
+        }
+    }
+}
+
 /// Responsive two-column layout that collapses to a vertical stack on narrow widths.
 struct AdaptiveColumns<Primary: View, Secondary: View>: View {
     @Environment(\.hubContentWidth) private var hubContentWidth
@@ -49,20 +65,25 @@ struct AdaptiveColumns<Primary: View, Secondary: View>: View {
 
 /// Standardized right-side inspector surface used by the redesigned workspaces.
 struct WorkspaceInspectorPane<Content: View>: View {
+    @Environment(\.hubContentWidth) private var hubContentWidth
+
     let title: String
     let subtitle: String?
     let width: CGFloat
+    let interactionStyle: SurfaceInteractionStyle
     @ViewBuilder let content: Content
 
     init(
         title: String,
         subtitle: String? = nil,
         width: CGFloat = 300,
+        interactionStyle: SurfaceInteractionStyle = .passive,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.subtitle = subtitle
         self.width = width
+        self.interactionStyle = interactionStyle
         self.content = content()
     }
 
@@ -73,12 +94,20 @@ struct WorkspaceInspectorPane<Content: View>: View {
             density: .compact,
             surfaceLevel: .raised,
             chrome: .quiet,
+            interactionStyle: interactionStyle,
             showSubtitle: subtitle != nil
         ) {
             content
         }
-        .frame(width: width, alignment: .topLeading)
+        .frame(width: pinnedWidth, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var pinnedWidth: CGFloat? {
+        guard hubContentWidth == 0 || hubContentWidth >= width + 260 else {
+            return nil
+        }
+        return width
     }
 }
 
@@ -87,6 +116,7 @@ struct WorkspaceConsoleDock<Content: View, Trailing: View>: View {
     let title: String
     let summary: String?
     @Binding var isExpanded: Bool
+    let interactionStyle: SurfaceInteractionStyle
     @ViewBuilder let trailing: Trailing
     @ViewBuilder let content: Content
 
@@ -94,12 +124,14 @@ struct WorkspaceConsoleDock<Content: View, Trailing: View>: View {
         title: String,
         summary: String? = nil,
         isExpanded: Binding<Bool>,
+        interactionStyle: SurfaceInteractionStyle = .passive,
         @ViewBuilder trailing: () -> Trailing = { EmptyView() },
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.summary = summary
         _isExpanded = isExpanded
+        self.interactionStyle = interactionStyle
         self.trailing = trailing()
         self.content = content()
     }
@@ -111,6 +143,7 @@ struct WorkspaceConsoleDock<Content: View, Trailing: View>: View {
             density: .compact,
             surfaceLevel: .panel,
             chrome: .quiet,
+            interactionStyle: interactionStyle,
             showSubtitle: false
         ) {
             DisclosureGroup(isExpanded: $isExpanded) {
@@ -136,28 +169,31 @@ struct WorkspaceConsoleDock<Content: View, Trailing: View>: View {
 
 /// Shared constants for compact shot-row presentation.
 struct DenseShotRowStyle {
-    static let minHeight: CGFloat = 56
-    static let horizontalPadding: CGFloat = 8
-    static let verticalPadding: CGFloat = 6
-    static let spacing: CGFloat = 6
-    static let cornerRadius: CGFloat = 10
+    static let minHeight: CGFloat = 76
+    static let horizontalPadding: CGFloat = 10
+    static let verticalPadding: CGFloat = 9
+    static let spacing: CGFloat = 8
+    static let cornerRadius: CGFloat = 12
 }
 
 /// Reusable toolbar surface wrapper for grouped top-of-panel controls.
 struct ToolbarStrip<Content: View>: View {
     let title: String?
+    let interactionStyle: SurfaceInteractionStyle
     @ViewBuilder let content: Content
 
     init(
         title: String? = nil,
+        interactionStyle: SurfaceInteractionStyle = .passive,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
+        self.interactionStyle = interactionStyle
         self.content = content()
     }
 
     var body: some View {
-        SurfaceContainer(level: .panel, chrome: .quiet) {
+        SurfaceContainer(level: .panel, chrome: .quiet, interactionStyle: interactionStyle) {
             VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                 if let title, !title.isEmpty {
                     Text(title)
@@ -208,6 +244,7 @@ struct SurfaceContainer<Content: View>: View {
     let chrome: CardChrome
     let emphasized: Bool
     let cornerRadius: CGFloat
+    let interactionStyle: SurfaceInteractionStyle
     @ViewBuilder let content: Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -218,12 +255,14 @@ struct SurfaceContainer<Content: View>: View {
         chrome: CardChrome = .standard,
         emphasized: Bool = false,
         cornerRadius: CGFloat = StopmoUI.Radius.card,
+        interactionStyle: SurfaceInteractionStyle = .passive,
         @ViewBuilder content: () -> Content
     ) {
         self.level = level
         self.chrome = chrome
         self.emphasized = emphasized
         self.cornerRadius = cornerRadius
+        self.interactionStyle = interactionStyle
         self.content = content()
     }
 
@@ -232,6 +271,7 @@ struct SurfaceContainer<Content: View>: View {
             for: level,
             chrome: chrome,
             emphasized: emphasized,
+            interactionStyle: interactionStyle,
             isHovered: isHovered
         )
 
@@ -251,6 +291,9 @@ struct SurfaceContainer<Content: View>: View {
                 y: spec.shadowY
             )
             .onHover { hovering in
+                guard interactionStyle.allowsHoverEmphasis else {
+                    return
+                }
                 withAnimation(reduceMotion ? nil : .easeOut(duration: StopmoUI.Motion.hover)) {
                     isHovered = hovering
                 }
@@ -265,6 +308,7 @@ struct SectionCard<Content: View>: View {
     let density: CardDensity
     let surfaceLevel: SurfaceLevel
     let chrome: CardChrome
+    let interactionStyle: SurfaceInteractionStyle
     let showTitle: Bool
     let showSubtitle: Bool
     @ViewBuilder let content: Content
@@ -275,6 +319,7 @@ struct SectionCard<Content: View>: View {
         density: CardDensity = .regular,
         surfaceLevel: SurfaceLevel = .panel,
         chrome: CardChrome = .standard,
+        interactionStyle: SurfaceInteractionStyle = .passive,
         showTitle: Bool = true,
         showSubtitle: Bool = true,
         @ViewBuilder content: () -> Content
@@ -284,6 +329,7 @@ struct SectionCard<Content: View>: View {
         self.density = density
         self.surfaceLevel = surfaceLevel
         self.chrome = chrome
+        self.interactionStyle = interactionStyle
         self.showTitle = showTitle
         self.showSubtitle = showSubtitle
         self.content = content()
@@ -293,7 +339,12 @@ struct SectionCard<Content: View>: View {
         let rowSpacing: CGFloat = density == .compact ? StopmoUI.Spacing.sm : StopmoUI.Spacing.md
         let headerSpacing: CGFloat = density == .compact ? 2 : StopmoUI.Spacing.xxs
 
-        SurfaceContainer(level: surfaceLevel, chrome: chrome, emphasized: chrome == .outlined) {
+        SurfaceContainer(
+            level: surfaceLevel,
+            chrome: chrome,
+            emphasized: chrome == .outlined,
+            interactionStyle: interactionStyle
+        ) {
             VStack(alignment: .leading, spacing: rowSpacing) {
                 if showTitle || (showSubtitle && subtitle != nil) {
                     VStack(alignment: .leading, spacing: headerSpacing) {

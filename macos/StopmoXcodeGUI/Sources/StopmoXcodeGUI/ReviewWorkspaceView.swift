@@ -21,6 +21,17 @@ private struct ReviewPendingAction: Identifiable {
     let artifacts: ReviewGeneratedArtifactsSummary
 }
 
+private struct ReviewSnapshotSignature: Equatable {
+    let shotName: String
+    let state: String
+    let doneFrames: Int
+    let failedFrames: Int
+    let inflightFrames: Int
+    let lastUpdatedAt: String?
+    let outputMovPath: String?
+    let reviewMovPath: String?
+}
+
 /// Redesigned Review surface with grouped list, selected-shot detail, and sidecar recovery actions.
 struct ReviewWorkspaceView: View {
     @EnvironmentObject private var state: AppState
@@ -28,6 +39,7 @@ struct ReviewWorkspaceView: View {
     @State private var searchText: String = ""
     @State private var filter: ReviewScopeFilter = .all
     @State private var selectedShotName: String?
+    @State private var visibleSections: [ReviewWorkspaceSection] = []
     @State private var previewLightboxItem: ShotLightboxItem?
     @State private var pendingAction: ReviewPendingAction?
 
@@ -35,10 +47,13 @@ struct ReviewWorkspaceView: View {
         VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
             workspaceToolbar
 
-            AdaptiveColumns(breakpoint: 1240, spacing: StopmoUI.Spacing.md) {
-                reviewPrimaryArea
-            } secondary: {
-                inspectorColumn
+            ScrollView(.vertical, showsIndicators: true) {
+                AdaptiveColumns(breakpoint: 1360, spacing: StopmoUI.Spacing.md) {
+                    reviewPrimaryArea
+                } secondary: {
+                    inspectorColumn
+                }
+                .padding(.bottom, StopmoUI.Spacing.xs)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -46,16 +61,16 @@ struct ReviewWorkspaceView: View {
             if state.shotsSnapshot == nil {
                 Task { await state.refreshLiveData() }
             }
-            syncSelection()
+            refreshDerivedState()
         }
-        .onChange(of: state.shotsSnapshot?.shots.map(\.shotName) ?? []) { _, _ in
-            syncSelection()
+        .onChange(of: snapshotSignature) { _, _ in
+            refreshDerivedState()
         }
         .onChange(of: filter) { _, _ in
-            syncSelection()
+            refreshDerivedState()
         }
         .onChange(of: searchText) { _, _ in
-            syncSelection()
+            refreshDerivedState()
         }
         .sheet(item: $previewLightboxItem) { item in
             ShotLightboxView(item: item) { shotRoot in
@@ -172,12 +187,10 @@ struct ReviewWorkspaceView: View {
     }
 
     private var reviewPrimaryArea: some View {
-        HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
+        AdaptiveColumns(breakpoint: 1080, spacing: StopmoUI.Spacing.md) {
             shotListPane
-                .frame(width: 300, alignment: .topLeading)
-                .frame(maxHeight: .infinity, alignment: .topLeading)
+        } secondary: {
             selectedShotPane
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 
@@ -187,7 +200,7 @@ struct ReviewWorkspaceView: View {
                 EmptyStateCard(message: "No shots match the current filter.")
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    LazyVStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
                         ForEach(sections) { section in
                             VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
                                 HStack {
@@ -205,9 +218,10 @@ struct ReviewWorkspaceView: View {
                         }
                     }
                 }
-                .frame(maxHeight: .infinity)
+                .frame(minHeight: 420, alignment: .topLeading)
             }
         }
+        .frame(width: 340, alignment: .topLeading)
     }
 
     private func reviewShotRow(_ evaluation: ShotHealthEvaluation) -> some View {
@@ -217,14 +231,14 @@ struct ReviewWorkspaceView: View {
         return Button {
             selectedShotName = shot.shotName
         } label: {
-            HStack(alignment: .center, spacing: StopmoUI.Spacing.sm) {
+            HStack(alignment: .top, spacing: DenseShotRowStyle.spacing) {
                 ShotThumbnailView(
                     shot: shot,
                     preferredKind: .first,
                     baseOutputDir: state.config.watch.outputDir,
-                    width: 52,
-                    height: 32,
-                    cornerRadius: 6,
+                    width: 72,
+                    height: 44,
+                    cornerRadius: 8,
                     onOpenLightbox: { previewPath in
                         previewLightboxItem = ShotLightboxItem(
                             shot: shot,
@@ -239,25 +253,28 @@ struct ReviewWorkspaceView: View {
                     Text(shot.shotName)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppVisualTokens.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(evaluation.issueSummary)
                         .metadataTextStyle(.secondary)
-                        .lineLimit(2)
+                        .lineLimit(1)
+                    Text(ShotHealthModel.updatedDisplayLabel(for: shot))
+                        .metadataTextStyle(.tertiary)
+                        .lineLimit(1)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer(minLength: 0)
 
                 VStack(alignment: .trailing, spacing: 4) {
                     StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone, density: .compact)
-                    Text(ShotHealthModel.updatedDisplayLabel(for: shot))
-                        .metadataTextStyle(.tertiary)
-                        .lineLimit(1)
                 }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
+            .padding(.horizontal, DenseShotRowStyle.horizontalPadding)
+            .padding(.vertical, DenseShotRowStyle.verticalPadding)
+            .frame(minHeight: DenseShotRowStyle.minHeight, alignment: .topLeading)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: DenseShotRowStyle.cornerRadius, style: .continuous)
                     .fill(
                         isSelected
                             ? LifecycleHub.triage.accentColor.opacity(0.12)
@@ -265,7 +282,7 @@ struct ReviewWorkspaceView: View {
                     )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: DenseShotRowStyle.cornerRadius, style: .continuous)
                     .stroke(
                         isSelected ? LifecycleHub.triage.accentColor.opacity(0.24) : Color.clear,
                         lineWidth: 0.8
@@ -277,11 +294,13 @@ struct ReviewWorkspaceView: View {
 
     private var selectedShotPane: some View {
         SectionCard(
-            selectedEvaluation?.shot.shotName ?? "Selected Shot",
+            "Selected Shot",
             subtitle: selectedEvaluation?.issueSummary ?? "Select a shot to inspect details, outputs, and recovery actions.",
             density: .compact,
             surfaceLevel: .raised,
             chrome: .standard,
+            interactionStyle: .passive,
+            showTitle: false,
             showSubtitle: false
         ) {
             if let evaluation = selectedEvaluation {
@@ -296,37 +315,17 @@ struct ReviewWorkspaceView: View {
         let shot = evaluation.shot
 
         return VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
-            HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
-                ShotThumbnailView(
-                    shot: shot,
-                    preferredKind: .latest,
-                    baseOutputDir: state.config.watch.outputDir,
-                    width: 260,
-                    height: 150,
-                    cornerRadius: 10,
-                    onOpenLightbox: { previewPath in
-                        previewLightboxItem = ShotLightboxItem(
-                            shot: shot,
-                            previewKind: .latest,
-                            previewPath: previewPath,
-                            shotRootPath: shotRootPath(for: shot)
-                        )
-                    }
-                )
-
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
-                    StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone)
-                    SummaryFactStrip(
-                        facts: [
-                            SummaryFact(id: "completion", label: "Completion", value: evaluation.completionLabel, tone: evaluation.isDeliverable ? .success : .neutral),
-                            SummaryFact(id: "updated", label: "Updated", value: ShotHealthModel.updatedDisplayLabel(for: shot).replacingOccurrences(of: "Updated ", with: ""), tone: .neutral),
-                            SummaryFact(id: "state", label: "State", value: shot.state, tone: .neutral),
-                        ],
-                        minItemWidth: 96,
-                        compact: true
-                    )
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
+                    selectedShotPreview(shot)
+                    selectedShotHeroMeta(evaluation)
+                        .frame(minWidth: 240, maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.md) {
+                    selectedShotPreview(shot)
+                    selectedShotHeroMeta(evaluation)
+                }
             }
 
             ProgressView(value: progressRatio(for: shot))
@@ -337,52 +336,153 @@ struct ReviewWorkspaceView: View {
 
             Divider()
 
-            HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                    KeyValueRow(key: "Shot", value: shot.shotName)
-                    KeyValueRow(key: "Frames", value: "\(shot.doneFrames) / \(shot.totalFrames)")
-                    KeyValueRow(key: "Failed Frames", value: "\(shot.failedFrames)", tone: shot.failedFrames > 0 ? .danger : .neutral)
-                    KeyValueRow(key: "Inflight Frames", value: "\(shot.inflightFrames)", tone: shot.inflightFrames > 0 ? .warning : .neutral)
-                    KeyValueRow(key: "Assembly", value: shot.assemblyState ?? "-", tone: assemblyTone(shot.assemblyState ?? "-"))
-                    if let exposure = shot.exposureOffsetStops {
-                        KeyValueRow(key: "Exposure Offset", value: String(format: "%.2f stops", exposure))
-                    }
-                    if let wb = shot.wbMultipliers, wb.count == 3 {
-                        KeyValueRow(
-                            key: "Locked WB",
-                            value: wb.map { String(format: "%.4f", $0) }.joined(separator: ", ")
-                        )
-                    }
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                Text("Processing")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppVisualTokens.textSecondary)
+                KeyValueRow(key: "Shot", value: shot.shotName, layout: .adaptive(availableWidth: 520))
+                KeyValueRow(key: "Frames", value: "\(shot.doneFrames) / \(shot.totalFrames)", layout: .adaptive(availableWidth: 520))
+                KeyValueRow(key: "Failed Frames", value: "\(shot.failedFrames)", tone: shot.failedFrames > 0 ? .danger : .neutral, layout: .adaptive(availableWidth: 520))
+                KeyValueRow(key: "Inflight Frames", value: "\(shot.inflightFrames)", tone: shot.inflightFrames > 0 ? .warning : .neutral, layout: .adaptive(availableWidth: 520))
+                KeyValueRow(key: "Assembly", value: shot.assemblyState ?? "-", tone: assemblyTone(shot.assemblyState ?? "-"), layout: .adaptive(availableWidth: 520))
+                if let exposure = shot.exposureOffsetStops {
+                    KeyValueRow(key: "Exposure Offset", value: String(format: "%.2f stops", exposure), layout: .adaptive(availableWidth: 520))
                 }
-
-                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
-                    KeyValueRow(key: "Output MOV", value: shot.outputMovPath ?? "-")
-                    KeyValueRow(key: "Review MOV", value: shot.reviewMovPath ?? "-")
-                    KeyValueRow(key: "Manifest", value: manifestPath(for: shot))
-                    KeyValueRow(key: "DPX", value: dpxPath(for: shot))
-                    KeyValueRow(key: "Frame JSON", value: frameJsonPath(for: shot))
-                    KeyValueRow(key: "Truth Frame", value: truthFramePath(for: shot))
+                if let wb = shot.wbMultipliers, wb.count == 3 {
+                    KeyValueRow(
+                        key: "Locked WB",
+                        value: wb.map { String(format: "%.4f", $0) }.joined(separator: ", "),
+                        layout: .stacked
+                    )
                 }
             }
 
-            HStack(spacing: StopmoUI.Spacing.sm) {
-                Button("Open Shot Folder") {
-                    state.openPathInFinder(shotRootPath(for: shot))
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                Text("Outputs & Files")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(AppVisualTokens.textSecondary)
+                KeyValueRow(key: "Output MOV", value: shot.outputMovPath ?? "-", layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "Review MOV", value: shot.reviewMovPath ?? "-", layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "Manifest", value: manifestPath(for: shot), layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "DPX", value: dpxPath(for: shot), layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "Frame JSON", value: frameJsonPath(for: shot), layout: .stacked, valueStyle: .path)
+                KeyValueRow(key: "Truth Frame", value: truthFramePath(for: shot), layout: .stacked, valueStyle: .path)
+            }
 
-                Button("Open Queue") {
-                    state.selectedTriagePanel = .queue
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: StopmoUI.Spacing.sm) {
+                    Button("Open Shot Folder") {
+                        state.openPathInFinder(shotRootPath(for: shot))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
 
-                Button("Open Diagnostics") {
-                    state.selectedTriagePanel = .diagnostics
+                    Menu("Path Actions") {
+                        Button("Shot Folder") {
+                            state.openPathInFinder(shotRootPath(for: shot))
+                        }
+                        Button("Copy Shot Folder Path") {
+                            state.copyTextToPasteboard(shotRootPath(for: shot), label: "shot folder path")
+                        }
+                        Button("Manifest") {
+                            state.openPathInFinder(manifestPath(for: shot))
+                        }
+                        Button("Copy Manifest Path") {
+                            state.copyTextToPasteboard(manifestPath(for: shot), label: "manifest path")
+                        }
+                        Button("DPX") {
+                            state.openPathInFinder(dpxPath(for: shot))
+                        }
+                        Button("Copy DPX Path") {
+                            state.copyTextToPasteboard(dpxPath(for: shot), label: "dpx path")
+                        }
+                        Button("Frame JSON") {
+                            state.openPathInFinder(frameJsonPath(for: shot))
+                        }
+                        Button("Copy Frame JSON Path") {
+                            state.copyTextToPasteboard(frameJsonPath(for: shot), label: "frame json path")
+                        }
+                        Button("Truth Frame") {
+                            state.openPathInFinder(truthFramePath(for: shot))
+                        }
+                        Button("Copy Truth Frame Path") {
+                            state.copyTextToPasteboard(truthFramePath(for: shot), label: "truth frame path")
+                        }
+                        Button("Copy Shot Name") {
+                            state.copyTextToPasteboard(shot.shotName, label: "shot name")
+                        }
+                    }
+                    .controlSize(.small)
+
+                    Button("Open Queue") {
+                        state.selectedTriagePanel = .queue
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Button("Open Diagnostics") {
+                        state.selectedTriagePanel = .diagnostics
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.xs) {
+                    Button("Open Shot Folder") {
+                        state.openPathInFinder(shotRootPath(for: shot))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+
+                    Menu("Path Actions") {
+                        Button("Shot Folder") {
+                            state.openPathInFinder(shotRootPath(for: shot))
+                        }
+                        Button("Copy Shot Folder Path") {
+                            state.copyTextToPasteboard(shotRootPath(for: shot), label: "shot folder path")
+                        }
+                        Button("Manifest") {
+                            state.openPathInFinder(manifestPath(for: shot))
+                        }
+                        Button("Copy Manifest Path") {
+                            state.copyTextToPasteboard(manifestPath(for: shot), label: "manifest path")
+                        }
+                        Button("DPX") {
+                            state.openPathInFinder(dpxPath(for: shot))
+                        }
+                        Button("Copy DPX Path") {
+                            state.copyTextToPasteboard(dpxPath(for: shot), label: "dpx path")
+                        }
+                        Button("Frame JSON") {
+                            state.openPathInFinder(frameJsonPath(for: shot))
+                        }
+                        Button("Copy Frame JSON Path") {
+                            state.copyTextToPasteboard(frameJsonPath(for: shot), label: "frame json path")
+                        }
+                        Button("Truth Frame") {
+                            state.openPathInFinder(truthFramePath(for: shot))
+                        }
+                        Button("Copy Truth Frame Path") {
+                            state.copyTextToPasteboard(truthFramePath(for: shot), label: "truth frame path")
+                        }
+                        Button("Copy Shot Name") {
+                            state.copyTextToPasteboard(shot.shotName, label: "shot name")
+                        }
+                    }
+                    .controlSize(.small)
+
+                    Button("Open Queue") {
+                        state.selectedTriagePanel = .queue
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    Button("Open Diagnostics") {
+                        state.selectedTriagePanel = .diagnostics
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
         }
     }
@@ -481,11 +581,7 @@ struct ReviewWorkspaceView: View {
     }
 
     private var sections: [ReviewWorkspaceSection] {
-        ReviewWorkspaceReducer.groupedSections(
-            snapshot: state.shotsSnapshot,
-            filter: filter,
-            searchText: searchText
-        )
+        visibleSections
     }
 
     private var selectedEvaluation: ShotHealthEvaluation? {
@@ -495,11 +591,60 @@ struct ReviewWorkspaceView: View {
         )
     }
 
-    private func syncSelection() {
+    private func refreshDerivedState() {
+        visibleSections = ReviewWorkspaceReducer.groupedSections(
+            snapshot: state.shotsSnapshot,
+            filter: filter,
+            searchText: searchText
+        )
         selectedShotName = ReviewWorkspaceReducer.resolvedSelection(
             currentSelection: selectedShotName,
             sections: sections
         )
+    }
+
+    private func selectedShotPreview(_ shot: ShotSummaryRow) -> some View {
+        ShotThumbnailView(
+            shot: shot,
+            preferredKind: .latest,
+            baseOutputDir: state.config.watch.outputDir,
+            width: 320,
+            height: 180,
+            cornerRadius: 12,
+            style: .hero,
+            onOpenLightbox: { previewPath in
+                previewLightboxItem = ShotLightboxItem(
+                    shot: shot,
+                    previewKind: .latest,
+                    previewPath: previewPath,
+                    shotRootPath: shotRootPath(for: shot)
+                )
+            }
+        )
+    }
+
+    private func selectedShotHeroMeta(_ evaluation: ShotHealthEvaluation) -> some View {
+        let shot = evaluation.shot
+
+        return VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+            Text(shot.shotName)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(AppVisualTokens.textPrimary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            StatusChip(label: evaluation.healthState.rawValue, tone: evaluation.healthState.tone)
+
+            SummaryFactStrip(
+                facts: [
+                    SummaryFact(id: "completion", label: "Completion", value: evaluation.completionLabel, tone: evaluation.isDeliverable ? .success : .neutral),
+                    SummaryFact(id: "updated", label: "Updated", value: ShotHealthModel.updatedDisplayLabel(for: shot).replacingOccurrences(of: "Updated ", with: ""), tone: .neutral),
+                    SummaryFact(id: "state", label: "State", value: shot.state, tone: .neutral),
+                ],
+                minItemWidth: 96,
+                compact: true
+            )
+        }
     }
 
     private func tone(for section: ReviewWorkspaceSectionKind) -> StatusTone {
@@ -674,6 +819,21 @@ struct ReviewWorkspaceView: View {
 
     private func manifestPath(for shot: ShotSummaryRow) -> String {
         (shotRootPath(for: shot) as NSString).appendingPathComponent("manifest.json")
+    }
+
+    private var snapshotSignature: [ReviewSnapshotSignature] {
+        (state.shotsSnapshot?.shots ?? []).map { shot in
+            ReviewSnapshotSignature(
+                shotName: shot.shotName,
+                state: shot.state,
+                doneFrames: shot.doneFrames,
+                failedFrames: shot.failedFrames,
+                inflightFrames: shot.inflightFrames,
+                lastUpdatedAt: shot.lastUpdatedAt,
+                outputMovPath: shot.outputMovPath,
+                reviewMovPath: shot.reviewMovPath
+            )
+        }
     }
 
     private func assemblyTone(_ value: String) -> StatusTone {

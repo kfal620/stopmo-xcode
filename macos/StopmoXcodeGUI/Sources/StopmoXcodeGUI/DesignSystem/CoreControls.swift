@@ -17,6 +17,43 @@ extension View {
     }
 }
 
+enum KeyValueValueStyle {
+    case standard
+    case path
+}
+
+enum KeyValueRowLayout: Equatable {
+    case inline
+    case stacked
+    case adaptive(availableWidth: CGFloat)
+}
+
+enum KeyValueRowLayoutResolver {
+    static func resolvedLayout(
+        requested: KeyValueRowLayout,
+        value: String,
+        valueStyle: KeyValueValueStyle,
+        keyWidth: CGFloat = StopmoUI.Width.keyColumn
+    ) -> KeyValueRowLayout {
+        switch requested {
+        case .inline:
+            return .inline
+        case .stacked:
+            return .stacked
+        case .adaptive(let availableWidth):
+            guard valueStyle != .path else {
+                return .stacked
+            }
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            let inlineThreshold = keyWidth + 210
+            if availableWidth < inlineThreshold || trimmed.count > 42 || trimmed.contains("\n") {
+                return .stacked
+            }
+            return .inline
+        }
+    }
+}
+
 /// Compact semantic badge used for state and health summaries.
 struct StatusChip: View {
     let label: String
@@ -67,17 +104,61 @@ struct KeyValueRow: View {
     let key: String
     let value: String
     var tone: StatusTone = .neutral
+    var layout: KeyValueRowLayout = .adaptive(availableWidth: 520)
+    var valueStyle: KeyValueValueStyle = .standard
+    var keyWidth: CGFloat = StopmoUI.Width.keyColumn
 
     var body: some View {
+        Group {
+            switch resolvedLayout {
+            case .inline:
+                inlineRow
+            case .stacked, .adaptive:
+                stackedRow
+            }
+        }
+    }
+
+    private var resolvedLayout: KeyValueRowLayout {
+        KeyValueRowLayoutResolver.resolvedLayout(
+            requested: layout,
+            value: value,
+            valueStyle: valueStyle,
+            keyWidth: keyWidth
+        )
+    }
+
+    private var inlineRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.sm) {
-            Text(key)
-                .frame(width: StopmoUI.Width.keyColumn, alignment: .leading)
-                .foregroundStyle(AppVisualTokens.textSecondary)
-            Text(value)
-                .foregroundStyle(tone == .neutral ? AppVisualTokens.textPrimary : tone.foreground)
-                .textSelection(.enabled)
+            keyText
+                .frame(width: keyWidth, alignment: .leading)
+            valueText(lineLimit: 1)
         }
         .font(.callout)
+    }
+
+    private var stackedRow: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            keyText
+            valueText(lineLimit: nil)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var keyText: some View {
+        Text(key)
+            .foregroundStyle(AppVisualTokens.textSecondary)
+    }
+
+    private func valueText(lineLimit: Int?) -> some View {
+        Text(value)
+            .font(valueStyle == .path ? .callout.monospaced() : .callout)
+            .foregroundStyle(tone == .neutral ? AppVisualTokens.textPrimary : tone.foreground)
+            .lineLimit(lineLimit)
+            .truncationMode(valueStyle == .path ? .middle : .tail)
+            .textSelection(.enabled)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
