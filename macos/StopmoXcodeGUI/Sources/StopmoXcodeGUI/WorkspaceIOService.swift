@@ -47,6 +47,20 @@ struct WorkspaceIOService {
         return panel.url
     }
 
+    func chooseNewProjectParentDirectory(initialPath: String) -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.prompt = "Choose Destination"
+        panel.directoryURL = URL(fileURLWithPath: initialPath, isDirectory: true)
+        guard panel.runModal() == .OK else {
+            return nil
+        }
+        return panel.url
+    }
+
     func chooseConfigFile(initialPath: String) -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = false

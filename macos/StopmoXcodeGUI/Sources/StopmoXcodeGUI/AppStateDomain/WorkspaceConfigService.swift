@@ -145,8 +145,6 @@ struct LiveWorkspaceConfigService: WorkspaceConfigServicing {
         let incoming = "\(workspaceRoot)/incoming"
         let working = "\(workspaceRoot)/work"
         let output = "\(workspaceRoot)/output"
-        let dbPath = "\(working)/queue.sqlite3"
-        let logPath = "\(working)/framerelay.log"
 
         let directories = [incoming, working, output, "\(workspaceRoot)/config"]
         let fm = FileManager.default
@@ -156,10 +154,10 @@ struct LiveWorkspaceConfigService: WorkspaceConfigServicing {
 
         let yaml = """
         watch:
-          source_dir: \(yamlQuote(incoming))
-          working_dir: \(yamlQuote(working))
-          output_dir: \(yamlQuote(output))
-          db_path: \(yamlQuote(dbPath))
+          source_dir: "../incoming"
+          working_dir: "../work"
+          output_dir: "../output"
+          db_path: "../work/queue.sqlite3"
           include_extensions:
           - .cr2
           - .cr3
@@ -207,7 +205,7 @@ struct LiveWorkspaceConfigService: WorkspaceConfigServicing {
           framerate: 24
           show_lut_rec709_path: null
         log_level: INFO
-        log_file: \(yamlQuote(logPath))
+        log_file: "../work/framerelay.log"
         """
         try yaml.appending("\n").write(toFile: destination, atomically: true, encoding: .utf8)
     }
@@ -257,12 +255,5 @@ struct LiveWorkspaceConfigService: WorkspaceConfigServicing {
             .appendingPathComponent("Documents")
             .appendingPathComponent(Self.defaultWorkspaceFolderName)
             .path
-    }
-
-    private func yamlQuote(_ value: String) -> String {
-        let escaped = value
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        return "\"\(escaped)\""
     }
 }

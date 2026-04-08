@@ -482,6 +482,24 @@ struct SetupView: View {
 
     private var pathsActions: some View {
         Group {
+            Button("New Project…") {
+                state.presentNewProjectWizard()
+            }
+            .disabled(state.isBusy)
+
+            Menu("Open Recent") {
+                if state.recentProjects.isEmpty {
+                    Text("No recent projects")
+                } else {
+                    ForEach(state.recentProjects) { entry in
+                        Button(entry.displayName) {
+                            state.openRecentProject(entry)
+                        }
+                    }
+                }
+            }
+            .disabled(state.recentProjects.isEmpty || state.isBusy)
+
             Button("Use Sample Config Path") {
                 state.useSampleConfig()
             }

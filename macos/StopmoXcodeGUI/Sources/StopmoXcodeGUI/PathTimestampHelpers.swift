@@ -9,8 +9,42 @@ enum PathTimestampHelpers {
         return value
     }
 
-    static func pathExists(_ value: String?) -> Bool {
-        guard let value = trimmedOrNil(value) else {
+    static func resolveFilesystemPath(
+        _ value: String?,
+        configPath: String? = nil,
+        workspaceRoot: String? = nil
+    ) -> String? {
+        guard let raw = trimmedOrNil(value) else {
+            return nil
+        }
+        let expanded = NSString(string: raw).expandingTildeInPath
+        if NSString(string: expanded).isAbsolutePath {
+            return URL(fileURLWithPath: expanded).standardizedFileURL.path
+        }
+
+        if let configDirectory = resolvedConfigDirectory(configPath: configPath, workspaceRoot: workspaceRoot) {
+            return URL(fileURLWithPath: configDirectory, isDirectory: true)
+                .appendingPathComponent(expanded, isDirectory: false)
+                .standardizedFileURL
+                .path
+        }
+
+        if let workspaceRoot = trimmedOrNil(workspaceRoot) {
+            return URL(fileURLWithPath: workspaceRoot, isDirectory: true)
+                .appendingPathComponent(expanded, isDirectory: false)
+                .standardizedFileURL
+                .path
+        }
+
+        return expanded
+    }
+
+    static func pathExists(
+        _ value: String?,
+        configPath: String? = nil,
+        workspaceRoot: String? = nil
+    ) -> Bool {
+        guard let value = resolveFilesystemPath(value, configPath: configPath, workspaceRoot: workspaceRoot) else {
             return false
         }
         return FileManager.default.fileExists(atPath: value)
@@ -20,11 +54,23 @@ enum PathTimestampHelpers {
         (base as NSString).appendingPathComponent(component)
     }
 
-    static func shotRootPath(baseOutputDir: String, shotName: String) -> String {
-        guard let base = trimmedOrNil(baseOutputDir) else {
+    static func shotRootPath(
+        baseOutputDir: String,
+        shotName: String,
+        configPath: String? = nil,
+        workspaceRoot: String? = nil
+    ) -> String {
+        guard let normalizedShotName = trimmedOrNil(shotName) else {
             return shotName
         }
-        return appendingPath(base: base, component: shotName)
+        guard let base = resolveFilesystemPath(
+            baseOutputDir,
+            configPath: configPath,
+            workspaceRoot: workspaceRoot
+        ) ?? trimmedOrNil(baseOutputDir) else {
+            return normalizedShotName
+        }
+        return appendingPath(base: base, component: normalizedShotName)
     }
 
     static func parseIso8601(_ value: String?) -> Date? {
@@ -102,5 +148,23 @@ enum PathTimestampHelpers {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm:ss"
         return formatter
+    }
+
+    private static func resolvedConfigDirectory(configPath: String?, workspaceRoot: String?) -> String? {
+        guard let configPath = trimmedOrNil(configPath) else {
+            return nil
+        }
+        let expanded = NSString(string: configPath).expandingTildeInPath
+        let configURL: URL
+        if NSString(string: expanded).isAbsolutePath {
+            configURL = URL(fileURLWithPath: expanded)
+        } else if let workspaceRoot = trimmedOrNil(workspaceRoot) {
+            configURL = URL(fileURLWithPath: workspaceRoot, isDirectory: true)
+                .appendingPathComponent(expanded, isDirectory: false)
+                .standardizedFileURL
+        } else {
+            return nil
+        }
+        return configURL.deletingLastPathComponent().path
     }
 }

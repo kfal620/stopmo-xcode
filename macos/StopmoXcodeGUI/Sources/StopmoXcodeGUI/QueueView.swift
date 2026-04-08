@@ -600,10 +600,6 @@ struct QueueView: View {
     }
 
     private func shotOutputPath(for job: QueueJobRecord) -> String {
-        let base = state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !base.isEmpty else {
-            return job.shot
-        }
-        return (base as NSString).appendingPathComponent(job.shot)
+        state.resolvedShotRootPath(for: job.shot)
     }
 }

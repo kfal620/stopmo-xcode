@@ -71,6 +71,8 @@ struct ProjectView: View {
                     headerActions
                 }
 
+                currentProjectContextCard
+
                 if hasUnsavedChanges {
                     SectionCard("Unsaved Changes") {
                         Text("Project config has local edits that are not yet written to disk.")
@@ -116,6 +118,24 @@ struct ProjectView: View {
                 tone: hasUnsavedChanges ? .warning : .success
             )
 
+            Button("New Project…") {
+                state.presentNewProjectWizard()
+            }
+            .disabled(state.isBusy)
+
+            Menu("Open Recent") {
+                if state.recentProjects.isEmpty {
+                    Text("No recent projects")
+                } else {
+                    ForEach(state.recentProjects) { entry in
+                        Button(entry.displayName) {
+                            state.openRecentProject(entry)
+                        }
+                    }
+                }
+            }
+            .disabled(state.recentProjects.isEmpty || state.isBusy)
+
             Button("Reload") {
                 Task { await reloadFromDisk() }
             }
@@ -155,6 +175,67 @@ struct ProjectView: View {
             sectionNavigator
             Divider()
             selectedSectionContent
+        }
+    }
+
+    private var currentProjectContextCard: some View {
+        SectionCard("Current Project", density: .compact, chrome: .quiet, showSubtitle: false) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: StopmoUI.Spacing.md) {
+                    projectIdentityBlock
+                    Spacer(minLength: 0)
+                    projectContextActions
+                }
+                VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+                    projectIdentityBlock
+                    projectContextActions
+                }
+            }
+        }
+    }
+
+    private var projectIdentityBlock: some View {
+        VStack(alignment: .leading, spacing: StopmoUI.Spacing.sm) {
+            HStack(spacing: StopmoUI.Spacing.sm) {
+                Image(systemName: "folder.fill")
+                    .foregroundStyle(Color.accentColor)
+                Text(currentProjectName)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(AppVisualTokens.textPrimary)
+            }
+
+            VStack(alignment: .leading, spacing: StopmoUI.Spacing.xxs) {
+                projectPathRow(label: "Root", path: state.repoRoot)
+
+                if !state.configPath.isEmpty {
+                    projectPathRow(label: "Config", path: state.configPath)
+                }
+            }
+        }
+    }
+
+    private var projectContextActions: some View {
+        HStack(spacing: StopmoUI.Spacing.sm) {
+            Button {
+                state.openPathInFinder(state.repoRoot)
+            } label: {
+                Label("Reveal", systemImage: "folder")
+            }
+            .disabled(state.isBusy || state.repoRoot.isEmpty)
+        }
+    }
+
+    private func projectPathRow(label: String, path: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: StopmoUI.Spacing.sm) {
+            Text(label.uppercased())
+                .metadataTextStyle(.tertiary)
+                .frame(width: 52, alignment: .leading)
+
+            Text(path)
+                .font(.callout)
+                .foregroundStyle(AppVisualTokens.textSecondary)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
         }
     }
 
@@ -254,6 +335,15 @@ struct ProjectView: View {
 
     private var presetNames: [String] {
         presets.keys.sorted()
+    }
+
+    private var currentProjectName: String {
+        let trimmedRoot = state.repoRoot.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedRoot.isEmpty else {
+            return "Untitled Project"
+        }
+        let lastPath = URL(fileURLWithPath: trimmedRoot, isDirectory: true).lastPathComponent
+        return lastPath.isEmpty ? trimmedRoot : lastPath
     }
 
     private func reloadFromDisk() async {

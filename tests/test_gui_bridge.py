@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import sqlite3
 
 from stopmo_xcode import app_api
 from stopmo_xcode.config import load_config
@@ -17,6 +18,7 @@ from stopmo_xcode.gui_bridge import (
     queue_retry_shot_failed_payload,
     queue_status_payload,
     read_config_payload,
+    project_init_payload,
     suggest_matrix_payload,
     shots_summary_payload,
     transcode_one_payload,
@@ -67,6 +69,72 @@ def test_write_config_payload_roundtrip(tmp_path: Path) -> None:
     reloaded = load_config(cfg_file)
     assert reloaded.watch.max_workers == 4
     assert reloaded.log_level == "DEBUG"
+
+
+def test_write_config_payload_preserves_relative_paths(tmp_path: Path) -> None:
+    cfg_file = _write_min_config(tmp_path)
+    payload = read_config_payload(cfg_file)
+    watch = payload["watch"]
+    assert isinstance(watch, dict)
+    watch["source_dir"] = "../incoming"
+    watch["working_dir"] = "../work"
+    watch["output_dir"] = "../output"
+    watch["db_path"] = "../work/queue.sqlite3"
+    payload["log_file"] = "../work/framerelay.log"
+
+    out = write_config_payload(cfg_file, payload)
+    assert out["saved"] is True
+
+    raw_yaml = cfg_file.read_text(encoding="utf-8")
+    assert "source_dir: ../incoming" in raw_yaml
+    assert "working_dir: ../work" in raw_yaml
+    assert "output_dir: ../output" in raw_yaml
+    assert "db_path: ../work/queue.sqlite3" in raw_yaml
+    assert "log_file: ../work/framerelay.log" in raw_yaml
+
+    reread = read_config_payload(cfg_file)
+    reread_watch = reread["watch"]
+    assert isinstance(reread_watch, dict)
+    assert reread_watch["source_dir"] == "../incoming"
+    assert reread_watch["db_path"] == "../work/queue.sqlite3"
+    assert reread["log_file"] == "../work/framerelay.log"
+
+
+def test_project_init_payload_creates_queue_db_schema(tmp_path: Path) -> None:
+    cfg_dir = tmp_path / "project" / "config"
+    cfg_dir.mkdir(parents=True)
+    cfg_file = cfg_dir / "sample.yaml"
+    cfg_file.write_text(
+        """
+watch:
+  source_dir: ../incoming
+  working_dir: ../work
+  output_dir: ../output
+  db_path: ../work/queue.sqlite3
+log_level: INFO
+log_file: ../work/framerelay.log
+""",
+        encoding="utf-8",
+    )
+
+    payload = project_init_payload(cfg_file)
+
+    db_path = Path(str(payload["db_path"]))
+    assert payload["initialized"] is True
+    assert db_path.exists()
+    assert (tmp_path / "project" / "incoming").exists()
+    assert (tmp_path / "project" / "work").exists()
+    assert (tmp_path / "project" / "output").exists()
+
+    conn = sqlite3.connect(db_path)
+    try:
+        tables = {
+            row[0]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+    finally:
+        conn.close()
+    assert {"jobs", "shot_settings", "shot_assembly"}.issubset(tables)
 
 
 def test_health_payload_reports_core_keys(tmp_path: Path) -> None:

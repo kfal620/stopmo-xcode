@@ -76,6 +76,9 @@ final class AppState: ObservableObject {
     @Published var isNotificationsCenterPresented: Bool = false
     @Published var isBusy: Bool = false
     @Published var workspaceAccessActive: Bool = false
+    @Published var recentProjects: [RecentProjectEntry] = []
+    @Published var isNewProjectSheetPresented: Bool = false
+    @Published var newProjectDraft: NewProjectDraft = .init(projectName: "", parentDirectory: "")
     @Published var reduceMotionEnabled: Bool = false
     @Published var monitoringEnabled: Bool = false
     @Published var monitoringPollInFlight: Bool = false
@@ -97,6 +100,7 @@ final class AppState: ObservableObject {
     private let maxDeliveryRunEvents: Int = 120
     private static let repoRootDefaultsKey = "stopmo_repo_root"
     private static let workspaceBookmarkDefaultsKey = "stopmo_workspace_bookmark"
+    private static let recentProjectsDefaultsKey = "framerelay_recent_projects_v1"
     private var securityScopedWorkspaceURL: URL?
     private let bridgeService: BridgeServicing
     private let workspaceConfigService: WorkspaceConfigServicing
@@ -119,6 +123,8 @@ final class AppState: ObservableObject {
         )
         repoRoot = root
         configPath = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: root)
+        recentProjects = Self.loadRecentProjects()
+        newProjectDraft = .init(projectName: "", parentDirectory: initialNewProjectParentDirectory(for: root))
         restoreWorkspaceAccess()
         bootstrapWorkspaceIfNeeded()
     }
@@ -612,7 +618,9 @@ final class AppState: ObservableObject {
             return nil
         }
 
+        let normalizedInput = resolvedFilesystemPath(trimmedInput) ?? trimmedInput
         let resolvedOutput = outputDir?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedOutput = resolvedFilesystemPath(resolvedOutput)
         let repoRoot = self.repoRoot
         let originalRepoRoot = self.repoRoot
         let originalConfigPath = self.configPath
@@ -623,7 +631,7 @@ final class AppState: ObservableObject {
         appendDeliveryEvent(
             tone: .warning,
             title: "Day Wrap Started",
-            detail: "Batch DPX -> ProRes started for \(trimmedInput)."
+            detail: "Batch DPX -> ProRes started for \(normalizedInput)."
         )
         defer { isBusy = false }
         defer {
@@ -636,8 +644,8 @@ final class AppState: ObservableObject {
         do {
             let envelope = try await bridgeService.dpxToProres(
                 repoRoot: repoRoot,
-                inputDir: trimmedInput,
-                outputDir: (resolvedOutput?.isEmpty == false) ? resolvedOutput : nil,
+                inputDir: normalizedInput,
+                outputDir: (normalizedOutput?.isEmpty == false) ? normalizedOutput : nil,
                 framerate: max(1, framerate),
                 overwrite: overwrite
             )
@@ -704,6 +712,7 @@ final class AppState: ObservableObject {
             let roots = shotInputRoots
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
+                .map { self.resolvedFilesystemPath($0) ?? $0 }
             let uniqueRoots = Array(NSOrderedSet(array: roots)) as? [String] ?? roots
             guard !uniqueRoots.isEmpty else {
                 throw BridgeError.processFailed("No completed shots were selected for delivery.")
@@ -711,6 +720,7 @@ final class AppState: ObservableObject {
 
             let repoRoot = self.repoRoot
             let resolvedOutput = outputDir?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedOutput = self.resolvedFilesystemPath(resolvedOutput)
             var failedShots: [String] = []
             var completedShots = 0
             var failedCount = 0
@@ -740,7 +750,7 @@ final class AppState: ObservableObject {
                     let envelope = try await self.bridgeService.dpxToProres(
                         repoRoot: repoRoot,
                         inputDir: inputRoot,
-                        outputDir: resolvedOutput?.isEmpty == false ? resolvedOutput : nil,
+                        outputDir: normalizedOutput?.isEmpty == false ? normalizedOutput : nil,
                         framerate: max(1, framerate),
                         overwrite: overwrite
                     )
@@ -1232,19 +1242,17 @@ final class AppState: ObservableObject {
             return
         }
         do {
-            if let current = securityScopedWorkspaceURL {
-                workspaceIO.stopAccessingSecurityScope(current)
-                securityScopedWorkspaceURL = nil
-            }
             let bookmark = try workspaceIO.createSecurityScopedBookmark(for: selectedURL)
-            UserDefaults.standard.set(bookmark, forKey: Self.workspaceBookmarkDefaultsKey)
-            let started = workspaceIO.startAccessingSecurityScope(selectedURL)
-            securityScopedWorkspaceURL = selectedURL
-            workspaceAccessActive = started
+            activateWorkspaceAccess(url: selectedURL, bookmark: bookmark)
             repoRoot = selectedURL.path
             configPath = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: selectedURL.path)
             bootstrapWorkspaceIfNeeded()
-            statusMessage = started ? "Workspace access granted" : "Workspace selected"
+            rememberRecentProject(
+                projectRoot: selectedURL.path,
+                configPath: configPath,
+                bookmarkData: bookmark
+            )
+            statusMessage = workspaceAccessActive ? "Workspace access granted" : "Workspace selected"
         } catch {
             presentError(title: "Workspace Selection Failed", message: error.localizedDescription)
         }
@@ -1271,6 +1279,131 @@ final class AppState: ObservableObject {
         }
         configPath = selectedURL.path
         statusMessage = "Config path updated"
+    }
+
+    func presentNewProjectWizard() {
+        newProjectDraft = .init(
+            projectName: "",
+            parentDirectory: initialNewProjectParentDirectory(for: repoRoot)
+        )
+        isNewProjectSheetPresented = true
+    }
+
+    func dismissNewProjectWizard() {
+        isNewProjectSheetPresented = false
+    }
+
+    func chooseNewProjectParentDirectory() {
+        let initialPath = newProjectDraft.trimmedParentDirectory.isEmpty
+            ? initialNewProjectParentDirectory(for: repoRoot)
+            : newProjectDraft.trimmedParentDirectory
+        guard let selectedURL = workspaceIO.chooseNewProjectParentDirectory(initialPath: initialPath) else {
+            return
+        }
+        newProjectDraft.parentDirectory = selectedURL.path
+    }
+
+    func openRecentProject(_ entry: RecentProjectEntry) {
+        do {
+            if let bookmark = entry.bookmarkData {
+                let resolved = try workspaceIO.resolveWorkspaceBookmark(bookmark)
+                activateWorkspaceAccess(
+                    url: resolved.url,
+                    bookmark: resolved.refreshedBookmarkData ?? bookmark
+                )
+                repoRoot = resolved.url.path
+                rememberRecentProject(
+                    projectRoot: resolved.url.path,
+                    configPath: entry.configPath,
+                    bookmarkData: resolved.refreshedBookmarkData ?? bookmark
+                )
+            } else {
+                repoRoot = entry.projectRoot
+            }
+            let defaultConfig = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: repoRoot)
+            configPath = FileManager.default.fileExists(atPath: entry.configPath) ? entry.configPath : defaultConfig
+            selectedHub = .configure
+            selectedConfigurePanel = .projectSettings
+            bootstrapWorkspaceIfNeeded()
+            Task {
+                await loadConfig()
+                await validateConfig()
+                await refreshWatchPreflight()
+            }
+            statusMessage = "Opened recent project"
+        } catch {
+            presentError(title: "Open Recent Project Failed", message: error.localizedDescription)
+        }
+    }
+
+    func createNewProject() async {
+        let draft = newProjectDraft
+        if let message = draft.validationMessage() {
+            presentWarning(
+                title: "New Project Needs Attention",
+                message: message,
+                likelyCause: "The destination or project name is not ready for creation.",
+                suggestedAction: "Adjust the wizard values and try Create Project again."
+            )
+            return
+        }
+
+        await runBlockingTask(label: "Creating project") {
+            let rootPath = draft.projectRootPreview
+            let configPath = draft.configPathPreview
+            let projectURL = URL(fileURLWithPath: rootPath, isDirectory: true)
+            let fm = FileManager.default
+
+            if !fm.fileExists(atPath: rootPath) {
+                try fm.createDirectory(at: projectURL, withIntermediateDirectories: true)
+            }
+
+            let bookmark = try self.workspaceIO.createSecurityScopedBookmark(for: projectURL)
+            self.activateWorkspaceAccess(url: projectURL, bookmark: bookmark)
+
+            let bootstrap = try self.workspaceConfigService.bootstrapWorkspaceIfNeeded(
+                workspaceRoot: rootPath,
+                configPath: configPath
+            )
+            let initialized = try await self.bridgeService.projectInit(
+                repoRoot: rootPath,
+                configPath: bootstrap.resolvedConfigPath
+            )
+            let loaded = try await self.bridgeService.readConfig(
+                repoRoot: rootPath,
+                configPath: initialized.configPath
+            )
+            let validation = try await self.bridgeService.configValidate(
+                repoRoot: rootPath,
+                configPath: initialized.configPath
+            )
+            let preflight = try await self.bridgeService.watchPreflight(
+                repoRoot: rootPath,
+                configPath: initialized.configPath
+            )
+
+            self.repoRoot = rootPath
+            self.configPath = initialized.configPath
+            self.config = loaded
+            self.configValidation = validation
+            self.watchPreflight = preflight
+            self.selectedHub = .configure
+            self.selectedConfigurePanel = .projectSettings
+            self.isNewProjectSheetPresented = false
+            self.newProjectDraft = .init(projectName: "", parentDirectory: self.initialNewProjectParentDirectory(for: rootPath))
+            self.rememberRecentProject(
+                projectRoot: rootPath,
+                configPath: initialized.configPath,
+                bookmarkData: bookmark
+            )
+            self.presentInfo(
+                title: "Project Created",
+                message: rootPath,
+                likelyCause: nil,
+                suggestedAction: "Project folders, config, and queue DB are ready. You can start capture or adjust settings."
+            )
+            self.statusMessage = "Project created"
+        }
     }
 
     var sampleConfigPath: String {
@@ -1356,7 +1489,8 @@ final class AppState: ObservableObject {
 
     func openConfigInFinder() {
         let fm = FileManager.default
-        let configURL = URL(fileURLWithPath: configPath)
+        let resolvedConfigPath = resolvedFilesystemPath(configPath) ?? configPath
+        let configURL = URL(fileURLWithPath: resolvedConfigPath)
         if fm.fileExists(atPath: configURL.path) {
             _ = workspaceIO.openPathInFinder(configURL.path)
             statusMessage = "Opened config in Finder"
@@ -1390,7 +1524,8 @@ final class AppState: ObservableObject {
             )
             return
         }
-        switch workspaceIO.openPathInFinder(trimmed) {
+        let resolved = resolvedFilesystemPath(trimmed) ?? trimmed
+        switch workspaceIO.openPathInFinder(resolved) {
         case .openedTarget:
             statusMessage = "Opened in Finder"
         case .openedParent:
@@ -1401,7 +1536,7 @@ final class AppState: ObservableObject {
                 suggestedAction: "Verify pipeline outputs or refresh live state."
             )
         case .missing:
-            presentError(title: "Open in Finder Failed", message: "Path not found: \(trimmed)")
+            presentError(title: "Open in Finder Failed", message: "Path not found: \(resolved)")
         }
     }
 
@@ -1429,6 +1564,63 @@ final class AppState: ObservableObject {
         }
     }
 
+    private func initialNewProjectParentDirectory(for path: String) -> String {
+        let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return FileManager.default.homeDirectoryForCurrentUser.path
+        }
+        let url = URL(fileURLWithPath: trimmed, isDirectory: true)
+        let parent = url.deletingLastPathComponent().path
+        return parent.isEmpty ? trimmed : parent
+    }
+
+    private func activateWorkspaceAccess(url: URL, bookmark: Data) {
+        if let current = securityScopedWorkspaceURL {
+            workspaceIO.stopAccessingSecurityScope(current)
+            securityScopedWorkspaceURL = nil
+        }
+        UserDefaults.standard.set(bookmark, forKey: Self.workspaceBookmarkDefaultsKey)
+        let started = workspaceIO.startAccessingSecurityScope(url)
+        securityScopedWorkspaceURL = url
+        workspaceAccessActive = started
+    }
+
+    private func rememberRecentProject(projectRoot: String, configPath: String, bookmarkData: Data?) {
+        let displayName = URL(fileURLWithPath: projectRoot, isDirectory: true).lastPathComponent
+        let entry = RecentProjectEntry(
+            projectRoot: projectRoot,
+            configPath: configPath,
+            displayName: displayName.isEmpty ? projectRoot : displayName,
+            lastOpenedAt: Date(),
+            bookmarkData: bookmarkData
+        )
+        recentProjects.removeAll { $0.projectRoot == projectRoot }
+        recentProjects.insert(entry, at: 0)
+        if recentProjects.count > 8 {
+            recentProjects = Array(recentProjects.prefix(8))
+        }
+        Self.saveRecentProjects(recentProjects)
+    }
+
+    private static func loadRecentProjects() -> [RecentProjectEntry] {
+        guard let data = UserDefaults.standard.data(forKey: recentProjectsDefaultsKey) else {
+            return []
+        }
+        let decoder = JSONDecoder()
+        guard let projects = try? decoder.decode([RecentProjectEntry].self, from: data) else {
+            return []
+        }
+        return projects
+    }
+
+    private static func saveRecentProjects(_ projects: [RecentProjectEntry]) {
+        let encoder = JSONEncoder()
+        guard let data = try? encoder.encode(projects) else {
+            return
+        }
+        UserDefaults.standard.set(data, forKey: recentProjectsDefaultsKey)
+    }
+
     private func bundledSampleConfigPath() -> String? {
         workspaceConfigService.bundledSampleConfigPath(
             bundleResourceURL: Bundle.main.resourceURL,
@@ -1452,16 +1644,17 @@ final class AppState: ObservableObject {
         }
         do {
             let resolved = try workspaceIO.resolveWorkspaceBookmark(data)
-            if let refreshed = resolved.refreshedBookmarkData {
-                UserDefaults.standard.set(refreshed, forKey: Self.workspaceBookmarkDefaultsKey)
-            }
-            let started = workspaceIO.startAccessingSecurityScope(resolved.url)
-            securityScopedWorkspaceURL = resolved.url
-            workspaceAccessActive = started
-            if started {
+            let bookmark = resolved.refreshedBookmarkData ?? data
+            activateWorkspaceAccess(url: resolved.url, bookmark: bookmark)
+            if workspaceAccessActive {
                 repoRoot = resolved.url.path
                 configPath = workspaceConfigService.defaultConfigPath(forWorkspaceRoot: resolved.url.path)
                 bootstrapWorkspaceIfNeeded()
+                rememberRecentProject(
+                    projectRoot: resolved.url.path,
+                    configPath: configPath,
+                    bookmarkData: bookmark
+                )
             }
         } catch {
             workspaceAccessActive = false
@@ -1628,6 +1821,27 @@ final class AppState: ObservableObject {
                 self.toastDismissTask = nil
             }
         }
+    }
+
+    func resolvedFilesystemPath(_ path: String?) -> String? {
+        PathTimestampHelpers.resolveFilesystemPath(
+            path,
+            configPath: configPath,
+            workspaceRoot: repoRoot
+        )
+    }
+
+    var resolvedWatchOutputDirPath: String? {
+        resolvedFilesystemPath(config.watch.outputDir)
+    }
+
+    func resolvedShotRootPath(for shotName: String) -> String {
+        PathTimestampHelpers.shotRootPath(
+            baseOutputDir: config.watch.outputDir,
+            shotName: shotName,
+            configPath: configPath,
+            workspaceRoot: repoRoot
+        )
     }
 
     private func ingestDiagnosticWarnings(_ warnings: [DiagnosticWarningRecord]) {

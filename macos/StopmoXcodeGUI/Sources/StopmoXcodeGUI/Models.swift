@@ -290,6 +290,109 @@ extension StopmoConfigDocument {
     }
 }
 
+/// Result returned after eager project initialization creates directories and queue DB schema.
+struct ProjectInitResult: Codable, Sendable {
+    var configPath: String
+    var dbPath: String
+    var sourceDir: String
+    var workingDir: String
+    var outputDir: String
+    var initialized: Bool
+}
+
+/// Persisted recent-project record used by project switching menus.
+struct RecentProjectEntry: Codable, Sendable, Identifiable, Hashable {
+    var projectRoot: String
+    var configPath: String
+    var displayName: String
+    var lastOpenedAt: Date
+    var bookmarkData: Data?
+
+    var id: String { projectRoot }
+}
+
+/// Draft state for the New Project wizard, including validation and preview paths.
+struct NewProjectDraft: Codable, Sendable, Equatable {
+    var projectName: String
+    var parentDirectory: String
+
+    static let defaultConfigRelativePath = "config/sample.yaml"
+
+    var trimmedProjectName: String {
+        projectName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var trimmedParentDirectory: String {
+        parentDirectory.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var projectRootPreview: String {
+        guard !trimmedParentDirectory.isEmpty, !trimmedProjectName.isEmpty else {
+            return ""
+        }
+        return URL(fileURLWithPath: trimmedParentDirectory, isDirectory: true)
+            .appendingPathComponent(trimmedProjectName, isDirectory: true)
+            .path
+    }
+
+    var configPathPreview: String {
+        guard !projectRootPreview.isEmpty else {
+            return ""
+        }
+        return URL(fileURLWithPath: projectRootPreview, isDirectory: true)
+            .appendingPathComponent(Self.defaultConfigRelativePath)
+            .path
+    }
+
+    func validationMessage(fileManager: FileManager = .default) -> String? {
+        if trimmedProjectName.isEmpty {
+            return "Enter a project name."
+        }
+        if trimmedProjectName.contains("/") || trimmedProjectName.contains(":") {
+            return "Project name cannot contain path separators."
+        }
+        if trimmedParentDirectory.isEmpty {
+            return "Choose a destination folder."
+        }
+
+        var isParentDir: ObjCBool = false
+        guard fileManager.fileExists(atPath: trimmedParentDirectory, isDirectory: &isParentDir), isParentDir.boolValue else {
+            return "Destination folder does not exist."
+        }
+
+        let projectRoot = projectRootPreview
+        guard !projectRoot.isEmpty else {
+            return "Project path could not be resolved."
+        }
+
+        var isProjectDir: ObjCBool = false
+        if fileManager.fileExists(atPath: projectRoot, isDirectory: &isProjectDir) {
+            guard isProjectDir.boolValue else {
+                return "A file already exists at the project location."
+            }
+            let contents = (try? fileManager.contentsOfDirectory(atPath: projectRoot)) ?? []
+            if !contents.isEmpty {
+                return "The project folder already exists and is not empty."
+            }
+        }
+
+        return nil
+    }
+
+    var usesExistingEmptyDirectory: Bool {
+        let root = projectRootPreview
+        guard !root.isEmpty else {
+            return false
+        }
+        var isDirectory: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: root, isDirectory: &isDirectory), isDirectory.boolValue else {
+            return false
+        }
+        let contents = (try? FileManager.default.contentsOfDirectory(atPath: root)) ?? []
+        return contents.isEmpty
+    }
+}
+
 /// Bridge-facing queue row model shared by monitoring, triage, and watch status screens.
 struct QueueJobRecord: Codable, Sendable, Identifiable {
     var id: Int

@@ -664,7 +664,7 @@ struct LiveMonitorView: View {
             ShotThumbnailView(
                 shot: shot,
                 preferredKind: .latest,
-                baseOutputDir: state.config.watch.outputDir,
+                baseOutputDir: state.resolvedWatchOutputDirPath ?? state.config.watch.outputDir,
                 width: embedded ? 220 : 192,
                 height: embedded ? 124 : 108,
                 onOpenLightbox: { previewPath in
@@ -930,11 +930,7 @@ struct LiveMonitorView: View {
     }
 
     private func shotRootPath(for shot: ShotSummaryRow) -> String {
-        let base = state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !base.isEmpty else {
-            return shot.shotName
-        }
-        return (base as NSString).appendingPathComponent(shot.shotName)
+        state.resolvedShotRootPath(for: shot.shotName)
     }
 
     private var monitoringTone: StatusTone {

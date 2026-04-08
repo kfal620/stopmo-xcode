@@ -39,6 +39,7 @@
 		64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */; };
 		B62DF06FD6D5FE6F04C691A3 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9D1977BF837AF172307DE8C /* Models.swift */; };
 		00DDD9F8627E6EBFF958FBF9 /* MonitoringReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BD5560C58EED13EABDCA730 /* MonitoringReducer.swift */; };
+		9DB46E909DC112CE9281F1D7 /* NewProjectWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BA9C668BBE990C1B38460AE /* NewProjectWizardView.swift */; };
 		1EB1A561DAC9957EC45CCDF2 /* NotificationReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 318D8A80F4085E94D3C430C1 /* NotificationReducer.swift */; };
 		EB013BE49848FC1BB04B588F /* NotificationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0EBAC0E1E89F9A0C523ED77 /* NotificationViews.swift */; };
 		42CCCA538C95B1971841A013 /* PathTimestampHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80A831E44F415723F03A6F83 /* PathTimestampHelpers.swift */; };
@@ -123,6 +124,7 @@
 		502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogsDiagnosticsView.swift; sourceTree = "<group>"; };
 		A9D1977BF837AF172307DE8C /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		0BD5560C58EED13EABDCA730 /* MonitoringReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringReducer.swift; sourceTree = "<group>"; };
+		5BA9C668BBE990C1B38460AE /* NewProjectWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewProjectWizardView.swift; sourceTree = "<group>"; };
 		318D8A80F4085E94D3C430C1 /* NotificationReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationReducer.swift; sourceTree = "<group>"; };
 		B0EBAC0E1E89F9A0C523ED77 /* NotificationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationViews.swift; sourceTree = "<group>"; };
 		80A831E44F415723F03A6F83 /* PathTimestampHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathTimestampHelpers.swift; sourceTree = "<group>"; };
@@ -231,6 +233,7 @@
 				502F813E8A36E1D94B8FDFCB /* LogsDiagnosticsView.swift */,
 				A9D1977BF837AF172307DE8C /* Models.swift */,
 				0BD5560C58EED13EABDCA730 /* MonitoringReducer.swift */,
+				5BA9C668BBE990C1B38460AE /* NewProjectWizardView.swift */,
 				318D8A80F4085E94D3C430C1 /* NotificationReducer.swift */,
 				B0EBAC0E1E89F9A0C523ED77 /* NotificationViews.swift */,
 				80A831E44F415723F03A6F83 /* PathTimestampHelpers.swift */,
@@ -472,6 +475,7 @@
 				64F4778BE3DDD0F818EAEEB4 /* LogsDiagnosticsView.swift in Sources */,
 				B62DF06FD6D5FE6F04C691A3 /* Models.swift in Sources */,
 				00DDD9F8627E6EBFF958FBF9 /* MonitoringReducer.swift in Sources */,
+				9DB46E909DC112CE9281F1D7 /* NewProjectWizardView.swift in Sources */,
 				1EB1A561DAC9957EC45CCDF2 /* NotificationReducer.swift in Sources */,
 				EB013BE49848FC1BB04B588F /* NotificationViews.swift in Sources */,
 				42CCCA538C95B1971841A013 /* PathTimestampHelpers.swift in Sources */,

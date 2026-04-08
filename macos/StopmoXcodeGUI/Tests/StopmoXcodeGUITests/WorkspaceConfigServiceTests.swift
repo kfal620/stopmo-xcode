@@ -56,6 +56,20 @@ final class WorkspaceConfigServiceTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: requestedConfig))
     }
 
+    func testBootstrapWorkspaceWritesRelativeProjectPaths() throws {
+        let root = try makeTempDirectory()
+        let requestedConfig = "\(root)/config/sample.yaml"
+
+        _ = try service.bootstrapWorkspaceIfNeeded(workspaceRoot: root, configPath: requestedConfig)
+
+        let contents = try String(contentsOfFile: requestedConfig, encoding: .utf8)
+        XCTAssertTrue(contents.contains("source_dir: \"../incoming\""))
+        XCTAssertTrue(contents.contains("working_dir: \"../work\""))
+        XCTAssertTrue(contents.contains("output_dir: \"../output\""))
+        XCTAssertTrue(contents.contains("db_path: \"../work/queue.sqlite3\""))
+        XCTAssertTrue(contents.contains("log_file: \"../work/framerelay.log\""))
+    }
+
     private func makeTempDirectory() throws -> String {
         let base = FileManager.default.temporaryDirectory
             .appendingPathComponent("stopmo-gui-tests-\(UUID().uuidString)", isDirectory: true)

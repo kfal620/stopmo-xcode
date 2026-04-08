@@ -207,7 +207,7 @@ struct TriageShotHealthBoardView: View {
                     ShotThumbnailView(
                         shot: shot,
                         preferredKind: .first,
-                        baseOutputDir: state.config.watch.outputDir,
+                        baseOutputDir: state.resolvedWatchOutputDirPath ?? state.config.watch.outputDir,
                         width: 58,
                         height: 34,
                         cornerRadius: 6,
@@ -318,7 +318,7 @@ struct TriageShotHealthBoardView: View {
             ShotThumbnailView(
                 shot: shot,
                 preferredKind: .first,
-                baseOutputDir: state.config.watch.outputDir,
+                baseOutputDir: state.resolvedWatchOutputDirPath ?? state.config.watch.outputDir,
                 width: 220,
                 height: 124,
                 onOpenLightbox: { previewPath in
@@ -739,11 +739,7 @@ struct TriageShotHealthBoardView: View {
     }
 
     private func shotRootPath(for shot: ShotSummaryRow) -> String {
-        let base = state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !base.isEmpty else {
-            return shot.shotName
-        }
-        return (base as NSString).appendingPathComponent(shot.shotName)
+        state.resolvedShotRootPath(for: shot.shotName)
     }
 
     private func dpxPath(for shot: ShotSummaryRow) -> String {

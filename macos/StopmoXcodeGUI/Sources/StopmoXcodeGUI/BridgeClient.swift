@@ -222,7 +222,7 @@ struct BridgeClient: Sendable {
         stdin: Data? = nil,
         timeoutSeconds: TimeInterval = 20.0
     ) throws -> Data {
-        // Execute one bridge command and return merged stdout/stderr JSON payload.
+        // Execute one bridge command and return stdout JSON payload while preserving stderr for diagnostics.
         let launch = try resolveLaunchContext(workspaceRoot: repoRoot)
 
         let process = Process()
@@ -236,17 +236,27 @@ struct BridgeClient: Sendable {
         process.environment = env
 
         let outPipe = Pipe()
-        // Use a single stream and incremental reads to avoid pipe saturation on larger outputs.
+        let errPipe = Pipe()
         process.standardOutput = outPipe
-        process.standardError = outPipe
-        let accumulator = BridgeOutputAccumulator()
+        process.standardError = errPipe
+
+        let stdoutAccumulator = BridgeOutputAccumulator()
+        let stderrAccumulator = BridgeOutputAccumulator()
         outPipe.fileHandleForReading.readabilityHandler = { handle in
             let chunk = handle.availableData
             guard !chunk.isEmpty else {
                 handle.readabilityHandler = nil
                 return
             }
-            accumulator.append(chunk)
+            stdoutAccumulator.append(chunk)
+        }
+        errPipe.fileHandleForReading.readabilityHandler = { handle in
+            let chunk = handle.availableData
+            guard !chunk.isEmpty else {
+                handle.readabilityHandler = nil
+                return
+            }
+            stderrAccumulator.append(chunk)
         }
 
         if let stdin {
@@ -271,9 +281,17 @@ struct BridgeClient: Sendable {
                 _ = kill(process.processIdentifier, SIGKILL)
             }
             outPipe.fileHandleForReading.readabilityHandler = nil
-            var partial = accumulator.snapshot()
-            partial.append(outPipe.fileHandleForReading.readDataToEndOfFile())
-            let partialText = String(data: partial, encoding: .utf8)?
+            errPipe.fileHandleForReading.readabilityHandler = nil
+
+            var partialStdout = stdoutAccumulator.snapshot()
+            partialStdout.append(outPipe.fileHandleForReading.readDataToEndOfFile())
+            var partialStderr = stderrAccumulator.snapshot()
+            partialStderr.append(errPipe.fileHandleForReading.readDataToEndOfFile())
+
+            let partialText = String(
+                data: partialStderr.isEmpty ? partialStdout : partialStderr,
+                encoding: .utf8
+            )?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let details = partialText.isEmpty ? "" : "\n\(partialText)"
             throw BridgeError.processFailed(
@@ -283,14 +301,21 @@ struct BridgeClient: Sendable {
 
         process.waitUntilExit()
         outPipe.fileHandleForReading.readabilityHandler = nil
-        var finalData = accumulator.snapshot()
-        finalData.append(outPipe.fileHandleForReading.readDataToEndOfFile())
+        errPipe.fileHandleForReading.readabilityHandler = nil
+        var finalStdout = stdoutAccumulator.snapshot()
+        finalStdout.append(outPipe.fileHandleForReading.readDataToEndOfFile())
+        var finalStderr = stderrAccumulator.snapshot()
+        finalStderr.append(errPipe.fileHandleForReading.readDataToEndOfFile())
 
         guard process.terminationStatus == 0 else {
-            let stderrText = String(data: finalData, encoding: .utf8) ?? ""
+            let stderrText = String(
+                data: finalStderr.isEmpty ? finalStdout : finalStderr,
+                encoding: .utf8
+            )?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             throw BridgeError.processFailed(stderrText.isEmpty ? "Bridge process failed" : stderrText)
         }
-        return finalData
+        return finalStdout
     }
 
     func health(repoRoot: String, configPath: String?) throws -> BridgeHealth {
@@ -320,6 +345,15 @@ struct BridgeClient: Sendable {
             timeoutSeconds: 20.0
         )
         return try readConfig(repoRoot: repoRoot, configPath: configPath)
+    }
+
+    func projectInit(repoRoot: String, configPath: String) throws -> ProjectInitResult {
+        let data = try runBridge(
+            repoRoot: repoRoot,
+            arguments: ["project-init", "--config", configPath],
+            timeoutSeconds: 20.0
+        )
+        return try decodeJSON(ProjectInitResult.self, from: data)
     }
 
     func queueStatus(repoRoot: String, configPath: String, limit: Int = 200) throws -> QueueSnapshot {

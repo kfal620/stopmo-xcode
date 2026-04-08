@@ -66,4 +66,35 @@ final class ProjectEditorViewModelTests: XCTestCase {
         vm.draftConfig.pipeline.cameraToReferenceMatrix = [[1, 2], [3]]
         XCTAssertNil(vm.matrixPayloadForCopy())
     }
+
+    func testNewProjectDraftBuildsPreviewPaths() {
+        let draft = NewProjectDraft(projectName: "pawpatrol", parentDirectory: "/tmp/projects")
+
+        XCTAssertEqual(draft.projectRootPreview, "/tmp/projects/pawpatrol")
+        XCTAssertEqual(draft.configPathPreview, "/tmp/projects/pawpatrol/config/sample.yaml")
+    }
+
+    func testNewProjectDraftRejectsExistingNonEmptyDirectory() throws {
+        let parent = FileManager.default.temporaryDirectory
+            .appendingPathComponent("framerelay-project-draft-\(UUID().uuidString)", isDirectory: true)
+        let root = parent.appendingPathComponent("existing", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try "taken".write(to: root.appendingPathComponent("sentinel.txt"), atomically: true, encoding: .utf8)
+
+        let draft = NewProjectDraft(projectName: "existing", parentDirectory: parent.path)
+
+        XCTAssertEqual(draft.validationMessage(), "The project folder already exists and is not empty.")
+    }
+
+    func testNewProjectDraftAllowsExistingEmptyDirectory() throws {
+        let parent = FileManager.default.temporaryDirectory
+            .appendingPathComponent("framerelay-project-draft-\(UUID().uuidString)", isDirectory: true)
+        let root = parent.appendingPathComponent("empty", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+
+        let draft = NewProjectDraft(projectName: "empty", parentDirectory: parent.path)
+
+        XCTAssertNil(draft.validationMessage())
+        XCTAssertTrue(draft.usesExistingEmptyDirectory)
+    }
 }

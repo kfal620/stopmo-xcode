@@ -6,6 +6,7 @@ protocol BridgeServicing {
     func health(repoRoot: String, configPath: String) async throws -> BridgeHealth
     func readConfig(repoRoot: String, configPath: String) async throws -> StopmoConfigDocument
     func writeConfig(repoRoot: String, configPath: String, config: StopmoConfigDocument) async throws -> StopmoConfigDocument
+    func projectInit(repoRoot: String, configPath: String) async throws -> ProjectInitResult
     func watchStart(repoRoot: String, configPath: String) async throws -> WatchServiceState
     func watchStop(repoRoot: String, configPath: String) async throws -> WatchServiceState
     func watchState(
@@ -72,6 +73,12 @@ struct LiveBridgeService: BridgeServicing {
     func writeConfig(repoRoot: String, configPath: String, config: StopmoConfigDocument) async throws -> StopmoConfigDocument {
         try await Task.detached(priority: .userInitiated) {
             try BridgeClient().writeConfig(repoRoot: repoRoot, configPath: configPath, config: config)
+        }.value
+    }
+
+    func projectInit(repoRoot: String, configPath: String) async throws -> ProjectInitResult {
+        try await Task.detached(priority: .userInitiated) {
+            try BridgeClient().projectInit(repoRoot: repoRoot, configPath: configPath)
         }.value
     }
 

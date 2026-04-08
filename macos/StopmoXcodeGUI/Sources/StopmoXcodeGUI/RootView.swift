@@ -67,6 +67,10 @@ struct RootView: View {
                 dismissButton: .default(Text("OK"))
             )
         }
+        .sheet(isPresented: $state.isNewProjectSheetPresented) {
+            NewProjectWizardView()
+                .environmentObject(state)
+        }
         .notificationPresentation()
         .overlay(alignment: .bottomLeading) {
             RootStatusBarView()

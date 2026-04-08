@@ -103,6 +103,22 @@ def _cfg_to_dict(config: AppConfig) -> dict[str, object]:
     }
 
 
+def _load_raw_yaml(config_path: str | Path) -> dict[str, Any]:
+    """Read the authored YAML payload so GUI round-trips can preserve relative path strings."""
+
+    try:
+        import yaml  # type: ignore
+    except Exception as exc:
+        raise RuntimeError("PyYAML is required for config loading. Install with: pip install PyYAML") from exc
+
+    cfg_path = Path(config_path).expanduser().resolve()
+    with cfg_path.open("r", encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+    if not isinstance(raw, dict):
+        raise ValueError("config root must be a mapping")
+    return raw
+
+
 def _read_json_stdin() -> dict[str, Any]:
     """Require bridge commands to start from a JSON object payload instead of ad-hoc stdin text."""
 
@@ -157,12 +173,32 @@ def _to_path(value: Any) -> Path:
     return Path(str(value)).expanduser().resolve()
 
 
+def _to_path_string(value: Any) -> str:
+    """Preserve user-authored path strings for YAML writes while still requiring a concrete value."""
+
+    if value in (None, ""):
+        raise ValueError("required path value is missing")
+    text = str(value).strip()
+    if not text:
+        raise ValueError("required path value is missing")
+    return text
+
+
 def _to_optional_path(value: Any) -> Path | None:
     """Preserve omitted path fields while normalizing any provided override to an absolute path."""
 
     if value in (None, ""):
         return None
     return Path(str(value)).expanduser().resolve()
+
+
+def _to_optional_path_string(value: Any) -> str | None:
+    """Keep optional path fields omitted when blank while preserving relative spellings when provided."""
+
+    if value in (None, ""):
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _to_float(value: Any, *, default: float | None = None) -> float:
@@ -368,11 +404,161 @@ def _config_to_yaml_payload(config: AppConfig) -> dict[str, object]:
     }
 
 
+def _payload_to_yaml_payload(payload: dict[str, Any]) -> dict[str, object]:
+    """Normalize GUI payloads into YAML-safe values without forcing paths to become absolute."""
+
+    watch_raw = _pick(payload, "watch")
+    pipeline_raw = _pick(payload, "pipeline")
+    output_raw = _pick(payload, "output")
+    if not isinstance(watch_raw, dict) or not isinstance(pipeline_raw, dict) or not isinstance(output_raw, dict):
+        raise ValueError("watch/pipeline/output must be objects")
+
+    include_ext = _optional(watch_raw, "include_extensions", "includeExtensions", default=[".cr2", ".cr3", ".raw"])
+    if isinstance(include_ext, str):
+        include_ext = [s.strip() for s in include_ext.split(",") if s.strip()]
+    if not isinstance(include_ext, list):
+        raise ValueError("watch.include_extensions must be a list or comma string")
+
+    return {
+        "watch": {
+            "source_dir": _to_path_string(_pick(watch_raw, "source_dir", "sourceDir")),
+            "working_dir": _to_path_string(_pick(watch_raw, "working_dir", "workingDir")),
+            "output_dir": _to_path_string(_pick(watch_raw, "output_dir", "outputDir")),
+            "db_path": _to_path_string(_pick(watch_raw, "db_path", "dbPath")),
+            "include_extensions": [str(v).lower() for v in include_ext],
+            "stable_seconds": _to_float(_optional(watch_raw, "stable_seconds", "stableSeconds", default=3.0), default=3.0),
+            "poll_interval_seconds": _to_float(
+                _optional(watch_raw, "poll_interval_seconds", "pollIntervalSeconds", default=1.0),
+                default=1.0,
+            ),
+            "scan_interval_seconds": _to_float(
+                _optional(watch_raw, "scan_interval_seconds", "scanIntervalSeconds", default=5.0),
+                default=5.0,
+            ),
+            "max_workers": _to_int(_optional(watch_raw, "max_workers", "maxWorkers", default=2), default=2),
+            "shot_complete_seconds": _to_float(
+                _optional(watch_raw, "shot_complete_seconds", "shotCompleteSeconds", default=30.0),
+                default=30.0,
+            ),
+            "shot_regex": _optional(watch_raw, "shot_regex", "shotRegex", default=None),
+        },
+        "pipeline": {
+            "camera_to_reference_matrix": [
+                [float(v) for v in row]
+                for row in _to_matrix(
+                    _optional(
+                        pipeline_raw,
+                        "camera_to_reference_matrix",
+                        "cameraToReferenceMatrix",
+                        default=[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+                    )
+                )
+            ],
+            "exposure_offset_stops": _to_float(
+                _optional(pipeline_raw, "exposure_offset_stops", "exposureOffsetStops", default=0.0),
+                default=0.0,
+            ),
+            "auto_exposure_from_iso": _to_bool(
+                _optional(pipeline_raw, "auto_exposure_from_iso", "autoExposureFromIso", default=False)
+            ),
+            "auto_exposure_from_shutter": _to_bool(
+                _optional(pipeline_raw, "auto_exposure_from_shutter", "autoExposureFromShutter", default=False)
+            ),
+            "target_shutter_s": _to_optional_float(_optional(pipeline_raw, "target_shutter_s", "targetShutterS", default=None)),
+            "auto_exposure_from_aperture": _to_bool(
+                _optional(pipeline_raw, "auto_exposure_from_aperture", "autoExposureFromAperture", default=False)
+            ),
+            "target_aperture_f": _to_optional_float(
+                _optional(pipeline_raw, "target_aperture_f", "targetApertureF", default=None)
+            ),
+            "contrast": _to_float(_optional(pipeline_raw, "contrast", default=1.0), default=1.0),
+            "contrast_pivot_linear": _to_float(
+                _optional(pipeline_raw, "contrast_pivot_linear", "contrastPivotLinear", default=0.18),
+                default=0.18,
+            ),
+            "lock_wb_from_first_frame": _to_bool(
+                _optional(pipeline_raw, "lock_wb_from_first_frame", "lockWbFromFirstFrame", default=True)
+            ),
+            "target_ei": _to_int(_optional(pipeline_raw, "target_ei", "targetEi", default=800), default=800),
+            "apply_match_lut": _to_bool(_optional(pipeline_raw, "apply_match_lut", "applyMatchLut", default=False)),
+            "match_lut_path": _to_optional_path_string(
+                _optional(pipeline_raw, "match_lut_path", "matchLutPath", default=None)
+            ),
+            "use_ocio": _to_bool(_optional(pipeline_raw, "use_ocio", "useOcio", default=False)),
+            "ocio_config_path": _to_optional_path_string(
+                _optional(pipeline_raw, "ocio_config_path", "ocioConfigPath", default=None)
+            ),
+            "ocio_input_space": str(_optional(pipeline_raw, "ocio_input_space", "ocioInputSpace", default="camera_linear")),
+            "ocio_reference_space": str(
+                _optional(pipeline_raw, "ocio_reference_space", "ocioReferenceSpace", default="ACES2065-1")
+            ),
+            "ocio_output_space": str(
+                _optional(pipeline_raw, "ocio_output_space", "ocioOutputSpace", default="ARRI_LogC3_EI800_AWG")
+            ),
+        },
+        "output": {
+            "emit_per_frame_json": _to_bool(_optional(output_raw, "emit_per_frame_json", "emitPerFrameJson", default=True)),
+            "emit_truth_frame_pack": _to_bool(
+                _optional(output_raw, "emit_truth_frame_pack", "emitTruthFramePack", default=True)
+            ),
+            "truth_frame_index": _to_int(_optional(output_raw, "truth_frame_index", "truthFrameIndex", default=1), default=1),
+            "write_debug_tiff": _to_bool(_optional(output_raw, "write_debug_tiff", "writeDebugTiff", default=False)),
+            "write_prores_on_shot_complete": _to_bool(
+                _optional(output_raw, "write_prores_on_shot_complete", "writeProresOnShotComplete", default=False)
+            ),
+            "framerate": _to_int(_optional(output_raw, "framerate", default=24), default=24),
+            "show_lut_rec709_path": _to_optional_path_string(
+                _optional(output_raw, "show_lut_rec709_path", "showLutRec709Path", default=None)
+            ),
+        },
+        "log_level": str(_optional(payload, "log_level", "logLevel", default="INFO")),
+        "log_file": _to_optional_path_string(_optional(payload, "log_file", "logFile", default=None)),
+    }
+
+
+def _apply_authored_path_overrides(payload: dict[str, object], raw_yaml: dict[str, Any]) -> dict[str, object]:
+    """Overlay authored YAML path strings onto the resolved bridge payload for portable GUI editing."""
+
+    watch = payload.get("watch")
+    pipeline = payload.get("pipeline")
+    output = payload.get("output")
+    raw_watch = raw_yaml.get("watch")
+    raw_pipeline = raw_yaml.get("pipeline")
+    raw_output = raw_yaml.get("output")
+
+    if isinstance(watch, dict) and isinstance(raw_watch, dict):
+        for key in ("source_dir", "working_dir", "output_dir", "db_path"):
+            value = raw_watch.get(key)
+            if isinstance(value, str):
+                watch[key] = value
+    if isinstance(pipeline, dict) and isinstance(raw_pipeline, dict):
+        for key in ("match_lut_path", "ocio_config_path"):
+            value = raw_pipeline.get(key)
+            if isinstance(value, str):
+                pipeline[key] = value
+            elif value in (None, ""):
+                pipeline[key] = None
+    if isinstance(output, dict) and isinstance(raw_output, dict):
+        value = raw_output.get("show_lut_rec709_path")
+        if isinstance(value, str):
+            output["show_lut_rec709_path"] = value
+        elif value in (None, ""):
+            output["show_lut_rec709_path"] = None
+
+    log_value = raw_yaml.get("log_file")
+    if isinstance(log_value, str):
+        payload["log_file"] = log_value
+    elif log_value in (None, ""):
+        payload["log_file"] = None
+    return payload
+
+
 def read_config_payload(config_path: str | Path) -> dict[str, object]:
     """Normalized config document loaded from disk for the GUI editor state."""
 
     cfg = load_config(config_path)
-    payload = _cfg_to_dict(cfg)
+    raw_yaml = _load_raw_yaml(config_path)
+    payload = _apply_authored_path_overrides(_cfg_to_dict(cfg), raw_yaml)
     payload["config_path"] = str(Path(config_path).expanduser().resolve())
     return payload
 
@@ -385,11 +571,10 @@ def write_config_payload(config_path: str | Path, payload: dict[str, Any]) -> di
     except Exception as exc:
         raise RuntimeError("PyYAML is required for config writes. Install with: pip install PyYAML") from exc
 
-    config = _payload_to_config(payload)
     out_path = Path(config_path).expanduser().resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    yaml_payload = _config_to_yaml_payload(config)
+    yaml_payload = _payload_to_yaml_payload(payload)
     out_path.write_text(yaml.safe_dump(yaml_payload, sort_keys=False), encoding="utf-8")
 
     reloaded = load_config(out_path)
@@ -397,6 +582,27 @@ def write_config_payload(config_path: str | Path, payload: dict[str, Any]) -> di
         "config_path": str(out_path),
         "saved": True,
         "resolved": _cfg_to_dict(reloaded),
+    }
+
+
+def project_init_payload(config_path: str | Path) -> dict[str, object]:
+    """Materialize project directories and eagerly initialize the queue schema for a new project."""
+
+    cfg_path = Path(config_path).expanduser().resolve()
+    cfg = load_config(cfg_path)
+    db = QueueDB(cfg.watch.db_path)
+    try:
+        pass
+    finally:
+        db.close()
+
+    return {
+        "config_path": str(cfg_path),
+        "db_path": str(cfg.watch.db_path),
+        "source_dir": str(cfg.watch.source_dir),
+        "working_dir": str(cfg.watch.working_dir),
+        "output_dir": str(cfg.watch.output_dir),
+        "initialized": True,
     }
 
 
@@ -1786,6 +1992,9 @@ def _build_parser() -> argparse.ArgumentParser:
     cfg_write = sub.add_parser("config-write", help="Write config from JSON stdin")
     cfg_write.add_argument("--config", required=True, help="Path to YAML config")
 
+    project_init = sub.add_parser("project-init", help="Initialize project directories and queue DB")
+    project_init.add_argument("--config", required=True, help="Path to YAML config")
+
     health = sub.add_parser("health", help="Emit runtime/dependency health as JSON")
     health.add_argument("--config", default=None, help="Optional config path to validate")
 
@@ -1927,6 +2136,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "config-write":
             payload = _read_json_stdin()
             print(json.dumps(write_config_payload(args.config, payload), indent=2))
+            return 0
+        if args.command == "project-init":
+            print(json.dumps(project_init_payload(args.config), indent=2))
             return 0
         if args.command == "health":
             print(json.dumps(health_payload(args.config), indent=2))

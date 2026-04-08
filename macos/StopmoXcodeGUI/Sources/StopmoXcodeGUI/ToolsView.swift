@@ -195,12 +195,26 @@ struct ToolsView: View {
         }
     }
 
-    nonisolated static func resolvedDpxInputDir(currentInputDir: String, configOutputDir: String) -> String {
+    nonisolated static func resolvedDpxInputDir(
+        currentInputDir: String,
+        configOutputDir: String,
+        configPath: String? = nil,
+        workspaceRoot: String? = nil
+    ) -> String {
         let current = currentInputDir.trimmingCharacters(in: .whitespacesAndNewlines)
         if !current.isEmpty {
-            return current
+            return PathTimestampHelpers.resolveFilesystemPath(
+                current,
+                configPath: configPath,
+                workspaceRoot: workspaceRoot
+            ) ?? current
         }
-        return configOutputDir.trimmingCharacters(in: .whitespacesAndNewlines)
+        let configured = configOutputDir.trimmingCharacters(in: .whitespacesAndNewlines)
+        return PathTimestampHelpers.resolveFilesystemPath(
+            configured,
+            configPath: configPath,
+            workspaceRoot: workspaceRoot
+        ) ?? configured
     }
 
     private var transcodePreflight: ToolPreflight {
@@ -239,10 +253,10 @@ struct ToolsView: View {
             return
         }
 
-        let outputDir = emptyToNil(transcodeOutputDir)
+        let outputDir = resolvedOptionalPath(transcodeOutputDir)
         await viewModel.runTranscodeOne(
             state: state,
-            inputPath: transcodeInputPath,
+            inputPath: resolvedPath(transcodeInputPath),
             outputDir: outputDir
         ) { input, output in
             recentTranscodeInputRaw = ToolsRecentsStore.append(input, to: recentTranscodeInputRaw)
@@ -265,10 +279,10 @@ struct ToolsView: View {
 
         await viewModel.runSuggestMatrix(
             state: state,
-            inputPath: matrixInputPath,
+            inputPath: resolvedPath(matrixInputPath),
             cameraMake: emptyToNil(matrixCameraMake),
             cameraModel: emptyToNil(matrixCameraModel),
-            writeJson: emptyToNil(matrixWriteJsonPath)
+            writeJson: resolvedOptionalPath(matrixWriteJsonPath)
         ) { input, report in
             recentMatrixInputRaw = ToolsRecentsStore.append(input, to: recentMatrixInputRaw)
             if let report {
@@ -290,8 +304,8 @@ struct ToolsView: View {
 
         await viewModel.runDpxToProres(
             state: state,
-            inputDir: dpxInputDir,
-            outputDir: emptyToNil(dpxOutputDir),
+            inputDir: resolvedPath(dpxInputDir),
+            outputDir: resolvedOptionalPath(dpxOutputDir),
             framerate: dpxFramerate,
             overwrite: dpxOverwrite
         ) { input, output in
@@ -315,7 +329,9 @@ struct ToolsView: View {
         }
         let resolved = Self.resolvedDpxInputDir(
             currentInputDir: dpxInputDir,
-            configOutputDir: state.config.watch.outputDir
+            configOutputDir: state.config.watch.outputDir,
+            configPath: state.configPath,
+            workspaceRoot: state.repoRoot
         )
         if resolved != dpxInputDir, !resolved.isEmpty {
             dpxInputDir = resolved
@@ -365,8 +381,9 @@ struct ToolsView: View {
     }
 
     private func countDpxFiles(in directoryPath: String) -> Int {
+        let resolvedDirectoryPath = resolvedPath(directoryPath)
         let fm = FileManager.default
-        guard let enumerator = fm.enumerator(atPath: directoryPath) else {
+        guard let enumerator = fm.enumerator(atPath: resolvedDirectoryPath) else {
             return 0
         }
         var count = 0
@@ -382,10 +399,34 @@ struct ToolsView: View {
     }
 
     private func pathExists(_ value: String) -> Bool {
-        PathTimestampHelpers.pathExists(value)
+        PathTimestampHelpers.pathExists(
+            value,
+            configPath: state.configPath,
+            workspaceRoot: state.repoRoot
+        )
     }
 
     private func emptyToNil(_ value: String) -> String? {
         PathTimestampHelpers.trimmedOrNil(value)
+    }
+
+    private func resolvedPath(_ value: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return PathTimestampHelpers.resolveFilesystemPath(
+            trimmed,
+            configPath: state.configPath,
+            workspaceRoot: state.repoRoot
+        ) ?? trimmed
+    }
+
+    private func resolvedOptionalPath(_ value: String) -> String? {
+        guard let trimmed = PathTimestampHelpers.trimmedOrNil(value) else {
+            return nil
+        }
+        return PathTimestampHelpers.resolveFilesystemPath(
+            trimmed,
+            configPath: state.configPath,
+            workspaceRoot: state.repoRoot
+        ) ?? trimmed
     }
 }

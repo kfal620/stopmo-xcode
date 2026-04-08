@@ -70,6 +70,70 @@ final class AppStateBridgeOrchestrationTests: XCTestCase {
         XCTAssertEqual(state.statusMessage, "Deleted shot SHOT_A")
     }
 
+    func testCreateNewProjectInitializesProjectAndRecordsRecent() async {
+        UserDefaults.standard.removeObject(forKey: "framerelay_recent_projects_v1")
+        let bridge = FakeBridgeService()
+        let state = makeState(bridge: bridge)
+        let parent = FileManager.default.temporaryDirectory
+            .appendingPathComponent("framerelay-new-project-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+        state.newProjectDraft = NewProjectDraft(projectName: "PawPatrol", parentDirectory: parent.path)
+
+        await state.createNewProject()
+
+        XCTAssertEqual(bridge.projectInitCallCount, 1)
+        XCTAssertEqual(bridge.readConfigCallCount, 1)
+        XCTAssertEqual(bridge.configValidateCallCount, 1)
+        XCTAssertEqual(bridge.watchPreflightCallCount, 1)
+        XCTAssertEqual(state.repoRoot, parent.appendingPathComponent("PawPatrol", isDirectory: true).path)
+        XCTAssertEqual(state.configPath, parent.appendingPathComponent("PawPatrol/config/sample.yaml").path)
+        XCTAssertEqual(state.recentProjects.first?.displayName, "PawPatrol")
+        XCTAssertFalse(state.isNewProjectSheetPresented)
+    }
+
+    func testRunDayWrapBatchDeliveryResolvesRelativePathsAgainstConfig() async {
+        let bridge = FakeBridgeService()
+        let state = makeState(bridge: bridge)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("framerelay-relative-delivery-\(UUID().uuidString)", isDirectory: true)
+        let configPath = root.appendingPathComponent("config/sample.yaml").path
+        state.repoRoot = root.path
+        state.configPath = configPath
+        state.config.watch.outputDir = "../output"
+
+        _ = await state.runDayWrapBatchDelivery(
+            inputDir: "../output",
+            outputDir: "../delivery",
+            framerate: 24,
+            overwrite: true
+        )
+
+        XCTAssertEqual(bridge.lastDpxInputDir, root.appendingPathComponent("output").path)
+        XCTAssertEqual(bridge.lastDpxOutputDir, root.appendingPathComponent("delivery").path)
+    }
+
+    func testDeliverShotsToProresResolvesRelativeShotRootsAgainstConfig() async {
+        let bridge = FakeBridgeService()
+        let state = makeState(bridge: bridge)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("framerelay-relative-shot-\(UUID().uuidString)", isDirectory: true)
+        let configPath = root.appendingPathComponent("config/sample.yaml").path
+        state.repoRoot = root.path
+        state.configPath = configPath
+        state.config.watch.outputDir = "../output"
+
+        let outputs = await state.deliverShotsToProres(
+            shotInputRoots: ["../output/SHOT_A"],
+            framerate: 24,
+            overwrite: true,
+            outputDir: "../delivery"
+        )
+
+        XCTAssertEqual(outputs, ["/tmp/output.mov"])
+        XCTAssertEqual(bridge.lastDpxInputDir, root.appendingPathComponent("output/SHOT_A").path)
+        XCTAssertEqual(bridge.lastDpxOutputDir, root.appendingPathComponent("delivery").path)
+    }
+
     private func makeState(bridge: FakeBridgeService) -> AppState {
         let deps = AppStateDependencies(
             bridgeService: bridge,
@@ -83,11 +147,17 @@ final class AppStateBridgeOrchestrationTests: XCTestCase {
 
 private final class FakeBridgeService: BridgeServicing {
     private(set) var healthCallCount = 0
+    private(set) var readConfigCallCount = 0
+    private(set) var projectInitCallCount = 0
+    private(set) var configValidateCallCount = 0
+    private(set) var watchPreflightCallCount = 0
     private(set) var watchStateCallCount = 0
     private(set) var shotsSummaryCallCount = 0
     private(set) var queueRetryShotFailedCallCount = 0
     private(set) var queueRestartShotCallCount = 0
     private(set) var queueDeleteShotCallCount = 0
+    private(set) var lastDpxInputDir: String?
+    private(set) var lastDpxOutputDir: String?
 
     func health(repoRoot: String, configPath: String) async throws -> BridgeHealth {
         healthCallCount += 1
@@ -112,11 +182,24 @@ private final class FakeBridgeService: BridgeServicing {
     }
 
     func readConfig(repoRoot: String, configPath: String) async throws -> StopmoConfigDocument {
-        .empty
+        readConfigCallCount += 1
+        return .empty
     }
 
     func writeConfig(repoRoot: String, configPath: String, config: StopmoConfigDocument) async throws -> StopmoConfigDocument {
         config
+    }
+
+    func projectInit(repoRoot: String, configPath: String) async throws -> ProjectInitResult {
+        projectInitCallCount += 1
+        return ProjectInitResult(
+            configPath: configPath,
+            dbPath: "\(repoRoot)/work/queue.sqlite3",
+            sourceDir: "\(repoRoot)/incoming",
+            workingDir: "\(repoRoot)/work",
+            outputDir: "\(repoRoot)/output",
+            initialized: true
+        )
     }
 
     func watchStart(repoRoot: String, configPath: String) async throws -> WatchServiceState {
@@ -171,11 +254,13 @@ private final class FakeBridgeService: BridgeServicing {
     }
 
     func configValidate(repoRoot: String, configPath: String) async throws -> ConfigValidationSnapshot {
-        ConfigValidationSnapshot(configPath: configPath, ok: true, errors: [], warnings: [])
+        configValidateCallCount += 1
+        return ConfigValidationSnapshot(configPath: configPath, ok: true, errors: [], warnings: [])
     }
 
     func watchPreflight(repoRoot: String, configPath: String) async throws -> WatchPreflight {
-        WatchPreflight(
+        watchPreflightCallCount += 1
+        return WatchPreflight(
             configPath: configPath,
             ok: true,
             blockers: [],
@@ -195,7 +280,9 @@ private final class FakeBridgeService: BridgeServicing {
         framerate: Int,
         overwrite: Bool
     ) async throws -> ToolOperationEnvelope {
-        ToolOperationEnvelope(
+        lastDpxInputDir = inputDir
+        lastDpxOutputDir = outputDir
+        return ToolOperationEnvelope(
             operationId: "op-1",
             operation: OperationSnapshotRecord(
                 id: "op-1",

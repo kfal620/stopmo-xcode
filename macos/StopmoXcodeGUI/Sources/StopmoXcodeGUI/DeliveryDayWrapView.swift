@@ -39,7 +39,7 @@ struct DeliveryDayWrapView: View {
                     isRunningDelivery: state.deliveryRunState.status == .running,
                     activeRunLabel: state.deliveryRunState.activeLabel,
                     availableHeight: availableHeight,
-                    baseOutputDir: state.config.watch.outputDir,
+                    baseOutputDir: state.resolvedWatchOutputDirPath ?? state.config.watch.outputDir,
                     onSelectAllReady: {
                         selectedShotNames = Set(readyShotEvaluations.map { $0.shot.shotName })
                     },
@@ -170,7 +170,9 @@ struct DeliveryDayWrapView: View {
     }
 
     private var watchOutputRootReady: Bool {
-        !state.config.watch.outputDir.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !(state.resolvedWatchOutputDirPath ?? state.config.watch.outputDir)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty
     }
 
     private func syncSelectionFromSnapshot() {
@@ -189,7 +191,9 @@ struct DeliveryDayWrapView: View {
     private func hydrateDefaultsIfNeeded() {
         let resolved = ToolsView.resolvedDpxInputDir(
             currentInputDir: dpxInputDir,
-            configOutputDir: state.config.watch.outputDir
+            configOutputDir: state.config.watch.outputDir,
+            configPath: state.configPath,
+            workspaceRoot: state.repoRoot
         )
         if !resolved.isEmpty, resolved != dpxInputDir {
             dpxInputDir = resolved
@@ -270,7 +274,7 @@ struct DeliveryDayWrapView: View {
     }
 
     private func shotRootPath(for shot: ShotSummaryRow) -> String {
-        PathTimestampHelpers.shotRootPath(baseOutputDir: state.config.watch.outputDir, shotName: shot.shotName)
+        state.resolvedShotRootPath(for: shot.shotName)
     }
 
     private func chooseDirectoryPath() -> String? {
